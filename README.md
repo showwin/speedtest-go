@@ -1,5 +1,5 @@
 # speedtest-go
-Command Line Interface to Test Internet Speed using speedtest.net(http://www.speedtest.net/)
+Command Line Interface to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)
 
 ## ToDo
 * [x] fetch available servers
@@ -8,8 +8,9 @@ Command Line Interface to Test Internet Speed using speedtest.net(http://www.spe
 * [ ] make assets to upload
 * [ ] measure upload speed
 * [ ] better down/upload algorithm for very low bandwidth
-* [ ] --server id option: select server to test
-* [ ] --world option: measure down/upload speed to world wide servers
-* [ ] --secure option: use HTTPS instead of HTTP
+* [ ] `--server id` option: select server to test
+* [ ] `--world` option: measure down/upload speed to world wide servers
+* [ ] `--secure` option: use HTTPS instead of HTTP
 
-LICENSE [MIT](https://github.com/showwin/speedtest-go/blob/master/LICENSE)
+##LICENSE
+[MIT](https://github.com/showwin/speedtest-go/blob/master/LICENSE)
