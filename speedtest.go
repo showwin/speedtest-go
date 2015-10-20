@@ -4,16 +4,16 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"github.com/cheggaaa/pb"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"io/ioutil"
 	"math"
 	"net/http"
 	"os"
 	"sort"
 	"strconv"
-  "strings"
-  "time"
+	"strings"
+	"time"
 )
 
 type User struct {
@@ -62,11 +62,11 @@ func (s Servers) Swap(i, j int) {
 func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
 }
+
 // for sort =end=
 
 func FetchUserInfo() {
 	// fetch xml user data
-	fmt.Println("Retrieving User Information ...")
 	resp, err := http.Get("http://www.speedtest.net/speedtest-config.php")
 	CheckError(err)
 	body, err := ioutil.ReadAll(resp.Body)
@@ -91,7 +91,6 @@ func FetchUserInfo() {
 
 func FetchServerList() {
 	// fetch xml server data
-	fmt.Println("Retrieving Server Information ...")
 	resp, err := http.Get("http://www.speedtest.net/speedtest-servers-static.php")
 	CheckError(err)
 	body, err := ioutil.ReadAll(resp.Body)
@@ -143,8 +142,8 @@ func ShowUserInfo() {
 
 func ShowServerList() {
 	for _, server := range list.Servers {
-		fmt.Printf("[%4s] %8.2fkm "+server.Name+" ", server.Id, server.Distance)
-		fmt.Printf("(" + server.Country + ") by " + server.Sponsor + "\n")
+		fmt.Printf("[%4s] %8.2fkm ", server.Id, server.Distance)
+		fmt.Printf(server.Name + " (" + server.Country + ") by " + server.Sponsor + "\n")
 	}
 }
 
@@ -155,9 +154,33 @@ func CheckError(err error) {
 	}
 }
 
+func FindServer() {
+	// default
+	if *serverId == 0 {
+		testServer = list.Servers[1]
+		return
+	}
+
+	// --server option
+	for _, server := range list.Servers {
+		sid, _ := strconv.Atoi(server.Id)
+		if *serverId == sid {
+			testServer = server
+		}
+	}
+	if testServer.Url == "" {
+		testServer = list.Servers[1]
+	}
+}
+
+func ShowServerInfo() {
+	fmt.Printf("Target Server: [%4s] %8.2fkm ", testServer.Id, testServer.Distance)
+	fmt.Printf(testServer.Name + " (" + testServer.Country + ") by " + testServer.Sponsor + "\n")
+}
+
 func DownloadTest() {
-  dlUrl := strings.Split(list.Servers[1].Url, "/upload")[0]
-  dlSpeed := DownloadSpeed(dlUrl)
+	dlUrl := strings.Split(testServer.Url, "/upload")[0]
+	dlSpeed := DownloadSpeed(dlUrl)
 	fmt.Printf("Download: %5.2f Mbit/s\n", dlSpeed)
 }
 
@@ -167,40 +190,42 @@ func DownloadSpeed(dlUrl string) float64 {
 	bar := pb.StartNew(count)
 	bar.ShowBar = false
 	bar.ShowCounters = false
-  sizes := [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
-  urls := [40]string{}
-  for i, size := range sizes {
-    for j := 0; j < 4; j++ {
-      urls[i*4+j] = dlUrl+"/random"+strconv.Itoa(size)+"x"+strconv.Itoa(size)+".jpg"
-    }
-  }
+	sizes := [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
+	urls := [40]string{}
+	for i, size := range sizes {
+		for j := 0; j < 4; j++ {
+			urls[i*4+j] = dlUrl + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+		}
+	}
 
 	totalTime := time.Duration(0)
-  for i, url := range urls {
+	for i, url := range urls {
 		for j := 0; j <= i; j++ {
 			bar.Increment()
 		}
-    start_time := time.Now()
-    resp, err := http.Get(url)
+		start_time := time.Now()
+		resp, err := http.Get(url)
 		CheckError(err)
 		ioutil.ReadAll(resp.Body)
-    finish_time := time.Now()
-    defer resp.Body.Close()
+		finish_time := time.Now()
+		defer resp.Body.Close()
 
 		totalTime = totalTime + finish_time.Sub(start_time)
-  }
+	}
 
 	sumSize := 0.0
 	for _, size := range sizes {
-		sumSize = sumSize + 4.0 * 2.0 * float64(size) * float64(size) / 1000.0 / 1000.0
+		sumSize = sumSize + 4.0*2.0*float64(size)*float64(size)/1000.0/1000.0
 	}
 
-  return sumSize * 8 / totalTime.Seconds()
+	return sumSize * 8 / totalTime.Seconds()
 }
 
 var list = List{}
 var user = User{}
+var testServer = Server{}
 var showList = kingpin.Flag("list", "show available speedtest.net servers").Short('l').Bool()
+var serverId = kingpin.Flag("server", "select server id to speedtest").Short('s').Int()
 
 func main() {
 	kingpin.Parse()
@@ -210,6 +235,9 @@ func main() {
 	FetchServerList()
 	if *showList {
 		ShowServerList()
+		return
 	}
-  DownloadTest()
+	FindServer()
+	ShowServerInfo()
+	DownloadTest()
 }

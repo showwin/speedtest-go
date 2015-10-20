@@ -8,7 +8,7 @@ Command Line Interface to Test Internet Speed using [speedtest.net](http://www.s
 * [ ] make assets to upload
 * [ ] measure upload speed
 * [ ] better down/upload algorithm for very low bandwidth
-* [ ] `--server id` option: select server to test
+* [x] `--server id` option: select server to test
 * [ ] `--world` option: measure down/upload speed to world wide servers
 * [ ] `--secure` option: use HTTPS instead of HTTP
 
