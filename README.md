@@ -3,8 +3,8 @@ Command Line Interface to Test Internet Speed using [speedtest.net](http://www.s
 
 ## ToDo
 * [x] fetch available servers
-* [ ] select closest server to test
-* [ ] measure download speed
+* [x] select closest server to test
+* [x] measure download speed
 * [ ] make assets to upload
 * [ ] measure upload speed
 * [ ] better down/upload algorithm for very low bandwidth
