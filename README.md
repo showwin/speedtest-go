@@ -25,7 +25,7 @@ Flags:
 * [x] `--server id` option: select server to test
 * [ ] `--world` option: measure down/upload speed to world wide servers
 * [ ] `--secure` option: use HTTPS instead of HTTP
-* [ ] build binary file for measure OS
+* [ ] build binary file for major OS
 
 ##LICENSE
 [MIT](https://github.com/showwin/speedtest-go/blob/master/LICENSE)
