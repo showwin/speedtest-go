@@ -272,8 +272,8 @@ func ShowResult() {
 var list = List{}
 var user = User{}
 var testServer = Server{}
-var showList = kingpin.Flag("list", "show available speedtest.net servers").Short('l').Bool()
-var serverId = kingpin.Flag("server", "select server id to speedtest").Short('s').Int()
+var showList = kingpin.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
+var serverId = kingpin.Flag("server", "Select server id to speedtest").Short('s').Int()
 var dlSpeed = 0.0
 var ulSpeed = 0.0
 
