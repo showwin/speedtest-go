@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -180,8 +181,7 @@ func ShowServerInfo() {
 
 func DownloadTest() {
 	dlUrl := strings.Split(testServer.Url, "/upload")[0]
-	dlSpeed := DownloadSpeed(dlUrl)
-	fmt.Printf("Download: %5.2f Mbit/s\n", dlSpeed)
+	dlSpeed = DownloadSpeed(dlUrl)
 }
 
 func DownloadSpeed(dlUrl string) float64 {
@@ -215,10 +215,58 @@ func DownloadSpeed(dlUrl string) float64 {
 
 	sumSize := 0.0
 	for _, size := range sizes {
-		sumSize = sumSize + 4.0*2.0*float64(size)*float64(size)/1000.0/1000.0
+		sumSize = sumSize + 4*2*float64(size)*float64(size)/1000/1000
 	}
 
 	return sumSize * 8 / totalTime.Seconds()
+}
+
+func UploadTest() {
+	ulSpeed = UploadSpeed(testServer.Url)
+}
+
+func UploadSpeed(ulUrl string) float64 {
+	fmt.Println("Testing Upload Speed ...")
+	count := 40 * (40 + 1) / 2
+	bar := pb.StartNew(count)
+	bar.ShowBar = false
+	bar.ShowCounters = false
+	sizes := [...]int{100, 300, 500, 800, 1000, 2000, 3000, 4000} //kB
+
+	testSizes := [40]int{}
+	for i, size := range sizes {
+		for j := 0; j < 5; j++ {
+			testSizes[i*5+j] = size
+		}
+	}
+
+	sumSize := 0
+	totalTime := time.Duration(0)
+	for i, size := range testSizes {
+		for j := 0; j <= i; j++ {
+			bar.Increment()
+		}
+		v := url.Values{}
+		v.Add("content", strings.Repeat("0", size*1000 - 160))
+
+		start_time := time.Now()
+		resp, err := http.PostForm(ulUrl, v)
+		CheckError(err)
+		r_body, _ := ioutil.ReadAll(resp.Body)
+		finish_time := time.Now()
+		defer resp.Body.Close()
+
+		totalTime = totalTime + finish_time.Sub(start_time)
+		s, _ := strconv.Atoi(string(r_body)[5:])
+		sumSize = sumSize + s
+	}
+
+	return float64(sumSize) * 8 / 1000 / 1000 / totalTime.Seconds()
+}
+
+func ShowResult() {
+	fmt.Printf("Download: %5.2f Mbit/s\n", dlSpeed)
+	fmt.Printf("Upload: %5.2f Mbit/s\n", ulSpeed)
 }
 
 var list = List{}
@@ -226,6 +274,8 @@ var user = User{}
 var testServer = Server{}
 var showList = kingpin.Flag("list", "show available speedtest.net servers").Short('l').Bool()
 var serverId = kingpin.Flag("server", "select server id to speedtest").Short('s').Int()
+var dlSpeed = 0.0
+var ulSpeed = 0.0
 
 func main() {
 	kingpin.Parse()
@@ -240,4 +290,6 @@ func main() {
 	FindServer()
 	ShowServerInfo()
 	DownloadTest()
+	UploadTest()
+	ShowResult()
 }
