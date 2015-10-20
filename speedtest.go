@@ -247,7 +247,7 @@ func UploadSpeed(ulUrl string) float64 {
 			bar.Increment()
 		}
 		v := url.Values{}
-		v.Add("content", strings.Repeat("0", size*1000 - 160))
+		v.Add("content", strings.Repeat("0", size*1000-160))
 
 		start_time := time.Now()
 		resp, err := http.PostForm(ulUrl, v)
