@@ -1,6 +1,9 @@
 # speedtest-go
 Command Line Interface to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)
 
+## Usage
+![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage.png)
+
 ## ToDo
 * [x] fetch available servers
 * [x] select closest server to test
