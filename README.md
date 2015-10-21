@@ -13,10 +13,10 @@ Flags:
   -l, --list           show available speedtest.net servers
   -s, --server=SERVER  select server id to speedtest
 ```
-**Select Closest Server by default**
+**Select Closest Server by Default**
 ![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_closest.png)
 
-**Select Multiple Server by server ids**
+**Select Multiple Server with Server IDs**
 ![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_multi.png)
 
 ## ToDo
