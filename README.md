@@ -5,7 +5,7 @@ Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
 
 ## Usage
 ```
-$ go run speedtest.go --help
+$ go run *.go --help
 usage: speedtest [<flags>]
 
 Flags:
@@ -13,7 +13,11 @@ Flags:
   -l, --list           show available speedtest.net servers
   -s, --server=SERVER  select server id to speedtest
 ```
-![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage.png)
+**Select Closest Server by default**
+![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_closest.png)
+
+**Select Multiple Server by server ids**
+![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_multi.png)
 
 ## ToDo
 * [x] fetch available servers
@@ -23,9 +27,11 @@ Flags:
 * [x] measure upload speed
 * [ ] better down/upload algorithm for very low bandwidth
 * [x] `--server id` option: select server to test
+* [x] `--server id` option: improve for multi ids
 * [ ] `--world` option: measure down/upload speed to world wide servers
 * [ ] `--secure` option: use HTTPS instead of HTTP
 * [ ] build binary file for major OS
+* [ ] improve progress accuracy
 
 ##LICENSE
 [MIT](https://github.com/showwin/speedtest-go/blob/master/LICENSE)

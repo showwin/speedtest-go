@@ -43,6 +43,6 @@ func FetchUserInfo() User {
 	return users.Users[0]
 }
 
-func (u User) Show() {
+func (u *User) Show() {
 	fmt.Println("IP: " + u.Ip + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
 }

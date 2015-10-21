@@ -14,13 +14,10 @@ func CheckError(err error) {
 	}
 }
 
-func ShowResult(dlSpeed float64, ulSpeed float64) {
-	fmt.Printf("Download: %5.2f Mbit/s\n", dlSpeed)
-	fmt.Printf("Upload: %5.2f Mbit/s\n", ulSpeed)
-}
-
-var showList = kingpin.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
-var serverId = kingpin.Flag("server", "Select server id to speedtest").Short('s').Int()
+var (
+	showList = kingpin.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
+	serverIds = kingpin.Flag("server", "Select server id to speedtest").Short('s').Ints()
+)
 
 func main() {
 	kingpin.Parse()
@@ -33,9 +30,8 @@ func main() {
 		list.Show()
 		return
 	}
-	target := list.FindServer(*serverId)
-	target.Show()
-	dlSpeed := target.DownloadTest()
-	ulSpeed := target.UploadTest()
-	ShowResult(dlSpeed, ulSpeed)
+
+	targets := list.FindServer(*serverIds)
+	targets.StartTest()
+	targets.ShowResult()
 }
