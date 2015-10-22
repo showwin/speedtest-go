@@ -30,7 +30,10 @@ Flags:
 **Select Closest Server by Default**
 ![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage.png)
 
-**Select Multiple Server with Server IDs**
+**Show Available Servers**
+![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_list.png)
+
+**Select Multiple Servers with Server ID**
 ![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_multi_servers.png)
 
 ##LICENSE
