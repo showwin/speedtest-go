@@ -3,35 +3,27 @@ Command Line Interface to Test Internet Speed using [speedtest.net](http://www.s
 
 Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
 
+## Install
+to be written.
+
 ## Usage
 ```
 $ go run *.go --help
-usage: speedtest [<flags>]
+usage: download [<flags>]
 
 Flags:
-      --help           Show context-sensitive help (also try --help-long and --help-man).
-  -l, --list           show available speedtest.net servers
-  -s, --server=SERVER  select server id to speedtest
+      --help             Show context-sensitive help (also try --help-long and --help-man).
+  -l, --list             Show available speedtest.net servers
+  -s, --server=SERVER    Select server id to speedtest
+  -t, --timeout=TIMEOUT  Define timeout seconds. Default: 10 sec
+      --version          Show application version.
 ```
+
 **Select Closest Server by Default**
 ![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_closest.png)
 
 **Select Multiple Server with Server IDs**
 ![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_multi.png)
-
-## ToDo
-* [x] fetch available servers
-* [x] select closest server to test
-* [x] measure download speed
-* [x] make assets to upload
-* [x] measure upload speed
-* [ ] better down/upload algorithm for very low bandwidth
-* [x] `--server id` option: select server to test
-* [x] `--server id` option: improve for multi ids
-* [ ] `--world` option: measure down/upload speed to world wide servers
-* [ ] `--secure` option: use HTTPS instead of HTTP
-* [ ] build binary file for major OS
-* [ ] improve progress accuracy
 
 ##LICENSE
 [MIT](https://github.com/showwin/speedtest-go/blob/master/LICENSE)

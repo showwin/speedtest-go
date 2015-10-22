@@ -44,5 +44,5 @@ func FetchUserInfo() User {
 }
 
 func (u *User) Show() {
-	fmt.Println("IP: " + u.Ip + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
+	fmt.Println("Testing From IP: " + u.Ip + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
 }

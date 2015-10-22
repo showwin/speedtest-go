@@ -14,13 +14,24 @@ func CheckError(err error) {
 	}
 }
 
+func SetTimeout() {
+	if *timeoutOpt != 0 {
+		timeout = *timeoutOpt
+	}
+}
+
 var (
 	showList = kingpin.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
 	serverIds = kingpin.Flag("server", "Select server id to speedtest").Short('s').Ints()
+	timeoutOpt = kingpin.Flag("timeout", "Define timeout seconds. Default: 10 sec").Short('t').Int()
+	timeout = 10
 )
 
 func main() {
+	kingpin.Version("0.0.1")
 	kingpin.Parse()
+
+	SetTimeout()
 
 	user := FetchUserInfo()
 	user.Show()
