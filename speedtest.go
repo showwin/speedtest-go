@@ -28,7 +28,7 @@ var (
 )
 
 func main() {
-	kingpin.Version("0.0.1")
+	kingpin.Version("0.1.0")
 	kingpin.Parse()
 
 	SetTimeout()
