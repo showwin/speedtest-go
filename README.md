@@ -3,12 +3,20 @@ Command Line Interface to Test Internet Speed using [speedtest.net](http://www.s
 
 Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
 
-## Install
-to be written.
+## Installation
+### OS X (homebrew)
+```
+$ brew tap showwin/speedtest
+$ brew install speedtest
+
+### How to Update ###
+$ brew update
+$ brew upgrate speedtest
+```
 
 ## Usage
 ```
-$ go run *.go --help
+$ speedtest --help
 usage: download [<flags>]
 
 Flags:
