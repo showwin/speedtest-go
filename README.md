@@ -28,10 +28,10 @@ Flags:
 ```
 
 **Select Closest Server by Default**
-![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_closest.png)
+![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage.png)
 
 **Select Multiple Server with Server IDs**
-![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_multi.png)
+![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_multi_servers.png)
 
 ##LICENSE
 [MIT](https://github.com/showwin/speedtest-go/blob/master/LICENSE)
