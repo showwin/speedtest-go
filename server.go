@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 )
 
 type Server struct {
@@ -137,8 +136,7 @@ func (s Server) Show() {
 func (svrs Servers) StartTest() {
 	for i, s := range svrs {
 		s.Show()
-		dlUrl := strings.Split(s.Url, "/upload")[0]
-		dlSpeed := SpeedTest("download", dlUrl)
+		dlSpeed := SpeedTest("download", s.Url)
 		ulSpeed := SpeedTest("upload", s.Url)
 		svrs[i].DLSpeed = dlSpeed
 		svrs[i].ULSpeed = ulSpeed
