@@ -23,8 +23,8 @@ type Server struct {
 	Url2     string `xml:"url2,attr"`
 	Host     string `xml:"host,attr"`
 	Distance float64
-  DLSpeed  float64
-  ULSpeed  float64
+	DLSpeed  float64
+	ULSpeed  float64
 }
 
 type List struct {
@@ -103,22 +103,22 @@ func Distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 }
 
 func (l *List) FindServer(serverId []int) Servers {
-  servers := Servers{}
+	servers := Servers{}
 
-  for _, sid := range serverId {
-    for _, s := range l.Servers {
-      id, _ := strconv.Atoi(s.Id)
-      if sid == id {
-        servers = append(servers, s)
-      }
-    }
-  }
+	for _, sid := range serverId {
+		for _, s := range l.Servers {
+			id, _ := strconv.Atoi(s.Id)
+			if sid == id {
+				servers = append(servers, s)
+			}
+		}
+	}
 
-  if len(servers) == 0 {
-    servers = append(servers, l.Servers[0])
-  }
+	if len(servers) == 0 {
+		servers = append(servers, l.Servers[0])
+	}
 
-  return servers
+	return servers
 }
 
 func (l List) Show() {
@@ -129,46 +129,38 @@ func (l List) Show() {
 }
 
 func (s Server) Show() {
-  fmt.Printf(" \n")
-  fmt.Printf("Target Server: [%4s] %8.2fkm ", s.Id, s.Distance)
+	fmt.Printf(" \n")
+	fmt.Printf("Target Server: [%4s] %8.2fkm ", s.Id, s.Distance)
 	fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
 }
 
 func (svrs Servers) StartTest() {
-  for i, s := range svrs {
-    s.Show()
-    dlSpeed := s.DownloadTest()
-    ulSpeed := s.UploadTest()
-    svrs[i].DLSpeed = dlSpeed
-    svrs[i].ULSpeed = ulSpeed
-  }
-}
-
-func (s Server) DownloadTest() float64 {
-  dlUrl := strings.Split(s.Url, "/upload")[0]
-	return DownloadSpeed(dlUrl)
-}
-
-func (s Server) UploadTest() float64 {
-	return UploadSpeed(s.Url)
+	for i, s := range svrs {
+		s.Show()
+		dlUrl := strings.Split(s.Url, "/upload")[0]
+		dlSpeed := SpeedTest("download", dlUrl)
+		ulSpeed := SpeedTest("upload", s.Url)
+		svrs[i].DLSpeed = dlSpeed
+		svrs[i].ULSpeed = ulSpeed
+	}
 }
 
 func (svrs Servers) ShowResult() {
-  fmt.Printf(" \n")
-  if len(svrs) == 1 {
-    fmt.Printf("Download: %5.2f Mbit/s\n", svrs[0].DLSpeed)
-    fmt.Printf("Upload: %5.2f Mbit/s\n", svrs[0].ULSpeed)
-  } else {
-    for _, s := range svrs {
-      fmt.Printf("[%4s] Download: %5.2f Mbit/s, Upload: %5.2f Mbit/s\n", s.Id, s.DLSpeed, s.ULSpeed)
-    }
-    avgDL := 0.0
-    avgUL := 0.0
-    for _, s := range svrs {
-      avgDL = avgDL + s.DLSpeed
-      avgUL = avgUL + s.ULSpeed
-    }
-    fmt.Printf("Download Avg: %5.2f Mbit/s\n", avgDL / float64(len(svrs)))
-    fmt.Printf("Upload Avg: %5.2f Mbit/s\n", avgUL / float64(len(svrs)))
-  }
+	fmt.Printf(" \n")
+	if len(svrs) == 1 {
+		fmt.Printf("Download: %5.2f Mbit/s\n", svrs[0].DLSpeed)
+		fmt.Printf("Upload: %5.2f Mbit/s\n", svrs[0].ULSpeed)
+	} else {
+		for _, s := range svrs {
+			fmt.Printf("[%4s] Download: %5.2f Mbit/s, Upload: %5.2f Mbit/s\n", s.Id, s.DLSpeed, s.ULSpeed)
+		}
+		avgDL := 0.0
+		avgUL := 0.0
+		for _, s := range svrs {
+			avgDL = avgDL + s.DLSpeed
+			avgUL = avgUL + s.ULSpeed
+		}
+		fmt.Printf("Download Avg: %5.2f Mbit/s\n", avgDL/float64(len(svrs)))
+		fmt.Printf("Upload Avg: %5.2f Mbit/s\n", avgUL/float64(len(svrs)))
+	}
 }
