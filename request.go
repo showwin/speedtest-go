@@ -9,14 +9,13 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	//"github.com/cheggaaa/pb"
 )
 
 var totalSizeTmp = 0.0
 var totalSize = 0.0
 var latency = time.Duration(0)
 var extraTime = time.Duration(0)
+var startTime = time.Now()
 var on = time.Time{}
 var off = time.Time{}
 var exitTime = time.Time{}
@@ -33,28 +32,30 @@ func initialize(kind string, sUrl string) {
 	extraTime = latency*20
 	finished = false
 	workload = 0
+	startTime = time.Now()
+	on = startTime.Add(6 * time.Second)
+	off = startTime.Add(18 * time.Second).Add(extraTime)
+	exitTime = startTime.Add(22 * time.Second).Add(extraTime)
+	fmt.Printf(kind+" Test: ")
 }
 
 func SpeedTest(kind string, sUrl string) float64 {
 	initialize(kind, sUrl)
 	wg := new(sync.WaitGroup)
 	m := new(sync.Mutex)
-	startTime := time.Now()
-	on = startTime.Add(6 * time.Second)
-	off = startTime.Add(18 * time.Second).Add(extraTime)
-	exitTime = startTime.Add(22 * time.Second).Add(extraTime)
 
 	for i := 0; i < 4; i++ {
 		wg.Add(1)
 		go loopRequest(wg, m, kind, sUrl)
 	}
 	wg.Wait()
+	fmt.Printf("\n")
 
 	return totalSize * 8 / (12 + extraTime.Seconds())
 }
 
 func loopRequest(wg *sync.WaitGroup, m *sync.Mutex, kind string, sUrl string) {
-	if kind == "download" {
+	if kind == "Download" {
 		dlUrl := strings.Split(sUrl, "/upload")[0]
 		for {
 			downloadRequest(wg, m, dlUrl)
@@ -103,6 +104,7 @@ func uploadRequest(wg *sync.WaitGroup, m *sync.Mutex, ulUrl string) {
 func updateTotalSize(size int, wg *sync.WaitGroup, m *sync.Mutex, execTime time.Duration) {
 	m.Lock()
 	defer m.Unlock()
+	fmt.Printf(".")
 	if time.Now().After(on) && time.Now().Before(off) {
 		totalSizeTmp = totalSizeTmp + float64(size)/1000/1000 //MB
 	}
@@ -144,7 +146,6 @@ func pingTest(sUrl string) time.Duration {
 		l = l + fTime.Sub(sTime)
 	}
 
-	fmt.Println("latency")
-	fmt.Println((l / 6.0))
+	fmt.Println("latency:", (l / 6.0))
 	return l / 6.0
 }
