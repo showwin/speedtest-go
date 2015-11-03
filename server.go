@@ -136,8 +136,8 @@ func (s Server) Show() {
 func (svrs Servers) StartTest() {
 	for i, s := range svrs {
 		s.Show()
-		dlSpeed := SpeedTest("Download", s.Url)
-		ulSpeed := SpeedTest("Upload", s.Url)
+		dlSpeed := DownloadTest(s.Url)
+		ulSpeed := UploadTest(s.Url)
 		svrs[i].DLSpeed = dlSpeed
 		svrs[i].ULSpeed = ulSpeed
 	}
