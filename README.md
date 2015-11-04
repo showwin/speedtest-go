@@ -17,7 +17,7 @@ $ brew upgrate speedtest
 
 ### Others (Linux, Windows, etc.)
 Please download compatible package from [Releases](https://github.com/showwin/speedtest-go/releases).  
-If there are no compatible package what you want, please let me know by [issues](https://github.com/showwin/speedtest-go/issues).
+If there are no compatible package you want, please let me know by [issues](https://github.com/showwin/speedtest-go/issues).
 
 ## Usage
 ```
@@ -70,12 +70,12 @@ $ speedtest --server 6691 --server 6087
 Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 
 Target Server: [6691]     9.03km Shizuoka (Japan) by sudosan
-latency: 23.612861ms
+Latency: 23.612861ms
 Download Test: ................
 Upload Test: ........
 
 Target Server: [6087]   120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
-latency: 38.694699ms
+Latency: 38.694699ms
 Download Test: ................
 Upload Test: ................
 
@@ -94,6 +94,10 @@ Following data is summarized. If you got interested in, please see [more details
 
 ### Download (Mbps)
 distance = distance to testing server
+* 0 - 1000(km) ≒ domestic
+* 1000 - 8000(km) ≒ same region
+* 8000 - 20000(km) ≒ really far! 
+* 20000km is the half of the circumference of the earth.
 
 | distance (km) | speedtest.net | speedtest-go | speedtest-cli |
 | :-- | :--: | :--: | :--: |
