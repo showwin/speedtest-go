@@ -1,8 +1,6 @@
 # speedtest-go
-Command Line Interface to Test Internet Speed using [speedtest.net](http://www.speedtest.net/).
-
-You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/); nevertheless results are almost the same.
-[see experimental results]()
+Command Line Interface to Test Internet Speed using [speedtest.net](http://www.speedtest.net/).  
+You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/); nevertheless results are almost the same.  [see experimental results](https://github.com/showwin/speedtest-go#summary-of-experimental-results).
 
 Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
 
@@ -18,7 +16,8 @@ $ brew upgrate speedtest
 ```
 
 ### Others (Linux, Windows, etc.)
-Please download compatible package from [Releases](https://github.com/showwin/speedtest-go/releases)
+Please download compatible package from [Releases](https://github.com/showwin/speedtest-go/releases).  
+If there are no compatible package what you want, please let me know by [issues](https://github.com/showwin/speedtest-go/issues).
 
 ## Usage
 ```
@@ -62,7 +61,7 @@ Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 [6766]   232.54km Nomi (Japan) by JAIST(ino-lab)
 [6476]   265.10km Osaka (Japan) by rxy (individual)
 [6477]   268.94km Sakai (Japan) by satoweb
-…
+...
 ```
 
 #### Select Multiple Servers by Server ID
@@ -91,11 +90,12 @@ Speedtest-go is a great tool because of following 2 reasons:
 * Testing time is the **SHORTEST** compare to [speedtest.net](http://www.speedtest.net/) and [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli), especially about 2x faster then [speedtest.net](http://www.speedtest.net/).
 * Result is **MORE CLOSE** to [speedtest.net](http://www.speedtest.net/) than [speedtest-cli](https://github.com/sivel/speedtest-cli).
 
-Following data is summarized. If you got interest in, please see [more details]().
+Following data is summarized. If you got interested in, please see [more details](https://github.com/showwin/speedtest-go/blob/master/docs/experimental_result.md).
 
 ### Download (Mbps)
+distance = distance to testing server
 
-| distance(km) | speedtest.net | speedtest-go | speedtest-cli |
+| distance (km) | speedtest.net | speedtest-go | speedtest-cli |
 | :-- | :--: | :--: | :--: |
 | 0 - 1000 | 92.12 | **91.21** | 70.27 |
 | 1000 - 8000 | 66.45 | **65.51** | 56.56 |
@@ -103,7 +103,8 @@ Following data is summarized. If you got interest in, please see [more details](
 
 ### Upload (Mbps)
 
-| distance(km) | speedtest.net | speedtest-go | speedtest-cli |
+
+| distance (km) | speedtest.net | speedtest-go | speedtest-cli |
 | :-- | :--: | :--: | :--: |
 | 0 - 1000 | 65.56 | **47.58** | 36.16 |
 | 1000 - 8000 | 58.02 | **54.74** | 26.78 |
@@ -111,7 +112,8 @@ Following data is summarized. If you got interest in, please see [more details](
 
 ### Testing Time (sec)
 
-| distance(km) | speedtest.net | speedtest-go | speedtest-cli |
+
+| distance (km) | speedtest.net | speedtest-go | speedtest-cli |
 | :-- | :--: | :--: | :--: |
 | 0 - 1000 | 45.03 | **22.84** | 24.46 |
 | 1000 - 8000 | 44.89 | **24.45** | 28.52 |
