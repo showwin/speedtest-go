@@ -1,9 +1,10 @@
 # Experimental Result
-I randomly select 9 servers to speedtest considering distance from my house. Try speedtesting twice to each server. Testing order is like [speedtest.net] -> [speedtest-go] -> [speedtest-cli] -> [speedtest-cli] -> [speedtest-go] -> [speedtest.net]. To the next server, starting from [speedtest-go], like [speedtest-go] -> [speedtest-cli] -> [speedtest.net] -> [speedtest.net] -> ….
+I randomly select 9 servers to speedtest considering distance from my house. Try speedtesting twice to each server. Testing order is like [speedtest.net] -> [speedtest-go] -> [speedtest-cli] -> [speedtest-cli] -> [speedtest-go] -> [speedtest.net]. To the next server, starting from [speedtest-go], like [speedtest-go] -> [speedtest-cli] -> [speedtest.net] -> [speedtest.net] -> [speedtest-cli] -> [speedtest-go].
 
 ## Downlaod (Mbps)
+
 | distance(km) | server id | speediest.net (test1) | speediest.net (test2) | speedtest-go (test1) | speedtest-go (test2) | speedtest-cli (test1) | speedtest-cli (test2) |
-| :-- | :--: | :--: | :--: | :--: |
+| :-- | :--: | :--: | :--: | :--: | :--: | :--: | :--: |
 | 0 - 1000 (9km) | 6691 | 93.34 | 93.51 | 89.13 | 88.40 | 88.21 | 83.34 |
 | 0 - 1000 (194km) | 6368 | 93.45 | 94.20 | 92.93 | 92.26 | 88.45 | 77.07 |
 | 0 - 1000 (865km) | 6842 | 88.31 | 89.91 | 91.26 | 93.30 | 67.33 | 87.52 |
@@ -15,8 +16,9 @@ I randomly select 9 servers to speedtest considering distance from my house. Try
 | 8000 - 20000 (17805km) | 4256 | 1.15 | 1.50 | 1.79 | 1.79 | 6.41 | 3.69 |
 
 ## Upload (Mbps)
+
 | distance(km) | server id | speediest.net (test1) | speediest.net (test2) | speedtest-go (test1) | speedtest-go (test2) | speedtest-cli (test1) |
-| :-- | :--: | :--: | :--: | :--: |
+| :-- | :--: | :--: | :--: | :--: | :--: | :--: | :--: |
 | 0 - 1000 (9km) | 6691 | 52.03 | 48.82 | 40.72 | 43.84 | 36.03 | 36.21
 | 0 - 1000 (194km)  | 6368 | 78.30 | 66.92 | 53.98 | 44.07 | 37.26 | 46.98
 | 0 - 1000 (865km) | 6842 | 65.34 | 81.96 | 50.27 | 52.57 | 29.42 | 31.08
@@ -28,8 +30,9 @@ I randomly select 9 servers to speedtest considering distance from my house. Try
 | 8000 - 20000 (17805km) | 4256 | 1.16 | 0.30 | 1.00 | 1.11 | 2.37 | 1.42
 
 ## Testing Time (sec)
+
 | distance(km) | server id | speediest.net (test1) | speediest.net (test2) | speedtest-go (test1) | speedtest-go (test2) | speedtest-cli (test1) |
-| :-- | :--: | :--: | :--: | :--: |
+| :-- | :--: | :--: | :--: | :--: | :--: | :--: | :--: |
 | 0 - 1000 (9km) | 6691 | 44.87 | 45.76 | 24.45 | 22.40 | 20.82 | 16.51
 | 0 - 1000 (194km)  | 6368 | 43.85 | 42.97 | 19.60 | 22.36 | 22.25 | 24.01
 | 0 - 1000 (865km) | 6842 | 46.62 | 46.12 | 21.83 | 26.40 | 39.07 | 24.10
