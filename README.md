@@ -1,5 +1,8 @@
 # speedtest-go
-Command Line Interface to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)
+Command Line Interface to Test Internet Speed using [speedtest.net](http://www.speedtest.net/).
+
+You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/); nevertheless results are almost the same.
+[see experimental results]()
 
 Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
 
@@ -14,6 +17,9 @@ $ brew update
 $ brew upgrate speedtest
 ```
 
+### Others (Linux, Windows, etc.)
+Please download compatible package from [Releases](https://github.com/showwin/speedtest-go/releases)
+
 ## Usage
 ```
 $ speedtest --help
@@ -27,14 +33,90 @@ Flags:
       --version          Show application version.
 ```
 
-**Select Closest Server by Default**
-![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage.png)
+#### Select Closest Server by Default
+```
+$ speedtest
+Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 
-**Show Available Servers**
-![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_list.png)
+Target Server: [6691]     9.03km Shizuoka (Japan) by sudosan
+latency: 39.436061ms
+Download Test: ................
+Upload Test: ................
 
-**Select Multiple Servers with Server ID**
-![](https://github.com/showwin/speedtest-go/blob/master/docs/images/usage_multi_servers.png)
+Download: 73.30 Mbit/s
+Upload: 35.26 Mbit/s
+```
 
-##LICENSE
+#### Show Available Servers
+```
+$ speedtest --list
+Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
+[6691]     9.03km Shizuoka (Japan) by sudosan
+[6087]   120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
+[6508]   125.44km Yokohama (Japan) by at2wn
+[6424]   148.23km Tokyo (Japan) by Cordeos Corp.
+[6492]   153.06km Sumida (Japan) by denpa893
+[7139]   192.63km Tsukuba (Japan) by SoftEther Corporation
+[6368]   194.83km Maibara (Japan) by gatolabo
+[6463]   220.39km Kusatsu (Japan) by j416dy
+[6766]   232.54km Nomi (Japan) by JAIST(ino-lab)
+[6476]   265.10km Osaka (Japan) by rxy (individual)
+[6477]   268.94km Sakai (Japan) by satoweb
+…
+```
+
+#### Select Multiple Servers by Server ID
+```
+$ speedtest --server 6691 --server 6087
+Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
+
+Target Server: [6691]     9.03km Shizuoka (Japan) by sudosan
+latency: 23.612861ms
+Download Test: ................
+Upload Test: ........
+
+Target Server: [6087]   120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
+latency: 38.694699ms
+Download Test: ................
+Upload Test: ................
+
+[6691] Download: 65.82 Mbit/s, Upload: 27.00 Mbit/s
+[6087] Download: 72.24 Mbit/s, Upload: 29.56 Mbit/s
+Download Avg: 69.03 Mbit/s
+Upload Avg: 28.28 Mbit/s
+```
+
+## Summary of Experimental Results
+Speedtest-go is a great tool because of following 2 reasons:
+* Testing time is the **SHORTEST** compare to [speedtest.net](http://www.speedtest.net/) and [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli), especially about 2x faster then [speedtest.net](http://www.speedtest.net/).
+* Result is **MORE CLOSE** to [speedtest.net](http://www.speedtest.net/) than [speedtest-cli](https://github.com/sivel/speedtest-cli).
+
+Following data is summarized. If you got interest in, please see [more details]().
+
+### Download (Mbps)
+
+| distance(km) | speedtest.net | speedtest-go | speedtest-cli |
+| :-- | :--: | :--: | :--: |
+| 0 - 1000 | 92.12 | **91.21** | 70.27 |
+| 1000 - 8000 | 66.45 | **65.51** | 56.56 |
+| 8000 - 20000 | 11.84 | 9.43 | **11.87** |
+
+### Upload (Mbps)
+
+| distance(km) | speedtest.net | speedtest-go | speedtest-cli |
+| :-- | :--: | :--: | :--: |
+| 0 - 1000 | 65.56 | **47.58** | 36.16 |
+| 1000 - 8000 | 58.02 | **54.74** | 26.78 |
+| 8000 - 20000 | 5.20 | 8.32 | **2.58** |
+
+### Testing Time (sec)
+
+| distance(km) | speedtest.net | speedtest-go | speedtest-cli |
+| :-- | :--: | :--: | :--: |
+| 0 - 1000 | 45.03 | **22.84** | 24.46 |
+| 1000 - 8000 | 44.89 | **24.45** | 28.52 |
+| 8000 - 20000 | 49.64 | **34.08** | 41.26 |
+
+## LICENSE
+
 [MIT](https://github.com/showwin/speedtest-go/blob/master/LICENSE)

@@ -20,14 +20,14 @@ type Users struct {
 }
 
 func FetchUserInfo() User {
-	// fetch xml user data
+	// Fetch xml user data
 	resp, err := http.Get("http://www.speedtest.net/speedtest-config.php")
 	CheckError(err)
 	body, err := ioutil.ReadAll(resp.Body)
 	CheckError(err)
 	defer resp.Body.Close()
 
-	// decode xml
+	// Decode xml
 	decoder := xml.NewDecoder(bytes.NewReader(body))
 	users := Users{}
 	for {

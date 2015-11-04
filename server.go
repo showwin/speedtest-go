@@ -30,7 +30,7 @@ type List struct {
 	Servers []Server `xml:"servers>server"`
 }
 
-// for sort =start=
+// For sort =start=
 type Servers []Server
 
 type ByDistance struct {
@@ -49,17 +49,17 @@ func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
 }
 
-// for sort =end=
+// For sort =end=
 
 func FetchServerList(user User) List {
-	// fetch xml server data
+	// Fetch xml server data
 	resp, err := http.Get("http://www.speedtest.net/speedtest-servers-static.php")
 	CheckError(err)
 	body, err := ioutil.ReadAll(resp.Body)
 	CheckError(err)
 	defer resp.Body.Close()
 
-	// decode xml
+	// Decode xml
 	decoder := xml.NewDecoder(bytes.NewReader(body))
 	list := List{}
 	for {
@@ -73,7 +73,7 @@ func FetchServerList(user User) List {
 		}
 	}
 
-	// calculate distance
+	// Calculate distance
 	for i := range list.Servers {
 		server := &list.Servers[i]
 		sLat, _ := strconv.ParseFloat(server.Lat, 64)
@@ -83,7 +83,7 @@ func FetchServerList(user User) List {
 		server.Distance = Distance(sLat, sLon, uLat, uLon)
 	}
 
-	// sort by distance
+	// Sort by distance
 	sort.Sort(ByDistance{list.Servers})
 
 	return list
@@ -136,8 +136,9 @@ func (s Server) Show() {
 func (svrs Servers) StartTest() {
 	for i, s := range svrs {
 		s.Show()
-		dlSpeed := DownloadTest(s.Url)
-		ulSpeed := UploadTest(s.Url)
+		latency := PingTest(s.Url)
+		dlSpeed := DownloadTest(s.Url, latency)
+		ulSpeed := UploadTest(s.Url, latency)
 		svrs[i].DLSpeed = dlSpeed
 		svrs[i].ULSpeed = ulSpeed
 	}
