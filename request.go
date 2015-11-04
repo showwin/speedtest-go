@@ -186,6 +186,6 @@ func PingTest(sUrl string) time.Duration {
 		}
 	}
 
-	fmt.Println("latency:", (l / 2.0))
+	fmt.Println("Latency:", (l / 2.0))
 	return l / 2.0
 }
