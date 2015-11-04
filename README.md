@@ -97,7 +97,7 @@ distance = distance to testing server
 * 0 - 1000(km) ≒ domestic
 * 1000 - 8000(km) ≒ same region
 * 8000 - 20000(km) ≒ really far! 
-* 20000km is the half of the circumference of the earth.
+* 20000km is the half of the circumference of our planet.
 
 | distance (km) | speedtest.net | speedtest-go | speedtest-cli |
 | :-- | :--: | :--: | :--: |
