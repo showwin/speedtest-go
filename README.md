@@ -123,6 +123,9 @@ distance = distance to testing server
 | 1000 - 8000 | 44.89 | **24.45** | 28.52 |
 | 8000 - 20000 | 49.64 | **34.08** | 41.26 |
 
+## Contributors
+* [kogai](https://github.com/kogai)
+
 ## LICENSE
 
 [MIT](https://github.com/showwin/speedtest-go/blob/master/LICENSE)
