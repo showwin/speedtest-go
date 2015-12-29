@@ -3,7 +3,7 @@
 		"default",
 		"publish-github"
 	],
-	"PackageVersion": "1.0.0",
+	"PackageVersion": "1.0.1",
 	"TaskSettings": {
 		"publish-github": {
 			"owner": "showwin",
