@@ -12,7 +12,7 @@ $ brew install speedtest
 
 ### How to Update ###
 $ brew update
-$ brew upgrate speedtest
+$ brew upgrade speedtest
 ```
 
 ### Others (Linux, Windows, etc.)
