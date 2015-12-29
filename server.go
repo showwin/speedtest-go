@@ -59,6 +59,14 @@ func FetchServerList(user User) List {
 	CheckError(err)
 	defer resp.Body.Close()
 
+	if len(body) == 0 {
+		resp, err = http.Get("http://c.speedtest.net/speedtest-servers-static.php")
+		CheckError(err)
+		body, err = ioutil.ReadAll(resp.Body)
+		CheckError(err)
+		defer resp.Body.Close()
+	}
+
 	// Decode xml
 	decoder := xml.NewDecoder(bytes.NewReader(body))
 	list := List{}
