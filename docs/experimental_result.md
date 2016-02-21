@@ -17,7 +17,7 @@ I randomly select 9 servers to speedtest considering distance from my house. Try
 
 ## Upload (Mbps)
 
-| distance(km) | server id | speediest.net (test1) | speediest.net (test2) | speedtest-go (test1) | speedtest-go (test2) | speedtest-cli (test1) |
+| distance(km) | server id | speediest.net (test1) | speediest.net (test2) | speedtest-go (test1) | speedtest-go (test2) | speedtest-cli (test1) | speedtest-cli (test2) |
 | :-- | :--: | :--: | :--: | :--: | :--: | :--: | :--: |
 | 0 - 1000 (9km) | 6691 | 52.03 | 48.82 | 40.72 | 43.84 | 36.03 | 36.21
 | 0 - 1000 (194km)  | 6368 | 78.30 | 66.92 | 53.98 | 44.07 | 37.26 | 46.98
@@ -31,7 +31,7 @@ I randomly select 9 servers to speedtest considering distance from my house. Try
 
 ## Testing Time (sec)
 
-| distance(km) | server id | speediest.net (test1) | speediest.net (test2) | speedtest-go (test1) | speedtest-go (test2) | speedtest-cli (test1) |
+| distance(km) | server id | speediest.net (test1) | speediest.net (test2) | speedtest-go (test1) | speedtest-go (test2) | speedtest-cli (test1) | speedtest-cli (test2) |
 | :-- | :--: | :--: | :--: | :--: | :--: | :--: | :--: |
 | 0 - 1000 (9km) | 6691 | 44.87 | 45.76 | 24.45 | 22.40 | 20.82 | 16.51
 | 0 - 1000 (194km)  | 6368 | 43.85 | 42.97 | 19.60 | 22.36 | 22.25 | 24.01

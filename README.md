@@ -12,7 +12,7 @@ $ brew install speedtest
 
 ### How to Update ###
 $ brew update
-$ brew upgrate speedtest
+$ brew upgrade speedtest
 ```
 
 ### Others (Linux, Windows, etc.)
@@ -122,6 +122,9 @@ distance = distance to testing server
 | 0 - 1000 | 45.03 | **22.84** | 24.46 |
 | 1000 - 8000 | 44.89 | **24.45** | 28.52 |
 | 8000 - 20000 | 49.64 | **34.08** | 41.26 |
+
+## Contributors
+* [kogai](https://github.com/kogai)
 
 ## LICENSE
 
