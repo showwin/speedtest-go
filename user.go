@@ -8,23 +8,25 @@ import (
 	"net/http"
 )
 
+// User information
 type User struct {
-	Ip  string `xml:"ip,attr"`
+	IP  string `xml:"ip,attr"`
 	Lat string `xml:"lat,attr"`
 	Lon string `xml:"lon,attr"`
 	Isp string `xml:"isp,attr"`
 }
 
+// Users model
 type Users struct {
 	Users []User `xml:"client"`
 }
 
-func FetchUserInfo() User {
+func fetchUserInfo() User {
 	// Fetch xml user data
 	resp, err := http.Get("http://www.speedtest.net/speedtest-config.php")
-	CheckError(err)
+	checkError(err)
 	body, err := ioutil.ReadAll(resp.Body)
-	CheckError(err)
+	checkError(err)
 	defer resp.Body.Close()
 
 	// Decode xml
@@ -43,6 +45,7 @@ func FetchUserInfo() User {
 	return users.Users[0]
 }
 
+// Show user location
 func (u *User) Show() {
-	fmt.Println("Testing From IP: " + u.Ip + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
+	fmt.Println("Testing From IP: " + u.IP + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
 }

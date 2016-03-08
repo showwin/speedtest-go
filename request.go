@@ -15,8 +15,8 @@ var dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
 var ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} //kB
 var client = http.Client{}
 
-func DownloadTest(sUrl string, latency time.Duration) float64 {
-	dlUrl := strings.Split(sUrl, "/upload")[0]
+func downloadTest(sURL string, latency time.Duration) float64 {
+	dlURL := strings.Split(sURL, "/upload")[0]
 	fmt.Printf("Download Test: ")
 	wg := new(sync.WaitGroup)
 
@@ -24,7 +24,7 @@ func DownloadTest(sUrl string, latency time.Duration) float64 {
 	sTime := time.Now()
 	for i := 0; i < 2; i++ {
 		wg.Add(1)
-		go dlWarmUp(wg, dlUrl)
+		go dlWarmUp(wg, dlURL)
 	}
 	wg.Wait()
 	fTime := time.Now()
@@ -54,7 +54,7 @@ func DownloadTest(sUrl string, latency time.Duration) float64 {
 		sTime = time.Now()
 		for i := 0; i < workload; i++ {
 			wg.Add(1)
-			go downloadRequest(wg, dlUrl, weight)
+			go downloadRequest(wg, dlURL, weight)
 		}
 		wg.Wait()
 		fTime = time.Now()
@@ -67,7 +67,7 @@ func DownloadTest(sUrl string, latency time.Duration) float64 {
 	return dlSpeed
 }
 
-func UploadTest(sUrl string, latency time.Duration) float64 {
+func uploadTest(sURL string, latency time.Duration) float64 {
 	fmt.Printf("Upload Test: ")
 	wg := new(sync.WaitGroup)
 
@@ -76,7 +76,7 @@ func UploadTest(sUrl string, latency time.Duration) float64 {
 	wg = new(sync.WaitGroup)
 	for i := 0; i < 2; i++ {
 		wg.Add(1)
-		go ulWarmUp(wg, sUrl)
+		go ulWarmUp(wg, sURL)
 	}
 	wg.Wait()
 	fTime := time.Now()
@@ -106,7 +106,7 @@ func UploadTest(sUrl string, latency time.Duration) float64 {
 		sTime = time.Now()
 		for i := 0; i < workload; i++ {
 			wg.Add(1)
-			go uploadRequest(wg, sUrl, weight)
+			go uploadRequest(wg, sURL, weight)
 		}
 		wg.Wait()
 		fTime = time.Now()
@@ -119,37 +119,37 @@ func UploadTest(sUrl string, latency time.Duration) float64 {
 	return ulSpeed
 }
 
-func dlWarmUp(wg *sync.WaitGroup, dlUrl string) {
+func dlWarmUp(wg *sync.WaitGroup, dlURL string) {
 	size := dlSizes[2]
-	url := dlUrl + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	url := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
 
 	resp, err := client.Get(url)
-	CheckError(err)
+	checkError(err)
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
 
 	wg.Done()
 }
 
-func ulWarmUp(wg *sync.WaitGroup, ulUrl string) {
+func ulWarmUp(wg *sync.WaitGroup, ulURL string) {
 	size := ulSizes[4]
 	v := url.Values{}
 	v.Add("content", strings.Repeat("0123456789", size*100-51))
 
-	resp, err := client.PostForm(ulUrl, v)
-	CheckError(err)
+	resp, err := client.PostForm(ulURL, v)
+	checkError(err)
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
 
 	wg.Done()
 }
 
-func downloadRequest(wg *sync.WaitGroup, dlUrl string, w int) {
+func downloadRequest(wg *sync.WaitGroup, dlURL string, w int) {
 	size := dlSizes[w]
-	url := dlUrl + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	url := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
 
 	resp, err := client.Get(url)
-	CheckError(err)
+	checkError(err)
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
 
@@ -157,13 +157,13 @@ func downloadRequest(wg *sync.WaitGroup, dlUrl string, w int) {
 	wg.Done()
 }
 
-func uploadRequest(wg *sync.WaitGroup, ulUrl string, w int) {
+func uploadRequest(wg *sync.WaitGroup, ulURL string, w int) {
 	size := ulSizes[9]
 	v := url.Values{}
 	v.Add("content", strings.Repeat("0123456789", size*100-51))
 
-	resp, err := client.PostForm(ulUrl, v)
-	CheckError(err)
+	resp, err := client.PostForm(ulURL, v)
+	checkError(err)
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
 
@@ -171,15 +171,15 @@ func uploadRequest(wg *sync.WaitGroup, ulUrl string, w int) {
 	wg.Done()
 }
 
-func PingTest(sUrl string) time.Duration {
-	pingUrl := strings.Split(sUrl, "/upload")[0] + "/latency.txt"
+func pingTest(sURL string) time.Duration {
+	pingURL := strings.Split(sURL, "/upload")[0] + "/latency.txt"
 
 	l := time.Duration(100000000000) // 10sec
 	for i := 0; i < 3; i++ {
 		sTime := time.Now()
-		resp, err := http.Get(pingUrl)
+		resp, err := http.Get(pingURL)
 		fTime := time.Now()
-		CheckError(err)
+		checkError(err)
 		defer resp.Body.Close()
 		if fTime.Sub(sTime) < l {
 			l = fTime.Sub(sTime)

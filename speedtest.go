@@ -7,14 +7,14 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-func CheckError(err error) {
+func checkError(err error) {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 }
 
-func SetTimeout() {
+func setTimeout() {
 	if *timeoutOpt != 0 {
 		timeout = *timeoutOpt
 	}
@@ -28,15 +28,15 @@ var (
 )
 
 func main() {
-	kingpin.Version("1.0.1")
+	kingpin.Version("1.0.2")
 	kingpin.Parse()
 
-	SetTimeout()
+	setTimeout()
 
-	user := FetchUserInfo()
+	user := fetchUserInfo()
 	user.Show()
 
-	list := FetchServerList(user)
+	list := fetchServerList(user)
 	if *showList {
 		list.Show()
 		return
