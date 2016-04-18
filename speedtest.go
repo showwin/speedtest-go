@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -9,7 +9,7 @@ import (
 
 func checkError(err error) {
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		os.Exit(1)
 	}
 }

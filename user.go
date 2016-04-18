@@ -16,7 +16,7 @@ type User struct {
 	Isp string `xml:"isp,attr"`
 }
 
-// Users model
+// Users : for decode xml
 type Users struct {
 	Users []User `xml:"client"`
 }

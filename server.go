@@ -27,8 +27,8 @@ type Server struct {
 	ULSpeed  float64
 }
 
-// List of Server
-type List struct {
+// ServerList : List of Server
+type ServerList struct {
 	Servers []Server `xml:"servers>server"`
 }
 
@@ -55,7 +55,7 @@ func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
 }
 
-func fetchServerList(user User) List {
+func fetchServerList(user User) ServerList {
 	// Fetch xml server data
 	resp, err := http.Get("http://www.speedtest.net/speedtest-servers-static.php")
 	checkError(err)
@@ -73,7 +73,7 @@ func fetchServerList(user User) List {
 
 	// Decode xml
 	decoder := xml.NewDecoder(bytes.NewReader(body))
-	list := List{}
+	list := ServerList{}
 	for {
 		t, _ := decoder.Token()
 		if t == nil {
@@ -114,7 +114,7 @@ func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 }
 
 // FindServer : find server by serverID
-func (l *List) FindServer(serverID []int) Servers {
+func (l *ServerList) FindServer(serverID []int) Servers {
 	servers := Servers{}
 
 	for _, sid := range serverID {
@@ -134,7 +134,7 @@ func (l *List) FindServer(serverID []int) Servers {
 }
 
 // Show : show server list
-func (l List) Show() {
+func (l ServerList) Show() {
 	for _, s := range l.Servers {
 		fmt.Printf("[%4s] %8.2fkm ", s.ID, s.Distance)
 		fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
