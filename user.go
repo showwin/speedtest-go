@@ -42,10 +42,16 @@ func fetchUserInfo() User {
 			decoder.DecodeElement(&users, &se)
 		}
 	}
+	if users.Users == nil {
+		fmt.Println("Warning: Cannot fetch user information. http://www.speedtest.net/speedtest-config.php is temporarily unavailable.")
+		return User{}
+	}
 	return users.Users[0]
 }
 
 // Show user location
 func (u *User) Show() {
-	fmt.Println("Testing From IP: " + u.IP + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
+	if u.IP != "" {
+		fmt.Println("Testing From IP: " + u.IP + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
+	}
 }
