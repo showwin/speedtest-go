@@ -179,4 +179,21 @@ func (svrs Servers) ShowResult() {
 		fmt.Printf("Download Avg: %5.2f Mbit/s\n", avgDL/float64(len(svrs)))
 		fmt.Printf("Upload Avg: %5.2f Mbit/s\n", avgUL/float64(len(svrs)))
 	}
+	err := svrs.checkResult()
+	if err {
+		fmt.Println("Warning: Result seems to be wrong. Please speedtest again.")
+	}
+}
+
+func (svrs Servers) checkResult() bool {
+	errFlg := false
+	if len(svrs) == 1 {
+		s := svrs[0]
+		errFlg = (s.DLSpeed*100 < s.ULSpeed) || (s.DLSpeed > s.ULSpeed*100)
+	} else {
+		for _, s := range svrs {
+			errFlg = errFlg || (s.DLSpeed*100 < s.ULSpeed) || (s.DLSpeed > s.ULSpeed*100)
+		}
+	}
+	return errFlg
 }
