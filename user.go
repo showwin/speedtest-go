@@ -23,7 +23,7 @@ type Users struct {
 
 func fetchUserInfo() User {
 	// Fetch xml user data
-	resp, err := http.Get("http://www.speedtest.net/speedtest-config.php")
+	resp, err := http.Get("http://speedtest.net/speedtest-config.php")
 	checkError(err)
 	body, err := ioutil.ReadAll(resp.Body)
 	checkError(err)
