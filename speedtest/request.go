@@ -103,7 +103,7 @@ func (s *Server) UploadTest() error {
 		sTime = time.Now()
 		for i := 0; i < workload; i++ {
 			wg.Add(1)
-			go uploadRequest(wg, s.URL, weight)
+			go uploadRequest(wg, s.URL)
 		}
 		wg.Wait()
 		fTime = time.Now()
@@ -119,9 +119,9 @@ func (s *Server) UploadTest() error {
 
 func dlWarmUp(wg *sync.WaitGroup, dlURL string) {
 	size := dlSizes[2]
-	url := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	dlUrl := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
 
-	resp, err := client.Get(url)
+	resp, err := client.Get(dlUrl)
 	checkError(err)
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
@@ -144,9 +144,9 @@ func ulWarmUp(wg *sync.WaitGroup, ulURL string) {
 
 func downloadRequest(wg *sync.WaitGroup, dlURL string, w int) {
 	size := dlSizes[w]
-	url := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	dlUrl := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
 
-	resp, err := client.Get(url)
+	resp, err := client.Get(dlUrl)
 	checkError(err)
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
@@ -154,7 +154,7 @@ func downloadRequest(wg *sync.WaitGroup, dlURL string, w int) {
 	wg.Done()
 }
 
-func uploadRequest(wg *sync.WaitGroup, ulURL string, w int) {
+func uploadRequest(wg *sync.WaitGroup, ulURL string) {
 	size := ulSizes[9]
 	v := url.Values{}
 	v.Add("content", strings.Repeat("0123456789", size*100-51))
