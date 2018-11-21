@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"errors"
 )
 
 // User information
@@ -21,12 +22,16 @@ type Users struct {
 	Users []User `xml:"client"`
 }
 
-func FetchUserInfo() User {
+func FetchUserInfo() (*User, error) {
 	// Fetch xml user data
 	resp, err := http.Get("http://speedtest.net/speedtest-config.php")
-	checkError(err)
+	if err != nil {
+		return nil, err
+	}
 	body, err := ioutil.ReadAll(resp.Body)
-	checkError(err)
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
 
 	// Decode xml
@@ -43,15 +48,11 @@ func FetchUserInfo() User {
 		}
 	}
 	if users.Users == nil {
-		fmt.Println("Warning: Cannot fetch user information. http://www.speedtest.net/speedtest-config.php is temporarily unavailable.")
-		return User{}
+		return nil, errors.New("failed to fetch user information")
 	}
-	return users.Users[0]
+	return &users.Users[0], nil
 }
 
-// Show user location
-func (u *User) Show() {
-	if u.IP != "" {
-		fmt.Println("Testing From IP: " + u.IP + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
-	}
+func (u *User) String() string {
+	return fmt.Sprintf("%s, (%s) [%s, %s]", u.IP, u.Isp, u.Lat, u.Lon)
 }

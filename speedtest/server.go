@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"errors"
+	"time"
 )
 
 // Server information
@@ -23,17 +25,18 @@ type Server struct {
 	URL2     string `xml:"url2,attr"`
 	Host     string `xml:"host,attr"`
 	Distance float64
+	Latency  time.Duration
 	DLSpeed  float64
 	ULSpeed  float64
 }
 
 // ServerList : List of Server
 type ServerList struct {
-	Servers []Server `xml:"servers>server"`
+	Servers []*Server `xml:"servers>server"`
 }
 
 // Servers : For sorting servers.
-type Servers []Server
+type Servers []*Server
 
 // ByDistance : For sorting servers.
 type ByDistance struct {
@@ -41,13 +44,13 @@ type ByDistance struct {
 }
 
 // Len : length of servers. For sorting servers.
-func (s Servers) Len() int {
-	return len(s)
+func (svrs Servers) Len() int {
+	return len(svrs)
 }
 
 // Swap : swap i-th and j-th. For sorting servers.
-func (s Servers) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
+func (svrs Servers) Swap(i, j int) {
+	svrs[i], svrs[j] = svrs[j], svrs[i]
 }
 
 // Less : compare the distance. For sorting servers.
@@ -55,19 +58,27 @@ func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
 }
 
-func FetchServerList(user User) ServerList {
+func FetchServerList(user *User) (ServerList, error) {
 	// Fetch xml server data
 	resp, err := http.Get("http://www.speedtest.net/speedtest-servers-static.php")
-	checkError(err)
+	if err != nil {
+		return ServerList{}, errors.New("failed to retrieve speedtest servers")
+	}
 	body, err := ioutil.ReadAll(resp.Body)
-	checkError(err)
+	if err != nil {
+		return ServerList{}, errors.New("failed to read response body")
+	}
 	defer resp.Body.Close()
 
 	if len(body) == 0 {
 		resp, err = http.Get("http://c.speedtest.net/speedtest-servers-static.php")
-		checkError(err)
+		if err != nil {
+			errors.New("failed to retrieve alternate speedtest servers")
+		}
 		body, err = ioutil.ReadAll(resp.Body)
-		checkError(err)
+		if err != nil {
+			return ServerList{}, errors.New("failed to read response body")
+		}
 		defer resp.Body.Close()
 	}
 
@@ -87,7 +98,7 @@ func FetchServerList(user User) ServerList {
 
 	// Calculate distance
 	for i := range list.Servers {
-		server := &list.Servers[i]
+		server := list.Servers[i]
 		sLat, _ := strconv.ParseFloat(server.Lat, 64)
 		sLon, _ := strconv.ParseFloat(server.Lon, 64)
 		uLat, _ := strconv.ParseFloat(user.Lat, 64)
@@ -98,7 +109,11 @@ func FetchServerList(user User) ServerList {
 	// Sort by distance
 	sort.Sort(ByDistance{list.Servers})
 
-	return list
+	if len(list.Servers) <= 0 {
+		return list, errors.New("unable to retrieve server list")
+	}
+
+	return list, nil
 }
 
 func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
@@ -114,8 +129,12 @@ func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 }
 
 // FindServer : find server by serverID
-func (l *ServerList) FindServer(serverID []int) Servers {
+func (l *ServerList) FindServer(serverID []int) (Servers, error) {
 	servers := Servers{}
+
+	if len(l.Servers) <= 0 {
+		return servers, errors.New("no servers available")
+	}
 
 	for _, sid := range serverID {
 		for _, s := range l.Servers {
@@ -130,70 +149,23 @@ func (l *ServerList) FindServer(serverID []int) Servers {
 		servers = append(servers, l.Servers[0])
 	}
 
-	return servers
+	return servers, nil
 }
 
-// Show : show server list
-func (l ServerList) Show() {
+// String representation of ServerList
+func (l *ServerList) String() string {
+	slr := ""
 	for _, s := range l.Servers {
-		fmt.Printf("[%4s] %8.2fkm ", s.ID, s.Distance)
-		fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
+		slr += s.String()
 	}
+	return slr
 }
 
-// Show : show server information
-func (s Server) Show() {
-	fmt.Printf(" \n")
-	fmt.Printf("Target Server: [%4s] %8.2fkm ", s.ID, s.Distance)
-	fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
+// String representation of Server
+func (s *Server) String() string {
+	return fmt.Sprintf("[%4s] %8.2fkm \n%s (%s) by %s\n", s.ID, s.Distance, s.Name, s.Country, s.Sponsor)
 }
 
-// StartTest : start testing to the servers.
-func (svrs Servers) StartTest() {
-	for i, s := range svrs {
-		s.Show()
-		latency := pingTest(s.URL)
-		dlSpeed := downloadTest(s.URL, latency)
-		ulSpeed := uploadTest(s.URL, latency)
-		svrs[i].DLSpeed = dlSpeed
-		svrs[i].ULSpeed = ulSpeed
-	}
-}
-
-// ShowResult : show testing result
-func (svrs Servers) ShowResult() {
-	fmt.Printf(" \n")
-	if len(svrs) == 1 {
-		fmt.Printf("Download: %5.2f Mbit/s\n", svrs[0].DLSpeed)
-		fmt.Printf("Upload: %5.2f Mbit/s\n", svrs[0].ULSpeed)
-	} else {
-		for _, s := range svrs {
-			fmt.Printf("[%4s] Download: %5.2f Mbit/s, Upload: %5.2f Mbit/s\n", s.ID, s.DLSpeed, s.ULSpeed)
-		}
-		avgDL := 0.0
-		avgUL := 0.0
-		for _, s := range svrs {
-			avgDL = avgDL + s.DLSpeed
-			avgUL = avgUL + s.ULSpeed
-		}
-		fmt.Printf("Download Avg: %5.2f Mbit/s\n", avgDL/float64(len(svrs)))
-		fmt.Printf("Upload Avg: %5.2f Mbit/s\n", avgUL/float64(len(svrs)))
-	}
-	err := svrs.checkResult()
-	if err {
-		fmt.Println("Warning: Result seems to be wrong. Please speedtest again.")
-	}
-}
-
-func (svrs Servers) checkResult() bool {
-	errFlg := false
-	if len(svrs) == 1 {
-		s := svrs[0]
-		errFlg = (s.DLSpeed*100 < s.ULSpeed) || (s.DLSpeed > s.ULSpeed*100)
-	} else {
-		for _, s := range svrs {
-			errFlg = errFlg || (s.DLSpeed*100 < s.ULSpeed) || (s.DLSpeed > s.ULSpeed*100)
-		}
-	}
-	return errFlg
+func (s Server) CheckResultValid() bool {
+	return !(s.DLSpeed*100 < s.ULSpeed) || !(s.DLSpeed > s.ULSpeed*100)
 }
