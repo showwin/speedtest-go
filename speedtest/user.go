@@ -1,4 +1,4 @@
-package main
+package speedtest
 
 import (
 	"bytes"
@@ -21,7 +21,7 @@ type Users struct {
 	Users []User `xml:"client"`
 }
 
-func fetchUserInfo() User {
+func FetchUserInfo() User {
 	// Fetch xml user data
 	resp, err := http.Get("http://speedtest.net/speedtest-config.php")
 	checkError(err)

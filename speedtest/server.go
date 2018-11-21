@@ -1,4 +1,4 @@
-package main
+package speedtest
 
 import (
 	"bytes"
@@ -55,7 +55,7 @@ func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
 }
 
-func fetchServerList(user User) ServerList {
+func FetchServerList(user User) ServerList {
 	// Fetch xml server data
 	resp, err := http.Get("http://www.speedtest.net/speedtest-servers-static.php")
 	checkError(err)
