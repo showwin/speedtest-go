@@ -30,30 +30,30 @@ type Server struct {
 	ULSpeed  float64
 }
 
-// ServerList : List of Server
+// ServerList list of Server
 type ServerList struct {
 	Servers []*Server `xml:"servers>server"`
 }
 
-// Servers : For sorting servers.
+// Servers for sorting servers.
 type Servers []*Server
 
-// ByDistance : For sorting servers.
+// ByDistance for sorting servers.
 type ByDistance struct {
 	Servers
 }
 
-// Len : length of servers. For sorting servers.
+// Len finds length of servers. For sorting servers.
 func (svrs Servers) Len() int {
 	return len(svrs)
 }
 
-// Swap : swap i-th and j-th. For sorting servers.
+// Swap swaps i-th and j-th. For sorting servers.
 func (svrs Servers) Swap(i, j int) {
 	svrs[i], svrs[j] = svrs[j], svrs[i]
 }
 
-// Less : compare the distance. For sorting servers.
+// Less compares the distance. For sorting servers.
 func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
 }
@@ -129,7 +129,7 @@ func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 	return radius * math.Acos(x)
 }
 
-// FindServer : find server by serverID
+// FindServer finds server by serverID
 func (l *ServerList) FindServer(serverID []int) (Servers, error) {
 	servers := Servers{}
 
