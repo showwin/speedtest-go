@@ -12,7 +12,7 @@ import (
 var (
 	showList   = kingpin.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
 	serverIds  = kingpin.Flag("server", "Select server id to speedtest").Short('s').Ints()
-	timeoutOpt = kingpin.Flag("timeout", "Define timeout seconds. Default: 10 sec").Short('t').Int()
+	//timeoutOpt = kingpin.Flag("timeout", "Define timeout seconds. Default: 10 sec").Short('t').Int()
 )
 
 func main() {
