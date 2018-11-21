@@ -14,6 +14,7 @@ var dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
 var ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} //kB
 var client = http.Client{}
 
+// DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest() error {
 	dlURL := strings.Split(s.URL, "/upload")[0]
 	wg := new(sync.WaitGroup)
@@ -65,6 +66,7 @@ func (s *Server) DownloadTest() error {
 	return nil
 }
 
+// UploadTest executes the test to measure upload speed
 func (s *Server) UploadTest() error {
 	wg := new(sync.WaitGroup)
 
@@ -119,9 +121,9 @@ func (s *Server) UploadTest() error {
 
 func dlWarmUp(wg *sync.WaitGroup, dlURL string) {
 	size := dlSizes[2]
-	dlUrl := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	xdlURL := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
 
-	resp, err := client.Get(dlUrl)
+	resp, err := client.Get(xdlURL)
 	checkError(err)
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
@@ -144,9 +146,9 @@ func ulWarmUp(wg *sync.WaitGroup, ulURL string) {
 
 func downloadRequest(wg *sync.WaitGroup, dlURL string, w int) {
 	size := dlSizes[w]
-	dlUrl := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	xdlURL := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
 
-	resp, err := client.Get(dlUrl)
+	resp, err := client.Get(xdlURL)
 	checkError(err)
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
@@ -167,6 +169,7 @@ func uploadRequest(wg *sync.WaitGroup, ulURL string) {
 	wg.Done()
 }
 
+// PingTest executes test to measure latency
 func (s *Server) PingTest() error {
 	pingURL := strings.Split(s.URL, "/upload")[0] + "/latency.txt"
 

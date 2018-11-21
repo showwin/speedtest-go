@@ -22,6 +22,7 @@ type Users struct {
 	Users []User `xml:"client"`
 }
 
+// FetchUserInfo returns information about caller determined by speedtest.net
 func FetchUserInfo() (*User, error) {
 	// Fetch xml user data
 	resp, err := http.Get("http://speedtest.net/speedtest-config.php")
