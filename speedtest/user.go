@@ -9,7 +9,7 @@ import (
 	"errors"
 )
 
-// User information
+// User represents information determined about the caller by speedtest.net
 type User struct {
 	IP  string `xml:"ip,attr"`
 	Lat string `xml:"lat,attr"`
@@ -17,7 +17,7 @@ type User struct {
 	Isp string `xml:"isp,attr"`
 }
 
-// Users : for decode xml
+// Users for decode xml
 type Users struct {
 	Users []User `xml:"client"`
 }
@@ -54,6 +54,7 @@ func FetchUserInfo() (*User, error) {
 	return &users.Users[0], nil
 }
 
+// String representation of User
 func (u *User) String() string {
 	return fmt.Sprintf("%s, (%s) [%s, %s]", u.IP, u.Isp, u.Lat, u.Lon)
 }
