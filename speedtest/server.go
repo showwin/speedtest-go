@@ -58,6 +58,7 @@ func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
 }
 
+// FetchServerList retrieves a list of available servers
 func FetchServerList(user *User) (ServerList, error) {
 	// Fetch xml server data
 	resp, err := http.Get("http://www.speedtest.net/speedtest-servers-static.php")
@@ -166,6 +167,7 @@ func (s *Server) String() string {
 	return fmt.Sprintf("[%4s] %8.2fkm \n%s (%s) by %s\n", s.ID, s.Distance, s.Name, s.Country, s.Sponsor)
 }
 
+// CheckResultValid checks that results are logical given UL and DL speeds
 func (s Server) CheckResultValid() bool {
 	return !(s.DLSpeed*100 < s.ULSpeed) || !(s.DLSpeed > s.ULSpeed*100)
 }
