@@ -1,10 +1,44 @@
 # speedtest-go
-Command Line Interface to Test Internet Speed using [speedtest.net](http://www.speedtest.net/).  
-You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/); nevertheless results are almost the same.  [see experimental results](https://github.com/showwin/speedtest-go#summary-of-experimental-results).
+##### Command Line Interface and pure Go API to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)  
+You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/) with almost the same result. [See the experimental results.](https://github.com/showwin/speedtest-go#summary-of-experimental-results).
+
+This fork allows abstracts the implementation of the speed test to a package so it can be used by other go programs. 
 
 Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
 
-## Installation
+## API Installation
+
+```
+go get github.com/cbergoon/speedtest-go
+```
+
+## API Usage
+The code below finds closest available speedtest server and tests the latency, download, and upload speeds. 
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/cbergoon/speedtest-go/speedtest"
+)
+
+func main() {
+	user, _ := speedtest.FetchUserInfo()
+
+	serverList, _ := speedtest.FetchServerList(user)
+	targets, _ := serverList.FindServer([]int{})
+
+	for _, s := range targets {
+		s.PingTest()
+		s.DownloadTest()
+		s.UploadTest()
+
+		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
+	}
+}
+```
+
+## CLI Installation
 ### OS X (homebrew)
 ```
 $ brew tap showwin/speedtest
@@ -17,9 +51,9 @@ $ brew upgrade speedtest
 
 ### Others (Linux, Windows, etc.)
 Please download compatible package from [Releases](https://github.com/showwin/speedtest-go/releases).  
-If there are no compatible package you want, please let me know by [issues](https://github.com/showwin/speedtest-go/issues).
+If there are no compatible package you want, please let me know by creating an [issue](https://github.com/showwin/speedtest-go/issues).
 
-## Usage
+## CLI Usage
 ```
 $ speedtest --help
 usage: download [<flags>]
