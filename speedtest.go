@@ -22,13 +22,14 @@ func setTimeout() {
 	}
 }
 
-func setCertVerify(verify bool) {
+func setCertVerify(insecure bool) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: !verify,
+		InsecureSkipVerify: insecure,
 	}
 }
 
 var (
+	insecure   = kingpin.Flag("insecure", "Disable TLS certificate verify").Short('i').Bool()
 	showList   = kingpin.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
 	serverIds  = kingpin.Flag("server", "Select server id to speedtest").Short('s').Ints()
 	timeoutOpt = kingpin.Flag("timeout", "Define timeout seconds. Default: 10 sec").Short('t').Int()
@@ -40,7 +41,7 @@ func main() {
 	kingpin.Parse()
 
 	setTimeout()
-	setCertVerify(false)
+	setCertVerify(*insecure)
 
 	user := fetchUserInfo()
 	user.Show()
