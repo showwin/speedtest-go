@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+	"net/http"
+	"crypto/tls"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -20,6 +22,12 @@ func setTimeout() {
 	}
 }
 
+func setCertVerify(verify bool) {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: !verify,
+	}
+}
+
 var (
 	showList   = kingpin.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
 	serverIds  = kingpin.Flag("server", "Select server id to speedtest").Short('s').Ints()
@@ -32,6 +40,7 @@ func main() {
 	kingpin.Parse()
 
 	setTimeout()
+	setCertVerify(false)
 
 	user := fetchUserInfo()
 	user.Show()
