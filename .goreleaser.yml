@@ -12,7 +12,7 @@ builds:
       - CGO_ENABLED=0
 
     hooks:
-      #upost: /bin/bash upx.sh
+      post: /bin/bash upx.sh
 
 archives:
   - replacements:
