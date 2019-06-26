@@ -24,4 +24,4 @@ _testmain.go
 *.prof
 .goxc.local.json
 
-.goreleaser.yml
+dist/
