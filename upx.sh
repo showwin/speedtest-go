@@ -1,9 +1,9 @@
 #!/bin/bash
 set -ex
 
-for binary in $(dist/speedtest-go*/speedtest-go*)
+for binary in $(ls dist/speedtest-go*/speedtest-go*)
 do
-    upx $binary &
+    upx --brute $binary &
 done
 
 wait
