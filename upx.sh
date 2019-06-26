@@ -1,3 +1,9 @@
 #!/bin/bash
 set -ex
-upx dist/speedtest-go*/speedtest-go*
+
+for binary in $(dist/speedtest-go*/speedtest-go*)
+do
+    upx $binary &
+done
+
+wait
