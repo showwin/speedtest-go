@@ -49,8 +49,8 @@ func fetchUserInfo() User {
 }
 
 // Show user location
-func (u *User) Show() {
+func (u *User) Show(ip string) {
 	if u.IP != "" {
-		fmt.Println("Testing From IP: " + u.IP + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
+		fmt.Println("Testing From IP " + ip + "/" + u.IP + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
 	}
 }

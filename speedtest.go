@@ -1,10 +1,11 @@
 package main
 
 import (
-	"log"
-	"os"
-	"net/http"
 	"crypto/tls"
+	"log"
+	"net"
+	"net/http"
+	"os"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -24,29 +25,72 @@ func setTimeout() {
 	}
 }
 
-func setCertVerify(insecure bool) {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: insecure,
+func newTransport(insecure bool, iface string) (tr http.Transport, ip net.IP) {
+	tlsConf := &tls.Config{InsecureSkipVerify: insecure}
+
+	if iface != "" {
+		ief, err := net.InterfaceByName(iface)
+		if err != nil {
+			log.Fatal(err)
+		}
+		addrs, err := ief.Addrs()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		tcpAddr := &net.TCPAddr{IP: addrs[0].(*net.IPNet).IP}
+		d := net.Dialer{LocalAddr: tcpAddr}
+		tr = http.Transport{Dial: d.Dial, TLSClientConfig: tlsConf}
+
+		ip = tcpAddr.IP
+	} else {
+		tr = http.Transport{TLSClientConfig: tlsConf}
 	}
+
+	return tr, ip
+}
+
+func setSourceAddr(iface string) (ip net.IP) {
+
+	ief, err := net.InterfaceByName(iface)
+	if err != nil {
+		log.Fatal(err)
+	}
+	addrs, err := ief.Addrs()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tcpAddr := &net.TCPAddr{IP: addrs[0].(*net.IPNet).IP}
+	d := net.Dialer{LocalAddr: tcpAddr}
+
+	client.Transport.(*http.Transport).Dial = d.Dial
+
+	return tcpAddr.IP
 }
 
 var (
-	insecure   = kingpin.Flag("insecure", "Disable TLS certificate verify").Short('i').Bool()
-	showList   = kingpin.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
-	serverIds  = kingpin.Flag("server", "Select server id to speedtest").Short('s').Ints()
-	timeoutOpt = kingpin.Flag("timeout", "Define timeout seconds. Default: 10 sec").Short('t').Int()
+	app        = kingpin.New("speedtest", "Run a speedtest").Author("Newlode")
+	insecure   = app.Flag("insecure", "Disable TLS certificate verify").Short('i').Default("true").Bool()
+	iface      = app.Flag("iface", "Force the use of IFACE for this test").Short('I').String()
+	showList   = app.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
+	serverIds  = app.Flag("server", "Select server id to speedtest").Short('s').Ints()
+	timeoutOpt = app.Flag("timeout", "Define timeout seconds. Default: 10 sec").Short('t').Int()
 	timeout    = 10
 )
 
 func main() {
-	kingpin.Version("1.0.3")
-	kingpin.Parse()
+
+	var ip net.IP
+	kingpin.Version("1.0.5")
+	kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	setTimeout()
-	setCertVerify(*insecure)
+	tr, ip := newTransport(*insecure, *iface)
+	client = http.Client{Transport: &tr}
 
 	user := fetchUserInfo()
-	user.Show()
+	user.Show(ip.String())
 
 	list := fetchServerList(user)
 	if *showList {
