@@ -82,7 +82,7 @@ var (
 func main() {
 
 	var ip net.IP
-	kingpin.Version("1.0.5")
+	kingpin.Version("1.0.6")
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	setTimeout()
