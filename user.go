@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 )
 
 // User information
@@ -23,7 +22,7 @@ type Users struct {
 
 func fetchUserInfo() User {
 	// Fetch xml user data
-	resp, err := http.Get("http://speedtest.net/speedtest-config.php")
+	resp, err := client.Get("http://speedtest.net/speedtest-config.php")
 	checkError(err)
 	body, err := ioutil.ReadAll(resp.Body)
 	checkError(err)

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -13,7 +12,6 @@ import (
 
 var dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
 var ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} //kB
-var client = http.Client{}
 
 func downloadTest(sURL string, latency time.Duration) float64 {
 	dlURL := strings.Split(sURL, "/upload")[0]
@@ -177,7 +175,7 @@ func pingTest(sURL string) time.Duration {
 	l := time.Duration(100000000000) // 10sec
 	for i := 0; i < 3; i++ {
 		sTime := time.Now()
-		resp, err := http.Get(pingURL)
+		resp, err := client.Get(pingURL)
 		fTime := time.Now()
 		checkError(err)
 		defer resp.Body.Close()

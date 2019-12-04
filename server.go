@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"net/http"
 	"sort"
 	"strconv"
 )
@@ -57,14 +56,14 @@ func (b ByDistance) Less(i, j int) bool {
 
 func fetchServerList(user User) ServerList {
 	// Fetch xml server data
-	resp, err := http.Get("http://www.speedtest.net/speedtest-servers-static.php")
+	resp, err := client.Get("http://www.speedtest.net/speedtest-servers-static.php")
 	checkError(err)
 	body, err := ioutil.ReadAll(resp.Body)
 	checkError(err)
 	defer resp.Body.Close()
 
 	if len(body) == 0 {
-		resp, err = http.Get("http://c.speedtest.net/speedtest-servers-static.php")
+		resp, err = client.Get("http://c.speedtest.net/speedtest-servers-static.php")
 		checkError(err)
 		body, err = ioutil.ReadAll(resp.Body)
 		checkError(err)

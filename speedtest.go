@@ -9,6 +9,8 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
+var client = http.Client{}
+
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
