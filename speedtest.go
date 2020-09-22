@@ -25,7 +25,8 @@ func setTimeout() {
 	}
 }
 
-func newTransport(insecure bool, iface string) (tr http.Transport, ip net.IP) {
+func newTransport(insecure bool, iface string) (tr *http.Transport, ip net.IP) {
+	var _tr http.Transport
 	tlsConf := &tls.Config{InsecureSkipVerify: insecure}
 
 	if iface != "" {
@@ -40,14 +41,14 @@ func newTransport(insecure bool, iface string) (tr http.Transport, ip net.IP) {
 
 		tcpAddr := &net.TCPAddr{IP: addrs[0].(*net.IPNet).IP}
 		d := net.Dialer{LocalAddr: tcpAddr}
-		tr = http.Transport{Dial: d.Dial, TLSClientConfig: tlsConf}
+		_tr = http.Transport{Dial: d.Dial, TLSClientConfig: tlsConf}
 
 		ip = tcpAddr.IP
 	} else {
-		tr = http.Transport{TLSClientConfig: tlsConf}
+		_tr = http.Transport{TLSClientConfig: tlsConf}
 	}
 
-	return tr, ip
+	return &_tr, ip
 }
 
 func setSourceAddr(iface string) (ip net.IP) {
@@ -87,7 +88,7 @@ func main() {
 
 	setTimeout()
 	tr, ip := newTransport(*insecure, *iface)
-	client = http.Client{Transport: &tr}
+	client = http.Client{Transport: tr}
 
 	user := fetchUserInfo()
 	user.Show(ip.String())
