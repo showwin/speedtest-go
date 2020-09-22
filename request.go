@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/logrusorgru/aurora"
 )
 
 var dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
@@ -15,7 +17,7 @@ var ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} /
 
 func downloadTest(sURL string, latency time.Duration) float64 {
 	dlURL := strings.Split(sURL, "/upload")[0]
-	fmt.Printf("Download Test: ")
+	fmt.Printf("%-14s: ", "Download Test")
 	wg := new(sync.WaitGroup)
 
 	// Warming up
@@ -66,7 +68,7 @@ func downloadTest(sURL string, latency time.Duration) float64 {
 }
 
 func uploadTest(sURL string, latency time.Duration) float64 {
-	fmt.Printf("Upload Test: ")
+	fmt.Printf("%-14s: ", "Upload Test")
 	wg := new(sync.WaitGroup)
 
 	// Warm up
@@ -184,6 +186,6 @@ func pingTest(sURL string) time.Duration {
 		}
 	}
 
-	fmt.Println("Latency:", (l / 2.0))
+	fmt.Printf("\n%-14s: %v\n", "Latency", aurora.Gray(24, (l/2.0).Truncate(time.Microsecond)))
 	return l / 2.0
 }

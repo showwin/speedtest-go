@@ -5,6 +5,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+
+	"github.com/logrusorgru/aurora"
 )
 
 // User information
@@ -51,6 +53,6 @@ func fetchUserInfo() User {
 // Show user location
 func (u *User) Show(ip string) {
 	if u.IP != "" {
-		fmt.Println("Testing From IP " + ip + "/" + u.IP + " (" + u.Isp + ") [" + u.Lat + ", " + u.Lon + "]")
+		fmt.Printf("%-6s : %s/%s (%s) [%s,%s]\n", "Source", aurora.Gray(18, ip), aurora.Gray(24, u.IP), aurora.Cyan(u.Isp), aurora.Gray(12, u.Lat), aurora.Gray(12, u.Lon))
 	}
 }

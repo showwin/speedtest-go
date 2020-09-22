@@ -8,6 +8,8 @@ import (
 	"math"
 	"sort"
 	"strconv"
+
+	"github.com/logrusorgru/aurora"
 )
 
 // Server information
@@ -142,9 +144,7 @@ func (l ServerList) Show() {
 
 // Show : show server information
 func (s Server) Show() {
-	fmt.Printf(" \n")
-	fmt.Printf("Target Server: [%4s] %8.2fkm ", s.ID, s.Distance)
-	fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
+	fmt.Printf("%-6s : %s %.2fkm (%s/%s) by %s\n", "Target", aurora.Magenta(s.ID), s.Distance, aurora.Magenta(s.Name), s.Country, aurora.Gray(12, s.Sponsor))
 }
 
 // StartTest : start testing to the servers.
@@ -163,8 +163,8 @@ func (svrs Servers) StartTest() {
 func (svrs Servers) ShowResult() {
 	fmt.Printf(" \n")
 	if len(svrs) == 1 {
-		fmt.Printf("Download: %5.2f Mbit/s\n", svrs[0].DLSpeed)
-		fmt.Printf("Upload: %5.2f Mbit/s\n", svrs[0].ULSpeed)
+		fmt.Printf("%-13s : %s\n", "Download", aurora.Gray(24, fmt.Sprintf("%5.2f Mbit/s", svrs[0].DLSpeed)))
+		fmt.Printf("%-13s : %s\n", "Upload", aurora.Gray(24, fmt.Sprintf("%5.2f Mbit/s", svrs[0].ULSpeed)))
 	} else {
 		for _, s := range svrs {
 			fmt.Printf("[%4s] Download: %5.2f Mbit/s, Upload: %5.2f Mbit/s\n", s.ID, s.DLSpeed, s.ULSpeed)

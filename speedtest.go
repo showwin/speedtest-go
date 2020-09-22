@@ -70,7 +70,7 @@ func setSourceAddr(iface string) (ip net.IP) {
 }
 
 var (
-	app        = kingpin.New("speedtest", "Run a speedtest").Author("Newlode")
+	app        = kingpin.New("speedtest-fpngfw", "Run a speedtest from a Forcepoint NGFW. Writen by Newlode www.newlode.io").Author("Sébastien Boulet @ Newlode Groupe - www.newlode.io")
 	insecure   = app.Flag("insecure", "Disable TLS certificate verify").Short('i').Default("true").Bool()
 	iface      = app.Flag("iface", "Force the use of IFACE for this test").Short('I').String()
 	showList   = app.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
@@ -82,7 +82,7 @@ var (
 func main() {
 
 	var ip net.IP
-	kingpin.Version("1.0.6")
+	kingpin.Version("1.0.7")
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	setTimeout()
