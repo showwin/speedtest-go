@@ -21,6 +21,9 @@ builds:
     hooks:
       post: /bin/bash upx.sh
 
+env_files:
+  github_token: ~/.config/goreleaser/github_token_custom
+
 archives:
   - replacements:
       linux: Linux
