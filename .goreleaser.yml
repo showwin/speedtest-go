@@ -15,11 +15,11 @@ builds:
       - linux
 
     goarch:
-      - 386
       - amd64
 
     hooks:
-      post: /bin/bash upx.sh
+      post:
+        - upx --best "{{ .Path }}"
 
 env_files:
   github_token: ~/.config/goreleaser/github_token_custom
