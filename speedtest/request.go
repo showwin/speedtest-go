@@ -1,7 +1,6 @@
-package main
+package speedtest
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,9 +14,9 @@ var dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
 var ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} //kB
 var client = http.Client{}
 
-func downloadTest(sURL string, latency time.Duration) float64 {
-	dlURL := strings.Split(sURL, "/upload")[0]
-	fmt.Printf("Download Test: ")
+// DownloadTest executes the test to measure download speed
+func (s *Server) DownloadTest() error {
+	dlURL := strings.Split(s.URL, "/upload")[0]
 	wg := new(sync.WaitGroup)
 
 	// Warming up
@@ -29,7 +28,7 @@ func downloadTest(sURL string, latency time.Duration) float64 {
 	wg.Wait()
 	fTime := time.Now()
 	// 1.125MB for each request (750 * 750 * 2)
-	wuSpeed := 1.125 * 8 * 2 / fTime.Sub(sTime.Add(latency)).Seconds()
+	wuSpeed := 1.125 * 8 * 2 / fTime.Sub(sTime.Add(s.Latency)).Seconds()
 
 	// Decide workload by warm up speed
 	workload := 0
@@ -58,17 +57,17 @@ func downloadTest(sURL string, latency time.Duration) float64 {
 		}
 		wg.Wait()
 		fTime = time.Now()
-		fmt.Printf("\n")
 
 		reqMB := dlSizes[weight] * dlSizes[weight] * 2 / 1000 / 1000
 		dlSpeed = float64(reqMB) * 8 * float64(workload) / fTime.Sub(sTime).Seconds()
 	}
 
-	return dlSpeed
+	s.DLSpeed = dlSpeed
+	return nil
 }
 
-func uploadTest(sURL string, latency time.Duration) float64 {
-	fmt.Printf("Upload Test: ")
+// UploadTest executes the test to measure upload speed
+func (s *Server) UploadTest() error {
 	wg := new(sync.WaitGroup)
 
 	// Warm up
@@ -76,12 +75,12 @@ func uploadTest(sURL string, latency time.Duration) float64 {
 	wg = new(sync.WaitGroup)
 	for i := 0; i < 2; i++ {
 		wg.Add(1)
-		go ulWarmUp(wg, sURL)
+		go ulWarmUp(wg, s.URL)
 	}
 	wg.Wait()
 	fTime := time.Now()
 	// 1.0 MB for each request
-	wuSpeed := 1.0 * 8 * 2 / fTime.Sub(sTime.Add(latency)).Seconds()
+	wuSpeed := 1.0 * 8 * 2 / fTime.Sub(sTime.Add(s.Latency)).Seconds()
 
 	// Decide workload by warm up speed
 	workload := 0
@@ -106,24 +105,25 @@ func uploadTest(sURL string, latency time.Duration) float64 {
 		sTime = time.Now()
 		for i := 0; i < workload; i++ {
 			wg.Add(1)
-			go uploadRequest(wg, sURL, weight)
+			go uploadRequest(wg, s.URL)
 		}
 		wg.Wait()
 		fTime = time.Now()
-		fmt.Printf("\n")
 
 		reqMB := float64(ulSizes[weight]) / 1000
 		ulSpeed = reqMB * 8 * float64(workload) / fTime.Sub(sTime).Seconds()
 	}
 
-	return ulSpeed
+	s.ULSpeed = ulSpeed
+
+	return nil
 }
 
 func dlWarmUp(wg *sync.WaitGroup, dlURL string) {
 	size := dlSizes[2]
-	url := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	xdlURL := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
 
-	resp, err := client.Get(url)
+	resp, err := client.Get(xdlURL)
 	checkError(err)
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
@@ -146,18 +146,17 @@ func ulWarmUp(wg *sync.WaitGroup, ulURL string) {
 
 func downloadRequest(wg *sync.WaitGroup, dlURL string, w int) {
 	size := dlSizes[w]
-	url := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	xdlURL := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
 
-	resp, err := client.Get(url)
+	resp, err := client.Get(xdlURL)
 	checkError(err)
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
 
-	fmt.Printf(".")
 	wg.Done()
 }
 
-func uploadRequest(wg *sync.WaitGroup, ulURL string, w int) {
+func uploadRequest(wg *sync.WaitGroup, ulURL string) {
 	size := ulSizes[9]
 	v := url.Values{}
 	v.Add("content", strings.Repeat("0123456789", size*100-51))
@@ -167,25 +166,28 @@ func uploadRequest(wg *sync.WaitGroup, ulURL string, w int) {
 	defer resp.Body.Close()
 	ioutil.ReadAll(resp.Body)
 
-	fmt.Printf(".")
 	wg.Done()
 }
 
-func pingTest(sURL string) time.Duration {
-	pingURL := strings.Split(sURL, "/upload")[0] + "/latency.txt"
+// PingTest executes test to measure latency
+func (s *Server) PingTest() error {
+	pingURL := strings.Split(s.URL, "/upload")[0] + "/latency.txt"
 
 	l := time.Duration(100000000000) // 10sec
 	for i := 0; i < 3; i++ {
 		sTime := time.Now()
 		resp, err := http.Get(pingURL)
 		fTime := time.Now()
-		checkError(err)
-		defer resp.Body.Close()
+		if err != nil {
+			return err
+		}
 		if fTime.Sub(sTime) < l {
 			l = fTime.Sub(sTime)
 		}
+		resp.Body.Close()
 	}
 
-	fmt.Println("Latency:", (l / 2.0))
-	return l / 2.0
+	s.Latency = time.Duration(int64(l.Nanoseconds()/2))
+
+	return nil
 }
