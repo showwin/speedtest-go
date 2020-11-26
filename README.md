@@ -1,42 +1,10 @@
 # speedtest-go
-##### Command Line Interface and pure Go API to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)  
+**Command Line Interface and pure Go API to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)**  
 You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/) with almost the same result. [See the experimental results.](https://github.com/showwin/speedtest-go#summary-of-experimental-results).
-
-This fork allows abstracts the implementation of the speed test to a package so it can be used by other go programs. 
 
 Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
 
-## API Installation
-
-```
-go get github.com/cbergoon/speedtest-go
-```
-
-## API Usage
-The code below finds closest available speedtest server and tests the latency, download, and upload speeds. 
-```go
-package main
-
-import (
-	"fmt"
-	"github.com/cbergoon/speedtest-go/speedtest"
-)
-
-func main() {
-	user, _ := speedtest.FetchUserInfo()
-
-	serverList, _ := speedtest.FetchServerList(user)
-	targets, _ := serverList.FindServer([]int{})
-
-	for _, s := range targets {
-		s.PingTest()
-		s.DownloadTest()
-		s.UploadTest()
-
-		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
-	}
-}
-```
+Go API Installation below.
 
 ## CLI Installation
 ### OS X (homebrew)
@@ -62,7 +30,6 @@ Flags:
       --help             Show context-sensitive help (also try --help-long and --help-man).
   -l, --list             Show available speedtest.net servers
   -s, --server=SERVER    Select server id to speedtest
-  -t, --timeout=TIMEOUT  Define timeout seconds. Default: 10 sec
       --version          Show application version.
 ```
 
@@ -119,6 +86,40 @@ Download Avg: 69.03 Mbit/s
 Upload Avg: 28.28 Mbit/s
 ```
 
+
+## Go API Installation
+
+```
+go get github.com/showwin/speedtest-go
+```
+
+## API Usage
+The code below finds closest available speedtest server and tests the latency, download, and upload speeds.
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/showwin/speedtest-go/speedtest"
+)
+
+func main() {
+	user, _ := speedtest.FetchUserInfo()
+
+	serverList, _ := speedtest.FetchServerList(user)
+	targets, _ := serverList.FindServer([]int{})
+
+	for _, s := range targets {
+		s.PingTest()
+		s.DownloadTest()
+		s.UploadTest()
+
+		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
+	}
+}
+```
+
+
 ## Summary of Experimental Results
 Speedtest-go is a great tool because of following 2 reasons:
 * Testing time is the **SHORTEST** compare to [speedtest.net](http://www.speedtest.net/) and [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli), especially about 2x faster then [speedtest.net](http://www.speedtest.net/).
@@ -130,7 +131,7 @@ Following data is summarized. If you got interested in, please see [more details
 distance = distance to testing server
 * 0 - 1000(km) ≒ domestic
 * 1000 - 8000(km) ≒ same region
-* 8000 - 20000(km) ≒ really far! 
+* 8000 - 20000(km) ≒ really far!
 * 20000km is the half of the circumference of our planet.
 
 | distance (km) | speedtest.net | speedtest-go | speedtest-cli |
