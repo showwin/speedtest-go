@@ -7,7 +7,7 @@ import (
 	"os"
 	"fmt"
 	"time"
-	"github.com/cbergoon/speedtest-go/speedtest"
+	"github.com/showwin/speedtest-go/speedtest"
 )
 
 var (
