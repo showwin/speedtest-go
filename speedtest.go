@@ -16,7 +16,7 @@ var (
 )
 
 func main() {
-	kingpin.Version("1.0.4")
+	kingpin.Version("1.0.5")
 	kingpin.Parse()
 
 	user, err := speedtest.FetchUserInfo()
