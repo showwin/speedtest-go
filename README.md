@@ -181,6 +181,7 @@ distance = distance to testing server
 
 ## Contributors
 * [kogai](https://github.com/kogai)
+* [cbergoon](https://github.com/cbergoon)
 
 ## LICENSE
 
