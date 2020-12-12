@@ -1,18 +1,19 @@
 package main
 
 import (
-	"gopkg.in/alecthomas/kingpin.v2"
-
+	"fmt"
 	"log"
 	"os"
-	"fmt"
 	"time"
+
 	"github.com/showwin/speedtest-go/speedtest"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
-	showList  = kingpin.Flag("list", "Show available speedtest.net servers").Short('l').Bool()
-	serverIds = kingpin.Flag("server", "Select server id to speedtest").Short('s').Ints()
+	showList   = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
+	serverIds  = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Ints()
+	savingMode = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
 )
 
 func main() {
@@ -35,10 +36,10 @@ func main() {
 	targets, err := serverList.FindServer(*serverIds)
 	checkError(err)
 
-	startTest(targets)
+	startTest(targets, *savingMode)
 }
 
-func startTest(servers speedtest.Servers) {
+func startTest(servers speedtest.Servers, savingMode bool) {
 	for _, s := range servers {
 		showServer(s)
 
@@ -46,9 +47,9 @@ func startTest(servers speedtest.Servers) {
 		checkError(err)
 		showLatencyResult(s)
 
-		err = testDownload(s)
+		err = testDownload(s, savingMode)
 		checkError(err)
-		err = testUpload(s)
+		err = testUpload(s, savingMode)
 		checkError(err)
 
 		showServerResult(s)
@@ -59,11 +60,11 @@ func startTest(servers speedtest.Servers) {
 	}
 }
 
-func testDownload(server *speedtest.Server) error {
+func testDownload(server *speedtest.Server, savingMode bool) error {
 	quit := make(chan bool)
 	fmt.Printf("Download Test: ")
 	go dots(quit)
-	err := server.DownloadTest()
+	err := server.DownloadTest(savingMode)
 	quit <- true
 	if err != nil {
 		return err
@@ -72,11 +73,11 @@ func testDownload(server *speedtest.Server) error {
 	return err
 }
 
-func testUpload(server *speedtest.Server) error {
+func testUpload(server *speedtest.Server, savingMode bool) error {
 	quit := make(chan bool)
 	fmt.Printf("Upload Test: ")
 	go dots(quit)
-	err := server.UploadTest()
+	err := server.UploadTest(savingMode)
 	quit <- true
 	if err != nil {
 		return err
