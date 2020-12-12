@@ -15,7 +15,7 @@ var ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} /
 var client = http.Client{}
 
 // DownloadTest executes the test to measure download speed
-func (s *Server) DownloadTest() error {
+func (s *Server) DownloadTest(savingMode bool) error {
 	dlURL := strings.Split(s.URL, "/upload")[0]
 	wg := new(sync.WaitGroup)
 
@@ -34,7 +34,10 @@ func (s *Server) DownloadTest() error {
 	workload := 0
 	weight := 0
 	skip := false
-	if 10.0 < wuSpeed {
+	if savingMode {
+		workload = 6
+		weight = 3
+	} else if 10.0 < wuSpeed {
 		workload = 16
 		weight = 4
 	} else if 4.0 < wuSpeed {
@@ -67,7 +70,7 @@ func (s *Server) DownloadTest() error {
 }
 
 // UploadTest executes the test to measure upload speed
-func (s *Server) UploadTest() error {
+func (s *Server) UploadTest(savingMode bool) error {
 	wg := new(sync.WaitGroup)
 
 	// Warm up
@@ -86,7 +89,10 @@ func (s *Server) UploadTest() error {
 	workload := 0
 	weight := 0
 	skip := false
-	if 10.0 < wuSpeed {
+	if savingMode {
+		workload = 1
+		weight = 7
+	} else if 10.0 < wuSpeed {
 		workload = 16
 		weight = 9
 	} else if 4.0 < wuSpeed {
@@ -187,7 +193,7 @@ func (s *Server) PingTest() error {
 		resp.Body.Close()
 	}
 
-	s.Latency = time.Duration(int64(l.Nanoseconds()/2))
+	s.Latency = time.Duration(int64(l.Nanoseconds() / 2))
 
 	return nil
 }
