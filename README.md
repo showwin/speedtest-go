@@ -6,9 +6,11 @@ Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
 
 Go API Installation below.
 
-## CLI Installation
-### OS X (homebrew)
-```
+## CLI
+### Installation
+#### macOS (homebrew)
+
+```bash
 $ brew tap showwin/speedtest
 $ brew install speedtest
 
@@ -17,24 +19,29 @@ $ brew update
 $ brew upgrade speedtest
 ```
 
-### Others (Linux, Windows, etc.)
+#### Other Platform (Linux, Windows, etc.)
 Please download compatible package from [Releases](https://github.com/showwin/speedtest-go/releases).  
-If there are no compatible package you want, please let me know by creating an [issue](https://github.com/showwin/speedtest-go/issues).
+If there are no compatible package you want, please let me know on [issue](https://github.com/showwin/speedtest-go/issues).
 
-## CLI Usage
-```
+### Usage
+
+```bash
 $ speedtest --help
-usage: download [<flags>]
+usage: speedtest-go [<flags>]
 
 Flags:
-      --help             Show context-sensitive help (also try --help-long and --help-man).
-  -l, --list             Show available speedtest.net servers
-  -s, --server=SERVER    Select server id to speedtest
-      --version          Show application version.
+      --help               Show context-sensitive help (also try --help-long and --help-man).
+  -l, --list               Show available speedtest.net servers.
+  -s, --server=SERVER ...  Select server id to speedtest.
+      --saving-mode        Using less memory (≒10MB), though low accuracy (especially > 30Mbps).
+      --version            Show application version.
 ```
 
-#### Select Closest Server by Default
-```
+#### Test Internet Speed
+
+Simply use `speedtest` command. The closest server is selected by default.
+
+```bash
 $ speedtest
 Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 
@@ -47,8 +54,11 @@ Download: 73.30 Mbit/s
 Upload: 35.26 Mbit/s
 ```
 
-#### Show Available Servers
-```
+#### Test to Other Servers
+
+If you want to select other server to test, you can see available server list.
+
+```bash
 $ speedtest --list
 Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 [6691]     9.03km Shizuoka (Japan) by sudosan
@@ -65,8 +75,9 @@ Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ...
 ```
 
-#### Select Multiple Servers by Server ID
-```
+and select them by id.
+
+```bash
 $ speedtest --server 6691 --server 6087
 Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 
@@ -86,14 +97,24 @@ Download Avg: 69.03 Mbit/s
 Upload Avg: 28.28 Mbit/s
 ```
 
+#### Memory Saving Mode
 
-## Go API Installation
+With `--saving-mode` option, it can be executed even in insufficient memory environment like IoT device.
+The memory usage can be reduced to 1/10, about 10MB of memory is used.
+
+However, please be careful that the accuracy is particularly low especially in an environment of 30 Mbps or higher.
+To get more accurate results, run multiple times and average.
+
+For more details, please see [saving mode experimental result](https://github.com/showwin/speedtest-go/blob/master/docs/saving_mode_experimental_result.md).
+
+
+## Go API
 
 ```
 go get github.com/showwin/speedtest-go
 ```
 
-## API Usage
+### API Usage
 The code below finds closest available speedtest server and tests the latency, download, and upload speeds.
 ```go
 package main
