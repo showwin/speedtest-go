@@ -132,8 +132,8 @@ func main() {
 
 	for _, s := range targets {
 		s.PingTest()
-		s.DownloadTest()
-		s.UploadTest()
+		s.DownloadTest(false)
+		s.UploadTest(false)
 
 		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
 	}
