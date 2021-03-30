@@ -119,7 +119,7 @@ func (s *Server) UploadTest(savingMode bool) error {
 		sTime = time.Now()
 		for i := 0; i < workload; i++ {
 			eg.Go(func() error {
-				return uploadRequest(s.URL)
+				return uploadRequest(s.URL, weight)
 			})
 		}
 		if err := eg.Wait(); err != nil {
@@ -179,8 +179,8 @@ func downloadRequest(dlURL string, w int) error {
 	return nil
 }
 
-func uploadRequest(ulURL string) error {
-	size := ulSizes[9]
+func uploadRequest(ulURL string, w int) error {
+	size := ulSizes[w]
 	v := url.Values{}
 	v.Add("content", strings.Repeat("0123456789", size*100-51))
 
