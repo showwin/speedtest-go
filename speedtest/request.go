@@ -17,7 +17,7 @@ var client = http.Client{}
 
 // DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest(savingMode bool) error {
-	dlURL := strings.Split(s.URL, "/upload")[0]
+	dlURL := strings.Split(s.URL, "/upload.php")[0]
 	eg := errgroup.Group{}
 
 	// Warming up
@@ -196,7 +196,7 @@ func uploadRequest(ulURL string, w int) error {
 
 // PingTest executes test to measure latency
 func (s *Server) PingTest() error {
-	pingURL := strings.Split(s.URL, "/upload")[0] + "/latency.txt"
+	pingURL := strings.Split(s.URL, "/upload.php")[0] + "/latency.txt"
 
 	l := time.Duration(100000000000) // 10sec
 	for i := 0; i < 3; i++ {
