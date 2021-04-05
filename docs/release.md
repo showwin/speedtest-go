@@ -18,3 +18,6 @@ $ git tag vX.Y.Z
 $ git push origin vX.Y.Z
 # run GitHub Action to build packages and make release.
 ```
+
+update brew formula
+https://github.com/showwin/homebrew-speedtest/blob/master/speedtest.rb#L3
