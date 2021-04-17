@@ -19,8 +19,9 @@ var (
 )
 
 type fullOutput struct {
-	UserInfo *speedtest.User   `json:"user_info"`
-	Servers  speedtest.Servers `json:"servers"`
+	Timestamp time.Time         `json:"timestamp"`
+	UserInfo  *speedtest.User   `json:"user_info"`
+	Servers   speedtest.Servers `json:"servers"`
 }
 
 func main() {
@@ -50,8 +51,9 @@ func main() {
 	if *jsonOutput {
 		jsonBytes, err := json.Marshal(
 			fullOutput{
-				UserInfo: user,
-				Servers:  targets,
+				Timestamp: time.Now(),
+				UserInfo:  user,
+				Servers:   targets,
 			},
 		)
 		checkError(err)
