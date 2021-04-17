@@ -19,10 +19,11 @@ var (
 )
 
 type fullOutput struct {
-	Timestamp time.Time         `json:"timestamp"`
+	Timestamp outputTime        `json:"timestamp"`
 	UserInfo  *speedtest.User   `json:"user_info"`
 	Servers   speedtest.Servers `json:"servers"`
 }
+type outputTime time.Time
 
 func main() {
 	kingpin.Version("1.1.2")
@@ -51,7 +52,7 @@ func main() {
 	if *jsonOutput {
 		jsonBytes, err := json.Marshal(
 			fullOutput{
-				Timestamp: time.Now(),
+				Timestamp: outputTime(time.Now()),
 				UserInfo:  user,
 				Servers:   targets,
 			},
@@ -185,4 +186,9 @@ func checkError(err error) {
 		log.Fatal(err)
 		os.Exit(1)
 	}
+}
+
+func (t outputTime) MarshalJSON() ([]byte, error) {
+	stamp := fmt.Sprintf("\"%s\"", time.Time(t).Format("2006-01-02 15:04:05.000"))
+	return []byte(stamp), nil
 }
