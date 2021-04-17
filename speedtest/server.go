@@ -3,31 +3,31 @@ package speedtest
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
 	"sort"
 	"strconv"
-	"errors"
 	"time"
 )
 
 // Server information
 type Server struct {
-	URL      string `xml:"url,attr"`
-	Lat      string `xml:"lat,attr"`
-	Lon      string `xml:"lon,attr"`
-	Name     string `xml:"name,attr"`
-	Country  string `xml:"country,attr"`
-	Sponsor  string `xml:"sponsor,attr"`
-	ID       string `xml:"id,attr"`
-	URL2     string `xml:"url2,attr"`
-	Host     string `xml:"host,attr"`
-	Distance float64
-	Latency  time.Duration
-	DLSpeed  float64
-	ULSpeed  float64
+	URL      string        `xml:"url,attr" json:"url"`
+	Lat      string        `xml:"lat,attr" json:"lat"`
+	Lon      string        `xml:"lon,attr" json:"lon"`
+	Name     string        `xml:"name,attr" json:"name"`
+	Country  string        `xml:"country,attr" json:"country"`
+	Sponsor  string        `xml:"sponsor,attr" json:"sponsor"`
+	ID       string        `xml:"id,attr" json:"id"`
+	URL2     string        `xml:"url2,attr" json:"url_2"`
+	Host     string        `xml:"host,attr" json:"host"`
+	Distance float64       `json:"distance"`
+	Latency  time.Duration `json:"latency"`
+	DLSpeed  float64       `json:"dl_speed"`
+	ULSpeed  float64       `json:"ul_speed"`
 }
 
 // ServerList list of Server

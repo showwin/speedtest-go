@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -14,7 +15,13 @@ var (
 	showList   = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
 	serverIds  = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Ints()
 	savingMode = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
+	jsonOutput = kingpin.Flag("json", "Output results as json").Bool()
 )
+
+type fullOutput struct {
+	UserInfo *speedtest.User   `json:"user_info"`
+	Servers  speedtest.Servers `json:"servers"`
+}
 
 func main() {
 	kingpin.Version("1.1.2")
@@ -24,7 +31,9 @@ func main() {
 	if err != nil {
 		fmt.Println("Warning: Cannot fetch user information. http://www.speedtest.net/speedtest-config.php is temporarily unavailable.")
 	}
-	showUser(user)
+	if !*jsonOutput {
+		showUser(user)
+	}
 
 	serverList, err := speedtest.FetchServerList(user)
 	checkError(err)
@@ -36,15 +45,40 @@ func main() {
 	targets, err := serverList.FindServer(*serverIds)
 	checkError(err)
 
-	startTest(targets, *savingMode)
+	startTest(targets, *savingMode, *jsonOutput)
+
+	if *jsonOutput {
+		jsonBytes, err := json.Marshal(
+			fullOutput{
+				UserInfo: user,
+				Servers:  targets,
+			},
+		)
+		checkError(err)
+
+		fmt.Println(string(jsonBytes))
+	}
 }
 
-func startTest(servers speedtest.Servers, savingMode bool) {
+func startTest(servers speedtest.Servers, savingMode bool, jsonOuput bool) {
 	for _, s := range servers {
-		showServer(s)
+		if !jsonOuput {
+			showServer(s)
+		}
 
 		err := s.PingTest()
 		checkError(err)
+
+		if jsonOuput {
+			err := s.DownloadTest(savingMode)
+			checkError(err)
+
+			err = s.UploadTest(savingMode)
+			checkError(err)
+
+			continue
+		}
+
 		showLatencyResult(s)
 
 		err = testDownload(s, savingMode)
@@ -55,7 +89,7 @@ func startTest(servers speedtest.Servers, savingMode bool) {
 		showServerResult(s)
 	}
 
-	if len(servers) > 1 {
+	if !jsonOuput && len(servers) > 1 {
 		showAverageServerResult(servers)
 	}
 }
