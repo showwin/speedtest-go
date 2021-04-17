@@ -34,6 +34,7 @@ Flags:
   -l, --list               Show available speedtest.net servers.
   -s, --server=SERVER ...  Select server id to speedtest.
       --saving-mode        Using less memory (≒10MB), though low accuracy (especially > 30Mbps).
+      --json               Output results as json
       --version            Show application version.
 ```
 
