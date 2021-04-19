@@ -63,16 +63,16 @@ func main() {
 	}
 }
 
-func startTest(servers speedtest.Servers, savingMode bool, jsonOuput bool) {
+func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 	for _, s := range servers {
-		if !jsonOuput {
+		if !jsonOutput {
 			showServer(s)
 		}
 
 		err := s.PingTest()
 		checkError(err)
 
-		if jsonOuput {
+		if jsonOutput {
 			err := s.DownloadTest(savingMode)
 			checkError(err)
 
@@ -92,7 +92,7 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOuput bool) {
 		showServerResult(s)
 	}
 
-	if !jsonOuput && len(servers) > 1 {
+	if !jsonOutput && len(servers) > 1 {
 		showAverageServerResult(servers)
 	}
 }
