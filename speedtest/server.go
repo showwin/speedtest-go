@@ -1,17 +1,19 @@
 package speedtest
 
 import (
-	"bytes"
+	"context"
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"sort"
 	"strconv"
 	"time"
 )
+
+const speedTestServersUrl = "https://www.speedtest.net/speedtest-servers-static.php"
+const speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
 
 // Server information
 type Server struct {
@@ -60,41 +62,43 @@ func (b ByDistance) Less(i, j int) bool {
 
 // FetchServerList retrieves a list of available servers
 func FetchServerList(user *User) (ServerList, error) {
-	// Fetch xml server data
-	resp, err := http.Get("http://www.speedtest.net/speedtest-servers-static.php")
+	return FetchServerListContext(context.TODO(), user)
+}
+
+// FetchServerListContext retrieves a list of available servers, observing the given context.
+func FetchServerListContext(ctx context.Context, user *User) (ServerList, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, speedTestServersUrl, nil)
 	if err != nil {
-		return ServerList{}, errors.New("failed to retrieve speedtest servers")
+		return ServerList{}, err
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return ServerList{}, errors.New("failed to read response body")
+		return ServerList{}, err
 	}
+
+	if resp.ContentLength == 0 {
+		resp.Body.Close()
+
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, speedTestServersAlternativeUrl, nil)
+		if err != nil {
+			return ServerList{}, err
+		}
+
+		resp, err = http.DefaultClient.Do(req)
+		if err != nil {
+			return ServerList{}, err
+		}
+	}
+
 	defer resp.Body.Close()
 
-	if len(body) == 0 {
-		resp, err = http.Get("http://c.speedtest.net/speedtest-servers-static.php")
-		if err != nil {
-			errors.New("failed to retrieve alternate speedtest servers")
-		}
-		body, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return ServerList{}, errors.New("failed to read response body")
-		}
-		defer resp.Body.Close()
-	}
-
 	// Decode xml
-	decoder := xml.NewDecoder(bytes.NewReader(body))
-	list := ServerList{}
-	for {
-		t, _ := decoder.Token()
-		if t == nil {
-			break
-		}
-		switch se := t.(type) {
-		case xml.StartElement:
-			decoder.DecodeElement(&list, &se)
-		}
+	decoder := xml.NewDecoder(resp.Body)
+
+	var list ServerList
+	if err := decoder.Decode(&list); err != nil {
+		return list, err
 	}
 
 	// Calculate distance
