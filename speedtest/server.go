@@ -62,7 +62,7 @@ func (b ByDistance) Less(i, j int) bool {
 
 // FetchServerList retrieves a list of available servers
 func FetchServerList(user *User) (ServerList, error) {
-	return FetchServerListContext(context.TODO(), user)
+	return FetchServerListContext(context.Background(), user)
 }
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.

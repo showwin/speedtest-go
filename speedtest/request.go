@@ -19,7 +19,7 @@ var client = http.Client{}
 
 // DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest(savingMode bool) error {
-	return s.DownloadTestContext(context.TODO(), savingMode)
+	return s.DownloadTestContext(context.Background(), savingMode)
 }
 
 // DownloadTestContext executes the test to measure download speed, observing the given context.
@@ -85,7 +85,7 @@ func (s *Server) DownloadTestContext(ctx context.Context, savingMode bool) error
 
 // UploadTest executes the test to measure upload speed
 func (s *Server) UploadTest(savingMode bool) error {
-	return s.UploadTestContext(context.TODO(), savingMode)
+	return s.UploadTestContext(context.Background(), savingMode)
 }
 
 // UploadTestContext executes the test to measure upload speed, observing the given context.
@@ -248,7 +248,7 @@ func uploadRequest(ctx context.Context, ulURL string, w int) error {
 
 // PingTest executes test to measure latency
 func (s *Server) PingTest() error {
-	return s.PingTestContext(context.TODO())
+	return s.PingTestContext(context.Background())
 }
 
 // PingTestContext executes test to measure latency, observing the given context.

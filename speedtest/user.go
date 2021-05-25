@@ -25,7 +25,7 @@ type Users struct {
 
 // FetchUserInfo returns information about caller determined by speedtest.net
 func FetchUserInfo() (*User, error) {
-	return FetchUserInfoContext(context.TODO())
+	return FetchUserInfoContext(context.Background())
 }
 
 // FetchUserInfoContext returns information about caller determined by speedtest.net, observing the given context.
