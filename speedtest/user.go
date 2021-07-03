@@ -1,13 +1,14 @@
 package speedtest
 
 import (
-	"bytes"
+	"context"
 	"encoding/xml"
-	"fmt"
-	"io/ioutil"
-	"net/http"
 	"errors"
+	"fmt"
+	"net/http"
 )
+
+const speedTestConfigUrl = "https://www.speedtest.net/speedtest-config.php"
 
 // User represents information determined about the caller by speedtest.net
 type User struct {
@@ -24,33 +25,35 @@ type Users struct {
 
 // FetchUserInfo returns information about caller determined by speedtest.net
 func FetchUserInfo() (*User, error) {
-	// Fetch xml user data
-	resp, err := http.Get("http://speedtest.net/speedtest-config.php")
+	return FetchUserInfoContext(context.Background())
+}
+
+// FetchUserInfoContext returns information about caller determined by speedtest.net, observing the given context.
+func FetchUserInfoContext(ctx context.Context) (*User, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, speedTestConfigUrl, nil)
 	if err != nil {
 		return nil, err
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
+
 	defer resp.Body.Close()
 
 	// Decode xml
-	decoder := xml.NewDecoder(bytes.NewReader(body))
-	users := Users{}
-	for {
-		t, _ := decoder.Token()
-		if t == nil {
-			break
-		}
-		switch se := t.(type) {
-		case xml.StartElement:
-			decoder.DecodeElement(&users, &se)
-		}
+	decoder := xml.NewDecoder(resp.Body)
+
+	var users Users
+	if err := decoder.Decode(&users); err != nil {
+		return nil, err
 	}
-	if users.Users == nil {
+
+	if len(users.Users) == 0 {
 		return nil, errors.New("failed to fetch user information")
 	}
+
 	return &users.Users[0], nil
 }
 
