@@ -58,6 +58,9 @@ func (s *Server) DownloadTestContext(
 	if savingMode {
 		workload = 6
 		weight = 3
+	} else if 50.0 < wuSpeed {
+		workload = 32
+		weight = 6
 	} else if 10.0 < wuSpeed {
 		workload = 16
 		weight = 4
@@ -127,6 +130,9 @@ func (s *Server) UploadTestContext(
 	if savingMode {
 		workload = 1
 		weight = 7
+	} else if 50.0 < wuSpeed {
+		workload = 40
+		weight = 9
 	} else if 10.0 < wuSpeed {
 		workload = 16
 		weight = 9
