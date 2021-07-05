@@ -1,7 +1,10 @@
 package speedtest
 
-import "testing"
-import "strings"
+import (
+	"strconv"
+	"strings"
+	"testing"
+)
 
 func TestFetchUserInfo(t *testing.T) {
 	user, err := FetchUserInfo()
@@ -17,19 +20,21 @@ func TestFetchUserInfo(t *testing.T) {
 	}
 
 	// Lat
-	if len(user.Lat) > 8 {
-		t.Errorf("Invalid Latitude. got: %v;", user.Lat)
+	lat, err := strconv.ParseFloat(user.Lat, 64)
+	if err != nil {
+		t.Errorf(err.Error())
 	}
-	if strings.Count(user.Lat, ".") != 1 {
-		t.Errorf("Invalid Latitude format. got: %v", user.Lat)
+	if lat < -90 || 90 < lat {
+		t.Errorf("Invalid Latitude. got: %v, expected between -90 and 90", user.Lat)
 	}
 
 	// Lon
-	if len(user.Lon) > 8 {
-		t.Errorf("Invalid Londitude. got: %v;", user.Lon)
+	lon, err := strconv.ParseFloat(user.Lon, 64)
+	if err != nil {
+		t.Errorf(err.Error())
 	}
-	if strings.Count(user.Lon, ".") != 1 {
-		t.Errorf("Invalid Londitude format. got: %v", user.Lon)
+	if lon < -180 || 180 < lon {
+		t.Errorf("Invalid Latitude. got: %v, expected between -90 and 90", user.Lon)
 	}
 
 	// Isp
