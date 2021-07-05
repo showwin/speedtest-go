@@ -4,7 +4,7 @@ import "testing"
 
 func TestFetchServerList(t *testing.T) {
 	user := User{
-		IP: "111.111.111.111",
+		IP:  "111.111.111.111",
 		Lat: "35.22",
 		Lon: "138.44",
 		Isp: "Hello",
@@ -40,7 +40,7 @@ func TestDistance(t *testing.T) {
 }
 
 func TestFindServer(t *testing.T) {
-	servers := [] *Server {
+	servers := []*Server{
 		&Server{
 			ID: "1",
 		},
@@ -50,7 +50,7 @@ func TestFindServer(t *testing.T) {
 		&Server{
 			ID: "3",
 		},
-	} 
+	}
 	serverList := ServerList{Servers: servers}
 
 	serverID := []int{}
