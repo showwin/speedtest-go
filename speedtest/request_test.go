@@ -23,8 +23,8 @@ func TestDownloadTestContext(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	if server.DLSpeed < 1000 || 1050 < server.DLSpeed {
-		t.Errorf("got unexpected server.DLSpeed '%v', expected between 1000 and 1050", server.DLSpeed)
+	if server.DLSpeed < 6000 || 6300 < server.DLSpeed {
+		t.Errorf("got unexpected server.DLSpeed '%v', expected between 6000 and 6300", server.DLSpeed)
 	}
 }
 
@@ -65,8 +65,8 @@ func TestUploadTestContext(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	if server.ULSpeed < 1000 || 1050 < server.ULSpeed {
-		t.Errorf("got unexpected server.ULSpeed '%v', expected between 1000 and 1050", server.ULSpeed)
+	if server.ULSpeed < 2400 || 2600 < server.ULSpeed {
+		t.Errorf("got unexpected server.ULSpeed '%v', expected between 2400 and 2600", server.ULSpeed)
 	}
 }
 
