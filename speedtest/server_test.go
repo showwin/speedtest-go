@@ -37,6 +37,11 @@ func TestDistance(t *testing.T) {
 	if d1 != d2 {
 		t.Errorf("%v and %v should be save value", d1, d2)
 	}
+
+	d = distance(35.0, 140.0, -40.0, -140.0)
+	if d < 11000 || 12000 < d {
+		t.Errorf("got: %v, expected 0", d)
+	}
 }
 
 func TestFindServer(t *testing.T) {
