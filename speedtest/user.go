@@ -5,6 +5,8 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 )
 
@@ -40,7 +42,12 @@ func FetchUserInfoContext(ctx context.Context) (*User, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(resp.Body)
 
 	// Decode xml
 	decoder := xml.NewDecoder(resp.Body)

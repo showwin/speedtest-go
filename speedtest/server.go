@@ -5,6 +5,8 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"math"
 	"net/http"
 	"sort"
@@ -78,7 +80,10 @@ func FetchServerListContext(ctx context.Context, user *User) (ServerList, error)
 	}
 
 	if resp.ContentLength == 0 {
-		resp.Body.Close()
+		err := resp.Body.Close()
+		if err != nil {
+			return ServerList{}, err
+		}
 
 		req, err = http.NewRequestWithContext(ctx, http.MethodGet, speedTestServersAlternativeUrl, nil)
 		if err != nil {
@@ -91,7 +96,12 @@ func FetchServerListContext(ctx context.Context, user *User) (ServerList, error)
 		}
 	}
 
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(resp.Body)
 
 	// Decode xml
 	decoder := xml.NewDecoder(resp.Body)

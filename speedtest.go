@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/showwin/speedtest-go/speedtest"
@@ -31,7 +30,7 @@ func main() {
 
 	user, err := speedtest.FetchUserInfo()
 	if err != nil {
-		fmt.Println("Warning: Cannot fetch user information. http://www.speedtest.net/speedtest-config.php is temporarily unavailable.")
+		fmt.Println("Warning: Cannot fetch user information. https://www.speedtest.net/speedtest-config.php is temporarily unavailable.")
 	}
 	if !*jsonOutput {
 		showUser(user)
@@ -184,7 +183,6 @@ func showAverageServerResult(servers speedtest.Servers) {
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 }
 

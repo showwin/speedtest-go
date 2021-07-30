@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -182,7 +183,12 @@ func dlWarmUp(ctx context.Context, dlURL string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(resp.Body)
 	_, err = io.Copy(ioutil.Discard, resp.Body)
 	return err
 }
@@ -202,7 +208,12 @@ func ulWarmUp(ctx context.Context, ulURL string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(resp.Body)
 	_, err = io.Copy(ioutil.Discard, resp.Body)
 	return err
 }
@@ -220,7 +231,12 @@ func downloadRequest(ctx context.Context, dlURL string, w int) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(resp.Body)
 	_, err = io.Copy(ioutil.Discard, resp.Body)
 	return err
 }
@@ -240,7 +256,12 @@ func uploadRequest(ctx context.Context, ulURL string, w int) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(resp.Body)
 
 	_, err = io.Copy(ioutil.Discard, resp.Body)
 	return err
@@ -274,10 +295,13 @@ func (s *Server) PingTestContext(ctx context.Context) error {
 			l = fTime.Sub(sTime)
 		}
 
-		resp.Body.Close()
+		err = resp.Body.Close()
+		if err != nil {
+			return err
+		}
 	}
 
-	s.Latency = time.Duration(int64(l.Nanoseconds() / 2))
+	s.Latency = time.Duration(l.Nanoseconds() / 2)
 
 	return nil
 }
