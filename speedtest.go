@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/showwin/speedtest-go/speedtest"
@@ -184,7 +183,6 @@ func showAverageServerResult(servers speedtest.Servers) {
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 }
 
