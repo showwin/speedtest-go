@@ -1,6 +1,10 @@
 package speedtest
 
-import "testing"
+import (
+	"fmt"
+	"reflect"
+	"testing"
+)
 
 func TestFetchServerList(t *testing.T) {
 	user := User{
@@ -18,6 +22,36 @@ func TestFetchServerList(t *testing.T) {
 	}
 	if len(serverList.Servers[0].Country) == 0 {
 		t.Errorf("got unexpected country name '%v'", serverList.Servers[0].Country)
+	}
+}
+
+func extractServerID(servers []*Server) []string {
+	serverID := []string{}
+	for _, server := range servers {
+		serverID = append(serverID, server.ID)
+	}
+	return serverID
+}
+
+func TestFetchServerListManyTimes(t *testing.T) {
+	user := User{
+		IP:  "111.111.111.111",
+		Lat: "35.22",
+		Lon: "138.44",
+		Isp: "Hello",
+	}
+	firstResult, _ := FetchServerList(&user)
+	firstServerIDs := extractServerID(firstResult.Servers)
+
+	for i := 1; i <= 100; i++ {
+		result, _ := FetchServerList(&user)
+		serverIDs := extractServerID(result.Servers)
+		if !reflect.DeepEqual(firstServerIDs, serverIDs) {
+			fmt.Println(firstServerIDs)
+			fmt.Printf("=============\n")
+			fmt.Println(serverIDs)
+			t.Errorf("Server list is different from each request.")
+		}
 	}
 }
 
