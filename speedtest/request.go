@@ -24,11 +24,15 @@ var client = http.Client{}
 
 // DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest(savingMode bool) error {
-	return s.DownloadTestContext(context.Background(), savingMode, dlWarmUp, downloadRequest)
+	return s.downloadTestContext(context.Background(), savingMode, dlWarmUp, downloadRequest)
 }
 
 // DownloadTestContext executes the test to measure download speed, observing the given context.
-func (s *Server) DownloadTestContext(
+func (s *Server) DownloadTestContext(ctx context.Context, savingMode bool) error {
+	return s.downloadTestContext(ctx, savingMode, dlWarmUp, downloadRequest)
+}
+
+func (s *Server) downloadTestContext(
 	ctx context.Context,
 	savingMode bool,
 	dlWarmUp downloadWarmUpFunc,
@@ -98,11 +102,14 @@ func (s *Server) DownloadTestContext(
 
 // UploadTest executes the test to measure upload speed
 func (s *Server) UploadTest(savingMode bool) error {
-	return s.UploadTestContext(context.Background(), savingMode, ulWarmUp, uploadRequest)
+	return s.uploadTestContext(context.Background(), savingMode, ulWarmUp, uploadRequest)
 }
 
 // UploadTestContext executes the test to measure upload speed, observing the given context.
-func (s *Server) UploadTestContext(
+func (s *Server) UploadTestContext(ctx context.Context, savingMode bool) error {
+	return s.uploadTestContext(ctx, savingMode, ulWarmUp, uploadRequest)
+}
+func (s *Server) uploadTestContext(
 	ctx context.Context,
 	savingMode bool,
 	ulWarmUp uploadWarmUpFunc,

@@ -14,7 +14,7 @@ func TestDownloadTestContext(t *testing.T) {
 		Latency: latency,
 	}
 
-	err := server.DownloadTestContext(
+	err := server.downloadTestContext(
 		context.Background(),
 		false,
 		mockWarmUp,
@@ -35,7 +35,7 @@ func TestDownloadTestContextSavingMode(t *testing.T) {
 		Latency: latency,
 	}
 
-	err := server.DownloadTestContext(
+	err := server.downloadTestContext(
 		context.Background(),
 		true,
 		mockWarmUp,
@@ -56,7 +56,7 @@ func TestUploadTestContext(t *testing.T) {
 		Latency: latency,
 	}
 
-	err := server.UploadTestContext(
+	err := server.uploadTestContext(
 		context.Background(),
 		false,
 		mockWarmUp,
@@ -77,7 +77,7 @@ func TestUploadTestContextSavingMode(t *testing.T) {
 		Latency: latency,
 	}
 
-	err := server.UploadTestContext(
+	err := server.uploadTestContext(
 		context.Background(),
 		true,
 		mockWarmUp,
