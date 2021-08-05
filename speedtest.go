@@ -25,7 +25,7 @@ type fullOutput struct {
 type outputTime time.Time
 
 func main() {
-	kingpin.Version("1.1.3")
+	kingpin.Version("1.1.4")
 	kingpin.Parse()
 
 	user, err := speedtest.FetchUserInfo()
