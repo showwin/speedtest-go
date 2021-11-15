@@ -64,7 +64,7 @@ func (b ByDistance) Less(i, j int) bool {
 
 // FetchServerList retrieves a list of available servers
 func (client *Speedtest) FetchServerList(user *User) (ServerList, error) {
-	return FetchServerListContext(context.Background(), user)
+	return client.FetchServerListContext(context.Background(), user)
 }
 
 // FetchServerList retrieves a list of available servers
