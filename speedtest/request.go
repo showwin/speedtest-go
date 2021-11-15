@@ -271,7 +271,7 @@ func (s *Server) PingTestContext(ctx context.Context) error {
 			return err
 		}
 
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := s.doer.Do(req)
 		if err != nil {
 			return err
 		}
