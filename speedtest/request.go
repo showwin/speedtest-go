@@ -262,7 +262,7 @@ func (s *Server) PingTest() error {
 func (s *Server) PingTestContext(ctx context.Context) error {
 	pingURL := strings.Split(s.URL, "/upload.php")[0] + "/latency.txt"
 
-	l := time.Duration(100000000000) // 10sec
+	l := time.Second * 10
 	for i := 0; i < 3; i++ {
 		sTime := time.Now()
 
