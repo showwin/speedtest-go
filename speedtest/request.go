@@ -13,14 +13,13 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type downloadWarmUpFunc func(context.Context, string) error
-type downloadFunc func(context.Context, string, int) error
-type uploadWarmUpFunc func(context.Context, string) error
-type uploadFunc func(context.Context, string, int) error
+type downloadWarmUpFunc func(context.Context, *http.Client, string) error
+type downloadFunc func(context.Context, *http.Client, string, int) error
+type uploadWarmUpFunc func(context.Context, *http.Client, string) error
+type uploadFunc func(context.Context, *http.Client, string, int) error
 
 var dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
 var ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} //kB
-var client = http.Client{}
 
 // DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest(savingMode bool) error {
@@ -45,7 +44,7 @@ func (s *Server) downloadTestContext(
 	sTime := time.Now()
 	for i := 0; i < 2; i++ {
 		eg.Go(func() error {
-			return dlWarmUp(ctx, dlURL)
+			return dlWarmUp(ctx, s.doer, dlURL)
 		})
 	}
 	if err := eg.Wait(); err != nil {
@@ -84,7 +83,7 @@ func (s *Server) downloadTestContext(
 		sTime = time.Now()
 		for i := 0; i < workload; i++ {
 			eg.Go(func() error {
-				return downloadRequest(ctx, dlURL, weight)
+				return downloadRequest(ctx, s.doer, dlURL, weight)
 			})
 		}
 		if err := eg.Wait(); err != nil {
@@ -120,7 +119,7 @@ func (s *Server) uploadTestContext(
 	eg := errgroup.Group{}
 	for i := 0; i < 2; i++ {
 		eg.Go(func() error {
-			return ulWarmUp(ctx, s.URL)
+			return ulWarmUp(ctx, s.doer, s.URL)
 		})
 	}
 	if err := eg.Wait(); err != nil {
@@ -159,7 +158,7 @@ func (s *Server) uploadTestContext(
 		sTime = time.Now()
 		for i := 0; i < workload; i++ {
 			eg.Go(func() error {
-				return uploadRequest(ctx, s.URL, weight)
+				return uploadRequest(ctx, s.doer, s.URL, weight)
 			})
 		}
 		if err := eg.Wait(); err != nil {
@@ -176,7 +175,7 @@ func (s *Server) uploadTestContext(
 	return nil
 }
 
-func dlWarmUp(ctx context.Context, dlURL string) error {
+func dlWarmUp(ctx context.Context, doer *http.Client, dlURL string) error {
 	size := dlSizes[2]
 	xdlURL := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
 
@@ -185,7 +184,7 @@ func dlWarmUp(ctx context.Context, dlURL string) error {
 		return err
 	}
 
-	resp, err := client.Do(req)
+	resp, err := doer.Do(req)
 	if err != nil {
 		return err
 	}
@@ -194,7 +193,7 @@ func dlWarmUp(ctx context.Context, dlURL string) error {
 	return err
 }
 
-func ulWarmUp(ctx context.Context, ulURL string) error {
+func ulWarmUp(ctx context.Context, doer *http.Client, ulURL string) error {
 	size := ulSizes[4]
 	v := url.Values{}
 	v.Add("content", strings.Repeat("0123456789", size*100-51))
@@ -205,7 +204,7 @@ func ulWarmUp(ctx context.Context, ulURL string) error {
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := client.Do(req)
+	resp, err := doer.Do(req)
 	if err != nil {
 		return err
 	}
@@ -214,7 +213,7 @@ func ulWarmUp(ctx context.Context, ulURL string) error {
 	return err
 }
 
-func downloadRequest(ctx context.Context, dlURL string, w int) error {
+func downloadRequest(ctx context.Context, doer *http.Client, dlURL string, w int) error {
 	size := dlSizes[w]
 	xdlURL := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
 
@@ -223,7 +222,7 @@ func downloadRequest(ctx context.Context, dlURL string, w int) error {
 		return err
 	}
 
-	resp, err := client.Do(req)
+	resp, err := doer.Do(req)
 	if err != nil {
 		return err
 	}
@@ -232,7 +231,7 @@ func downloadRequest(ctx context.Context, dlURL string, w int) error {
 	return err
 }
 
-func uploadRequest(ctx context.Context, ulURL string, w int) error {
+func uploadRequest(ctx context.Context, doer *http.Client, ulURL string, w int) error {
 	size := ulSizes[w]
 	v := url.Values{}
 	v.Add("content", strings.Repeat("0123456789", size*100-51))
@@ -243,7 +242,7 @@ func uploadRequest(ctx context.Context, ulURL string, w int) error {
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := client.Do(req)
+	resp, err := doer.Do(req)
 	if err != nil {
 		return err
 	}
