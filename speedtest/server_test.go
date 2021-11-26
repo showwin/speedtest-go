@@ -9,15 +9,15 @@ func TestFetchServerList(t *testing.T) {
 		Lon: "138.44",
 		Isp: "Hello",
 	}
-	serverList, err := FetchServers(&user)
+	servers, err := FetchServers(&user)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	if len(serverList.Servers) == 0 {
+	if len(servers) == 0 {
 		t.Errorf("Failed to fetch server list.")
 	}
-	if len(serverList.Servers[0].Country) == 0 {
-		t.Errorf("got unexpected country name '%v'", serverList.Servers[0].Country)
+	if len(servers[0].Country) == 0 {
+		t.Errorf("got unexpected country name '%v'", servers[0].Country)
 	}
 }
 
@@ -45,7 +45,7 @@ func TestDistance(t *testing.T) {
 }
 
 func TestFindServer(t *testing.T) {
-	servers := []*Server{
+	servers := Servers{
 		&Server{
 			ID: "1",
 		},
@@ -56,10 +56,9 @@ func TestFindServer(t *testing.T) {
 			ID: "3",
 		},
 	}
-	serverList := ServerList{Servers: servers}
 
 	serverID := []int{}
-	s, err := serverList.FindServer(serverID)
+	s, err := servers.FindServer(serverID)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -71,7 +70,7 @@ func TestFindServer(t *testing.T) {
 	}
 
 	serverID = []int{2}
-	s, err = serverList.FindServer(serverID)
+	s, err = servers.FindServer(serverID)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -83,7 +82,7 @@ func TestFindServer(t *testing.T) {
 	}
 
 	serverID = []int{3, 1}
-	s, err = serverList.FindServer(serverID)
+	s, err = servers.FindServer(serverID)
 	if err != nil {
 		t.Errorf(err.Error())
 	}

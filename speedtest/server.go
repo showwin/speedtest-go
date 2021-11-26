@@ -185,9 +185,18 @@ func (l Servers) FindServer(serverID []int) (Servers, error) {
 }
 
 // String representation of ServerList
-func (l *ServerList) String() string {
+func (l ServerList) String() string {
 	slr := ""
 	for _, s := range l.Servers {
+		slr += s.String()
+	}
+	return slr
+}
+
+// String representation of Servers
+func (l Servers) String() string {
+	slr := ""
+	for _, s := range l {
 		slr += s.String()
 	}
 	return slr
