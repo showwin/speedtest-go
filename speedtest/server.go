@@ -23,7 +23,6 @@ const (
 	XMLPayload
 )
 
-
 // Server information
 type Server struct {
 	URL      string        `xml:"url,attr" json:"url"`
@@ -76,7 +75,7 @@ func (client *Speedtest) FetchServers(user *User) (Servers, error) {
 	return client.FetchServerListContext(context.Background(), user)
 }
 
-// FetchServerList retrieves a list of available servers
+// FetchServers retrieves a list of available servers
 func FetchServers(user *User) (Servers, error) {
 	return defaultClient.FetchServers(user)
 }
@@ -131,13 +130,14 @@ func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User)
 		if err := decoder.Decode(&list); err != nil {
 			return servers, err
 		}
+
 		servers = list.Servers
 	default:
 		return servers, fmt.Errorf("response payload decoding not implemented")
 	}
 
 	// set doer of server
-	for _, s := range list.Servers {
+	for _, s := range servers {
 		s.doer = client.doer
 	}
 
@@ -161,7 +161,7 @@ func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User)
 }
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.
-func FetchServerListContext(ctx context.Context, user *User) (ServerList, error) {
+func FetchServerListContext(ctx context.Context, user *User) (Servers, error) {
 	return defaultClient.FetchServerListContext(ctx, user)
 }
 
