@@ -30,6 +30,8 @@ type Server struct {
 	Latency  time.Duration `json:"latency"`
 	DLSpeed  float64       `json:"dl_speed"`
 	ULSpeed  float64       `json:"ul_speed"`
+
+	doer *http.Client
 }
 
 // ServerList list of Server
@@ -61,18 +63,23 @@ func (b ByDistance) Less(i, j int) bool {
 }
 
 // FetchServerList retrieves a list of available servers
+func (client *Speedtest) FetchServerList(user *User) (ServerList, error) {
+	return client.FetchServerListContext(context.Background(), user)
+}
+
+// FetchServerList retrieves a list of available servers
 func FetchServerList(user *User) (ServerList, error) {
-	return FetchServerListContext(context.Background(), user)
+	return defaultClient.FetchServerList(user)
 }
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.
-func FetchServerListContext(ctx context.Context, user *User) (ServerList, error) {
+func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User) (ServerList, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, speedTestServersUrl, nil)
 	if err != nil {
 		return ServerList{}, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.doer.Do(req)
 	if err != nil {
 		return ServerList{}, err
 	}
@@ -85,7 +92,7 @@ func FetchServerListContext(ctx context.Context, user *User) (ServerList, error)
 			return ServerList{}, err
 		}
 
-		resp, err = http.DefaultClient.Do(req)
+		resp, err = client.doer.Do(req)
 		if err != nil {
 			return ServerList{}, err
 		}
@@ -99,6 +106,11 @@ func FetchServerListContext(ctx context.Context, user *User) (ServerList, error)
 	var list ServerList
 	if err := decoder.Decode(&list); err != nil {
 		return list, err
+	}
+
+	// set doer of server
+	for _, s := range list.Servers {
+		s.doer = client.doer
 	}
 
 	// Calculate distance
@@ -119,6 +131,11 @@ func FetchServerListContext(ctx context.Context, user *User) (ServerList, error)
 	}
 
 	return list, nil
+}
+
+// FetchServerListContext retrieves a list of available servers, observing the given context.
+func FetchServerListContext(ctx context.Context, user *User) (ServerList, error) {
+	return defaultClient.FetchServerListContext(ctx, user)
 }
 
 func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
