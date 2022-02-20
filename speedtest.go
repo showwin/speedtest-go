@@ -32,6 +32,7 @@ func main() {
 	user, err := speedtest.FetchUserInfo()
 	if err != nil {
 		fmt.Println("Warning: Cannot fetch user information. http://www.speedtest.net/speedtest-config.php is temporarily unavailable.")
+		return
 	}
 
 	if len(*world) > 0 {
