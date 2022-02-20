@@ -9,7 +9,10 @@ func TestFetchServerList(t *testing.T) {
 		Lon: "138.44",
 		Isp: "Hello",
 	}
-	servers, err := FetchServers(&user)
+
+	client := New()
+
+	servers, err := client.FetchServers(&user)
 	if err != nil {
 		t.Errorf(err.Error())
 	}

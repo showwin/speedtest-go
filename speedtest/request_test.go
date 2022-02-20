@@ -3,6 +3,7 @@ package speedtest
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 )
@@ -91,12 +92,12 @@ func TestUploadTestContextSavingMode(t *testing.T) {
 	}
 }
 
-func mockWarmUp(ctx context.Context, dlURL string) error {
+func mockWarmUp(ctx context.Context, doer *http.Client, dlURL string) error {
 	time.Sleep(100 * time.Millisecond)
 	return nil
 }
 
-func mockRequest(ctx context.Context, dlURL string, w int) error {
+func mockRequest(ctx context.Context, doer *http.Client, dlURL string, w int) error {
 	fmt.Sprintln(w)
 	time.Sleep(500 * time.Millisecond)
 	return nil

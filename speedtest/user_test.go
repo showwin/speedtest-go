@@ -7,7 +7,9 @@ import (
 )
 
 func TestFetchUserInfo(t *testing.T) {
-	user, err := FetchUserInfo()
+	client := New()
+
+	user, err := client.FetchUserInfo()
 	if err != nil {
 		t.Errorf(err.Error())
 	}
