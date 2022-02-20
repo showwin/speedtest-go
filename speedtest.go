@@ -36,14 +36,14 @@ func main() {
 		showUser(user)
 	}
 
-	serverList, err := speedtest.FetchServerList(user)
+	servers, err := speedtest.FetchServers(user)
 	checkError(err)
 	if *showList {
-		showServerList(serverList)
+		showServerList(servers)
 		return
 	}
 
-	targets, err := serverList.FindServer(*serverIds)
+	targets, err := servers.FindServer(*serverIds)
 	checkError(err)
 
 	startTest(targets, *savingMode, *jsonOutput)
@@ -140,8 +140,8 @@ func showUser(user *speedtest.User) {
 	}
 }
 
-func showServerList(serverList speedtest.ServerList) {
-	for _, s := range serverList.Servers {
+func showServerList(servers speedtest.Servers) {
+	for _, s := range servers {
 		fmt.Printf("[%4s] %8.2fkm ", s.ID, s.Distance)
 		fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
 	}

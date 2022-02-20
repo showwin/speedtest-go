@@ -2,6 +2,7 @@ package speedtest
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -12,8 +13,16 @@ import (
 	"time"
 )
 
-const speedTestServersUrl = "https://www.speedtest.net/speedtest-servers-static.php"
+const speedTestServersUrl = "https://www.speedtest.net/api/js/servers?engine=js&limit=10"
 const speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
+
+type PayloadType int
+
+const (
+	JSONPayload PayloadType = iota
+	XMLPayload
+)
+
 
 // Server information
 type Server struct {
@@ -62,50 +71,69 @@ func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
 }
 
-// FetchServerList retrieves a list of available servers
-func (client *Speedtest) FetchServerList(user *User) (ServerList, error) {
+// FetchServers retrieves a list of available servers
+func (client *Speedtest) FetchServers(user *User) (Servers, error) {
 	return client.FetchServerListContext(context.Background(), user)
 }
 
 // FetchServerList retrieves a list of available servers
-func FetchServerList(user *User) (ServerList, error) {
-	return defaultClient.FetchServerList(user)
+func FetchServers(user *User) (Servers, error) {
+	return defaultClient.FetchServers(user)
 }
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.
-func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User) (ServerList, error) {
+func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Servers, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, speedTestServersUrl, nil)
 	if err != nil {
-		return ServerList{}, err
+		return Servers{}, err
 	}
 
 	resp, err := client.doer.Do(req)
 	if err != nil {
-		return ServerList{}, err
+		return Servers{}, err
 	}
+
+	payloadType := JSONPayload
 
 	if resp.ContentLength == 0 {
 		resp.Body.Close()
 
 		req, err = http.NewRequestWithContext(ctx, http.MethodGet, speedTestServersAlternativeUrl, nil)
 		if err != nil {
-			return ServerList{}, err
+			return Servers{}, err
 		}
 
 		resp, err = client.doer.Do(req)
 		if err != nil {
-			return ServerList{}, err
+			return Servers{}, err
 		}
+
+		payloadType = XMLPayload
 	}
 
 	defer resp.Body.Close()
 
-	// Decode xml
-	decoder := xml.NewDecoder(resp.Body)
+	var servers Servers
 
-	var list ServerList
-	if err := decoder.Decode(&list); err != nil {
-		return list, err
+	switch payloadType {
+	case JSONPayload:
+		// Decode xml
+		decoder := json.NewDecoder(resp.Body)
+
+		if err := decoder.Decode(&servers); err != nil {
+			return servers, err
+		}
+	case XMLPayload:
+		var list ServerList
+		// Decode xml
+		decoder := xml.NewDecoder(resp.Body)
+
+		if err := decoder.Decode(&list); err != nil {
+			return servers, err
+		}
+		servers = list.Servers
+	default:
+		return servers, fmt.Errorf("response payload decoding not implemented")
 	}
 
 	// set doer of server
@@ -114,8 +142,7 @@ func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User)
 	}
 
 	// Calculate distance
-	for i := range list.Servers {
-		server := list.Servers[i]
+	for _, server := range servers {
 		sLat, _ := strconv.ParseFloat(server.Lat, 64)
 		sLon, _ := strconv.ParseFloat(server.Lon, 64)
 		uLat, _ := strconv.ParseFloat(user.Lat, 64)
@@ -124,13 +151,13 @@ func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User)
 	}
 
 	// Sort by distance
-	sort.Sort(ByDistance{list.Servers})
+	sort.Sort(ByDistance{servers})
 
-	if len(list.Servers) <= 0 {
-		return list, errors.New("unable to retrieve server list")
+	if len(servers) <= 0 {
+		return servers, errors.New("unable to retrieve server list")
 	}
 
-	return list, nil
+	return servers, nil
 }
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.
@@ -151,15 +178,15 @@ func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 }
 
 // FindServer finds server by serverID
-func (l *ServerList) FindServer(serverID []int) (Servers, error) {
+func (l Servers) FindServer(serverID []int) (Servers, error) {
 	servers := Servers{}
 
-	if len(l.Servers) <= 0 {
+	if len(l) <= 0 {
 		return servers, errors.New("no servers available")
 	}
 
 	for _, sid := range serverID {
-		for _, s := range l.Servers {
+		for _, s := range l {
 			id, _ := strconv.Atoi(s.ID)
 			if sid == id {
 				servers = append(servers, s)
@@ -168,16 +195,25 @@ func (l *ServerList) FindServer(serverID []int) (Servers, error) {
 	}
 
 	if len(servers) == 0 {
-		servers = append(servers, l.Servers[0])
+		servers = append(servers, l[0])
 	}
 
 	return servers, nil
 }
 
 // String representation of ServerList
-func (l *ServerList) String() string {
+func (l ServerList) String() string {
 	slr := ""
 	for _, s := range l.Servers {
+		slr += s.String()
+	}
+	return slr
+}
+
+// String representation of Servers
+func (l Servers) String() string {
+	slr := ""
+	for _, s := range l {
 		slr += s.String()
 	}
 	return slr
