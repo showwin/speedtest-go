@@ -1,5 +1,5 @@
 # speedtest-go
-**Command Line Interface and pure Go API to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)**  
+**Command Line Interface and pure Go API to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)**
 You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/) with almost the same result. [See the experimental results.](https://github.com/showwin/speedtest-go#summary-of-experimental-results).
 
 Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
@@ -20,7 +20,7 @@ $ brew upgrade speedtest
 ```
 
 #### Other Platform (Linux, Windows, etc.)
-Please download compatible package from [Releases](https://github.com/showwin/speedtest-go/releases).  
+Please download compatible package from [Releases](https://github.com/showwin/speedtest-go/releases).
 If there are no compatible package you want, please let me know on [issue](https://github.com/showwin/speedtest-go/issues).
 
 ### Usage
@@ -183,6 +183,13 @@ distance = distance to testing server
 ## Contributors
 * [kogai](https://github.com/kogai)
 * [cbergoon](https://github.com/cbergoon)
+* [aareet](https://github.com/aareet)
+* [ovaldi](https://github.com/ovaldi)
+* [mumia](https://github.com/mumia)
+* [euantorano](https://github.com/euantorano)
+* [juev](https://github.com/juev)
+* [mr-linch](https://github.com/mr-linch)
+* [redradrat](https://github.com/redradrat)
 
 ## LICENSE
 
