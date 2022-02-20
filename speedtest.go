@@ -15,6 +15,7 @@ var (
 	serverIds  = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Ints()
 	savingMode = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput = kingpin.Flag("json", "Output results in json format").Bool()
+	world      = kingpin.Flag("world", "Change the current user location").String()
 )
 
 type fullOutput struct {
@@ -32,6 +33,14 @@ func main() {
 	if err != nil {
 		fmt.Println("Warning: Cannot fetch user information. http://www.speedtest.net/speedtest-config.php is temporarily unavailable.")
 	}
+
+	if len(*world) > 0 {
+		err = user.Location(*world)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+
 	if !*jsonOutput {
 		showUser(user)
 	}
