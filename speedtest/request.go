@@ -51,8 +51,17 @@ func (s *Server) downloadTestContext(
 		return err
 	}
 	fTime := time.Now()
+
+	// If the bandwidth is too large, the download sometimes finish earlier than the latency.
+	// In this case, we ignore the the latency that is included server information.
+	// This is not affected to the final result since this is a warm up test.
+	timeToSpend := fTime.Sub(sTime.Add(s.Latency)).Seconds()
+	if timeToSpend < 0 {
+		timeToSpend = fTime.Sub(sTime).Seconds()
+	}
+
 	// 1.125MB for each request (750 * 750 * 2)
-	wuSpeed := 1.125 * 8 * 2 / fTime.Sub(sTime.Add(s.Latency)).Seconds()
+	wuSpeed := 1.125 * 8 * 2 / timeToSpend
 
 	// Decide workload by warm up speed
 	workload := 0
