@@ -39,6 +39,7 @@ func main() {
 		err = user.Location(*world)
 		if err != nil {
 			fmt.Println(err.Error())
+			fmt.Printf("Warning: skipping...command line arguments: --world=%v\n", *world)
 		}
 	}
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -85,9 +86,41 @@ func (u *User) Location(inputLocationName string) (err error) {
 	if ok {
 		u.VLat = fmt.Sprintf("%.4f", loc.Lat)
 		u.VLon = fmt.Sprintf("%.4f", loc.Lon)
-		u.VLoc = inputLocationName
+		u.VLoc = strings.Title(inputLocationName)
 	} else {
-		err = errors.New("Warning: no found predefined location: " + inputLocationName)
+		err = u.parseLocation(inputLocationName)
 	}
 	return
+}
+
+func (u *User) parseLocation(sLoc string) error {
+	ll := strings.Split(sLoc, ",")
+	if len(ll) == 2 {
+		// parameter validity check
+		err := betweenRange(ll[0], 90)
+		if err != nil {
+			return err
+		}
+		err = betweenRange(ll[1], 180)
+		if err != nil {
+			return err
+		}
+
+		u.VLat = ll[0]
+		u.VLon = ll[1]
+		u.VLoc = "Customize"
+		return nil
+	}
+	return errors.New("Warning: no found predefined or invalid custom location: " + sLoc)
+}
+
+func betweenRange(inputStrValue string, interval float64) error {
+	value, err := strconv.ParseFloat(inputStrValue, 64)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Warning: invalid input: %v", inputStrValue))
+	}
+	if value < -interval || interval < value {
+		return errors.New(fmt.Sprintf("Warning: invalid input. got: %v, expected between -%v and %v", inputStrValue, interval, interval))
+	}
+	return nil
 }
