@@ -81,46 +81,52 @@ func (u *User) String() string {
 	return fmt.Sprintf("%s, (%s) [%s, %s] %s", u.IP, u.Isp, u.Lat, u.Lon, extInfo)
 }
 
-func (u *User) Location(inputLocationName string) (err error) {
-	loc, ok := Locations[strings.ToLower(inputLocationName)]
+// SetLocationByCity set current location using predefined location label.
+func (u *User) SetLocationByCity(locationLabel string) (err error) {
+	loc, ok := Locations[strings.ToLower(locationLabel)]
 	if ok {
-		u.VLat = fmt.Sprintf("%.4f", loc.Lat)
-		u.VLon = fmt.Sprintf("%.4f", loc.Lon)
-		u.VLoc = strings.Title(inputLocationName)
+		u.SetLocation(locationLabel, loc.Lat, loc.Lon)
 	} else {
-		err = u.parseLocation(inputLocationName)
+		err = errors.New("Warning: no found predefined label: " + locationLabel)
 	}
 	return
 }
 
-func (u *User) parseLocation(sLoc string) error {
-	ll := strings.Split(sLoc, ",")
-	if len(ll) == 2 {
-		// parameter validity check
-		err := betweenRange(ll[0], 90)
-		if err != nil {
-			return err
-		}
-		err = betweenRange(ll[1], 180)
-		if err != nil {
-			return err
-		}
-
-		u.VLat = ll[0]
-		u.VLon = ll[1]
-		u.VLoc = "Customize"
-		return nil
-	}
-	return errors.New("Warning: no found predefined or invalid custom location: " + sLoc)
+// SetLocation set the latitude and longitude of the current user
+func (u *User) SetLocation(locationName string, latitude float64, longitude float64) {
+	u.VLat = fmt.Sprintf("%.4f", latitude)
+	u.VLon = fmt.Sprintf("%.4f", longitude)
+	u.VLoc = strings.Title(locationName)
 }
 
-func betweenRange(inputStrValue string, interval float64) error {
+// ParseAndSetLocation parse latitude and longitude string
+func (u *User) ParseAndSetLocation(coordinateStr string) error {
+	ll := strings.Split(coordinateStr, ",")
+	if len(ll) == 2 {
+		// parameter validity check
+		lat, err := betweenRange(ll[0], 90)
+		if err != nil {
+			return err
+		}
+		lon, err := betweenRange(ll[1], 180)
+		if err != nil {
+			return err
+		}
+
+		u.SetLocation("Customize", lat, lon)
+		return nil
+	}
+	return errors.New("Warning: invalid location input: " + coordinateStr)
+}
+
+// betweenRange latitude and longitude range check
+func betweenRange(inputStrValue string, interval float64) (float64, error) {
 	value, err := strconv.ParseFloat(inputStrValue, 64)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Warning: invalid input: %v", inputStrValue))
+		return 0, errors.New(fmt.Sprintf("Warning: invalid input: %v", inputStrValue))
 	}
 	if value < -interval || interval < value {
-		return errors.New(fmt.Sprintf("Warning: invalid input. got: %v, expected between -%v and %v", inputStrValue, interval, interval))
+		return 0, errors.New(fmt.Sprintf("Warning: invalid input. got: %v, expected between -%v and %v", inputStrValue, interval, interval))
 	}
-	return nil
+	return value, nil
 }

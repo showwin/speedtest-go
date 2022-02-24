@@ -11,11 +11,13 @@ import (
 )
 
 var (
-	showList   = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
-	serverIds  = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Ints()
-	savingMode = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
-	jsonOutput = kingpin.Flag("json", "Output results in json format").Bool()
-	world      = kingpin.Flag("world", "Change the current user location").String()
+	showList     = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
+	serverIds    = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Ints()
+	savingMode   = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
+	jsonOutput   = kingpin.Flag("json", "Output results in json format").Bool()
+	location     = kingpin.Flag("location", "Change the location with a precise coordinate.").String()
+	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
+	showCityList = kingpin.Flag("city-list", "List all predefined city label.").Bool()
 )
 
 type fullOutput struct {
@@ -35,11 +37,24 @@ func main() {
 		return
 	}
 
-	if len(*world) > 0 {
-		err = user.Location(*world)
+	if *showCityList {
+		speedtest.PrintCityList()
+		return
+	}
+
+	if len(*city) > 0 {
+		err = user.SetLocationByCity(*city)
 		if err != nil {
 			fmt.Println(err.Error())
-			fmt.Printf("Warning: skipping...command line arguments: --world=%v\n", *world)
+			fmt.Printf("Warning: skipping...command line arguments: --city=%v\n", *city)
+		}
+	}
+
+	if len(*location) > 0 {
+		err = user.ParseAndSetLocation(*location)
+		if err != nil {
+			fmt.Println(err.Error())
+			fmt.Printf("Warning: skipping...command line arguments: --location=%v\n", *location)
 		}
 	}
 
