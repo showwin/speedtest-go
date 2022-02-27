@@ -87,15 +87,15 @@ func (u *User) SetLocationByCity(locationLabel string) (err error) {
 	if ok {
 		u.SetLocation(locationLabel, loc.Lat, loc.Lon)
 	} else {
-		err = errors.New("Warning: no found predefined label: " + locationLabel)
+		err = fmt.Errorf("no found predefined label: %s", locationLabel)
 	}
 	return
 }
 
 // SetLocation set the latitude and longitude of the current user
 func (u *User) SetLocation(locationName string, latitude float64, longitude float64) {
-	u.VLat = fmt.Sprintf("%.4f", latitude)
-	u.VLon = fmt.Sprintf("%.4f", longitude)
+	u.VLat = fmt.Sprintf("%v", latitude)
+	u.VLon = fmt.Sprintf("%v", longitude)
 	u.VLoc = strings.Title(locationName)
 }
 
@@ -116,17 +116,17 @@ func (u *User) ParseAndSetLocation(coordinateStr string) error {
 		u.SetLocation("Customize", lat, lon)
 		return nil
 	}
-	return errors.New("Warning: invalid location input: " + coordinateStr)
+	return fmt.Errorf("invalid location input: %s", coordinateStr)
 }
 
 // betweenRange latitude and longitude range check
 func betweenRange(inputStrValue string, interval float64) (float64, error) {
 	value, err := strconv.ParseFloat(inputStrValue, 64)
 	if err != nil {
-		return 0, errors.New(fmt.Sprintf("Warning: invalid input: %v", inputStrValue))
+		return 0, fmt.Errorf("invalid input: %v", inputStrValue)
 	}
 	if value < -interval || interval < value {
-		return 0, errors.New(fmt.Sprintf("Warning: invalid input. got: %v, expected between -%v and %v", inputStrValue, interval, interval))
+		return 0, fmt.Errorf("invalid input. got: %v, expected between -%v and %v", inputStrValue, interval, interval)
 	}
 	return value, nil
 }

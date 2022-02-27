@@ -45,16 +45,14 @@ func main() {
 	if len(*city) > 0 {
 		err = user.SetLocationByCity(*city)
 		if err != nil {
-			fmt.Println(err.Error())
-			fmt.Printf("Warning: skipping...command line arguments: --city=%v\n", *city)
+			fmt.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
 		}
 	}
 
 	if len(*location) > 0 {
 		err = user.ParseAndSetLocation(*location)
 		if err != nil {
-			fmt.Println(err.Error())
-			fmt.Printf("Warning: skipping...command line arguments: --location=%v\n", *location)
+			fmt.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
 		}
 	}
 

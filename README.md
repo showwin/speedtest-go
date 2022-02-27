@@ -127,7 +127,9 @@ import (
 
 func main() {
 	user, _ := speedtest.FetchUserInfo()
-    // user.SetLocationByCity("Tokyo")
+	// Get a list of servers near a specified location
+	// user.SetLocationByCity("Tokyo")
+	// user.SetLocation("Osaka", 34.6952, 135.5006)
 	
 	serverList, _ := speedtest.FetchServerList(user)
 	targets, _ := serverList.FindServer([]int{})
