@@ -128,7 +128,7 @@ import (
 func main() {
 	user, _ := speedtest.FetchUserInfo()
 
-	serverList, _ := speedtest.FetchServerList(user)
+	serverList, _ := speedtest.FetchServers(user)
 	targets, _ := serverList.FindServer([]int{})
 
 	for _, s := range targets {
