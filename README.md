@@ -34,7 +34,10 @@ Flags:
   -l, --list               Show available speedtest.net servers.
   -s, --server=SERVER ...  Select server id to speedtest.
       --saving-mode        Using less memory (≒10MB), though low accuracy (especially > 30Mbps).
-      --json               Output results as json
+      --json               Output results in json format
+      --location=LOCATION  Change the location with a precise coordinate.
+      --city=CITY          Change the location with a predefined city label.
+      --city-list          List all predefined city label.
       --version            Show application version.
 ```
 
@@ -66,13 +69,6 @@ Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 [6087]   120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
 [6508]   125.44km Yokohama (Japan) by at2wn
 [6424]   148.23km Tokyo (Japan) by Cordeos Corp.
-[6492]   153.06km Sumida (Japan) by denpa893
-[7139]   192.63km Tsukuba (Japan) by SoftEther Corporation
-[6368]   194.83km Maibara (Japan) by gatolabo
-[6463]   220.39km Kusatsu (Japan) by j416dy
-[6766]   232.54km Nomi (Japan) by JAIST(ino-lab)
-[6476]   265.10km Osaka (Japan) by rxy (individual)
-[6477]   268.94km Sakai (Japan) by satoweb
 ...
 ```
 
@@ -96,6 +92,24 @@ Upload Test: ................
 [6087] Download: 72.24 Mbit/s, Upload: 29.56 Mbit/s
 Download Avg: 69.03 Mbit/s
 Upload Avg: 28.28 Mbit/s
+```
+
+#### Test with virtual location
+
+With `--ciry` or `--location` option, the closest server of the location will be picked.
+You can measure the speed between your location and the target location.
+
+```bash
+$ speedtest --city-list
+Available city labels (case insensitive):
+ CC             CityLabel       Location
+(za)                capetown    [-33.9391993, 18.4316716]
+(pl)                  warsaw    [52.2396659, 21.0129345]
+(sg)                  yishun    [1.4230218, 103.8404728]
+...
+
+$ speedtest --city=capetown
+$ speedtest --location=60,-110
 ```
 
 #### Memory Saving Mode
