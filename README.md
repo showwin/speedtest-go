@@ -20,6 +20,7 @@ $ brew upgrade speedtest
 ```
 
 #### Other Platform (Linux, Windows, etc.)
+
 Please download compatible package from [Releases](https://github.com/showwin/speedtest-go/releases).
 If there are no compatible package you want, please let me know on [issue](https://github.com/showwin/speedtest-go/issues).
 
@@ -130,6 +131,7 @@ go get github.com/showwin/speedtest-go
 ```
 
 ### API Usage
+
 The code below finds closest available speedtest server and tests the latency, download, and upload speeds.
 ```go
 package main
@@ -160,6 +162,7 @@ func main() {
 
 
 ## Summary of Experimental Results
+
 Speedtest-go is a great tool because of following 2 reasons:
 * Testing time is the **SHORTEST** compare to [speedtest.net](http://www.speedtest.net/) and [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli), especially about 2x faster then [speedtest.net](http://www.speedtest.net/).
 * Result is **MORE CLOSE** to [speedtest.net](http://www.speedtest.net/) than [speedtest-cli](https://github.com/sivel/speedtest-cli).
@@ -167,6 +170,7 @@ Speedtest-go is a great tool because of following 2 reasons:
 Following data is summarized. If you got interested in, please see [more details](https://github.com/showwin/speedtest-go/blob/master/docs/experimental_result.md).
 
 ### Download (Mbps)
+
 distance = distance to testing server
 * 0 - 1000(km) ≒ domestic
 * 1000 - 8000(km) ≒ same region
@@ -181,7 +185,6 @@ distance = distance to testing server
 
 ### Upload (Mbps)
 
-
 | distance (km) | speedtest.net | speedtest-go | speedtest-cli |
 | :-- | :--: | :--: | :--: |
 | 0 - 1000 | 65.56 | **47.58** | 36.16 |
@@ -190,7 +193,6 @@ distance = distance to testing server
 
 ### Testing Time (sec)
 
-
 | distance (km) | speedtest.net | speedtest-go | speedtest-cli |
 | :-- | :--: | :--: | :--: |
 | 0 - 1000 | 45.03 | **22.84** | 24.46 |
@@ -198,15 +200,8 @@ distance = distance to testing server
 | 8000 - 20000 | 49.64 | **34.08** | 41.26 |
 
 ## Contributors
-* [kogai](https://github.com/kogai)
-* [cbergoon](https://github.com/cbergoon)
-* [aareet](https://github.com/aareet)
-* [ovaldi](https://github.com/ovaldi)
-* [mumia](https://github.com/mumia)
-* [euantorano](https://github.com/euantorano)
-* [juev](https://github.com/juev)
-* [mr-linch](https://github.com/mr-linch)
-* [redradrat](https://github.com/redradrat)
+
+https://github.com/showwin/speedtest-go/graphs/contributors
 
 ## LICENSE
 
