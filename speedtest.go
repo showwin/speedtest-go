@@ -11,10 +11,13 @@ import (
 )
 
 var (
-	showList   = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
-	serverIds  = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Ints()
-	savingMode = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
-	jsonOutput = kingpin.Flag("json", "Output results in json format").Bool()
+	showList     = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
+	serverIds    = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Ints()
+	savingMode   = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
+	jsonOutput   = kingpin.Flag("json", "Output results in json format").Bool()
+	location     = kingpin.Flag("location", "Change the location with a precise coordinate.").String()
+	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
+	showCityList = kingpin.Flag("city-list", "List all predefined city label.").Bool()
 )
 
 type fullOutput struct {
@@ -31,7 +34,28 @@ func main() {
 	user, err := speedtest.FetchUserInfo()
 	if err != nil {
 		fmt.Println("Warning: Cannot fetch user information. http://www.speedtest.net/speedtest-config.php is temporarily unavailable.")
+		return
 	}
+
+	if *showCityList {
+		speedtest.PrintCityList()
+		return
+	}
+
+	if len(*city) > 0 {
+		err = user.SetLocationByCity(*city)
+		if err != nil {
+			fmt.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
+		}
+	}
+
+	if len(*location) > 0 {
+		err = user.ParseAndSetLocation(*location)
+		if err != nil {
+			fmt.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
+		}
+	}
+
 	if !*jsonOutput {
 		showUser(user)
 	}

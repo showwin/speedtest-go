@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const speedTestServersUrl = "https://www.speedtest.net/api/js/servers?engine=js&limit=10"
+const speedTestServersUrl = "https://www.speedtest.net/api/js/servers?limit=10"
 const speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
 
 type PayloadType int
@@ -82,7 +82,8 @@ func FetchServers(user *User) (Servers, error) {
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.
 func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Servers, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, speedTestServersUrl, nil)
+	fetchUrl := fmt.Sprintf("%s&lat=%s&lon=%s", speedTestServersUrl, user.VLat, user.VLon)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fetchUrl, nil)
 	if err != nil {
 		return Servers{}, err
 	}

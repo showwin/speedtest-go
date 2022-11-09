@@ -36,7 +36,7 @@ func TestFetchUserInfo(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 	if lon < -180 || 180 < lon {
-		t.Errorf("Invalid Latitude. got: %v, expected between -90 and 90", user.Lon)
+		t.Errorf("Invalid Longitude. got: %v, expected between -180 and 180", user.Lon)
 	}
 
 	// Isp
