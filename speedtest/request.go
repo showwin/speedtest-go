@@ -3,7 +3,6 @@ package speedtest
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -198,7 +197,7 @@ func dlWarmUp(ctx context.Context, doer *http.Client, dlURL string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	_, err = io.Copy(ioutil.Discard, resp.Body)
+	_, err = io.Copy(io.Discard, resp.Body)
 	return err
 }
 
@@ -218,7 +217,7 @@ func ulWarmUp(ctx context.Context, doer *http.Client, ulURL string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	_, err = io.Copy(ioutil.Discard, resp.Body)
+	_, err = io.Copy(io.Discard, resp.Body)
 	return err
 }
 
@@ -236,7 +235,7 @@ func downloadRequest(ctx context.Context, doer *http.Client, dlURL string, w int
 		return err
 	}
 	defer resp.Body.Close()
-	_, err = io.Copy(ioutil.Discard, resp.Body)
+	_, err = io.Copy(io.Discard, resp.Body)
 	return err
 }
 
@@ -257,7 +256,7 @@ func uploadRequest(ctx context.Context, doer *http.Client, ulURL string, w int) 
 	}
 	defer resp.Body.Close()
 
-	_, err = io.Copy(ioutil.Discard, resp.Body)
+	_, err = io.Copy(io.Discard, resp.Body)
 	return err
 }
 
