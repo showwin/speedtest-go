@@ -12,12 +12,12 @@ import (
 
 var (
 	showList     = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
-	serverIds    = kingpin.Flag("server", "Select server id to speedtest.").Short('s').Ints()
+	serverIds    = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
 	savingMode   = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput   = kingpin.Flag("json", "Output results in json format").Bool()
-	location     = kingpin.Flag("location", "Change the location with a precise coordinate.").String()
+	location     = kingpin.Flag("location", "Change the location with a precise coordinate. Format: lat,lon").String()
 	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
-	showCityList = kingpin.Flag("city-list", "List all predefined city label.").Bool()
+	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
 )
 
 type fullOutput struct {
