@@ -88,6 +88,8 @@ func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User)
 		return Servers{}, err
 	}
 
+	req.Header.Set("User-Agent", "Go-http-client/1.1") // Request could be rejected if not initialized
+
 	resp, err := client.doer.Do(req)
 	if err != nil {
 		return Servers{}, err
@@ -102,6 +104,8 @@ func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User)
 		if err != nil {
 			return Servers{}, err
 		}
+
+		req.Header.Set("User-Agent", "Go-http-client/1.1") // Request could be rejected if not initialized
 
 		resp, err = client.doer.Do(req)
 		if err != nil {
