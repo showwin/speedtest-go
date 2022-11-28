@@ -39,14 +39,20 @@ func TestUserAgent(t *testing.T) {
 	t.Run("DefaultUserAgent", func(t *testing.T) {
 		c := New()
 		s := testServer(defaultUserAgent)
-		c.doer.Get(s.URL)
+		_, err := c.doer.Get(s.URL)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
 	})
 
 	t.Run("CustomUserAgent", func(t *testing.T) {
 		testAgent := "asdf1234"
 		s := testServer(testAgent)
 		c := New(WithUserAgent(testAgent))
-		c.doer.Get(s.URL)
+		_, err := c.doer.Get(s.URL)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
 	})
 
 	// Test that With
@@ -58,6 +64,9 @@ func TestUserAgent(t *testing.T) {
 		if c.doer != doer {
 			t.Error("doer is not the same")
 		}
-		c.doer.Get(s.URL)
+		_, err := c.doer.Get(s.URL)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
 	})
 }
