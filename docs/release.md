@@ -4,7 +4,7 @@ This is a note for repo owner.
 
 ```bach
 $ git checkout -b release/vX.Y.Z
-# edit `kingpin.Version("X.Y.Z")` at speedtest.go
+# edit `var version` at speedtest/speedtest.go
 $ git commit -am 'Release vX.Y.Z'
 $ git push origin release/vX.Y.Z
 ```
