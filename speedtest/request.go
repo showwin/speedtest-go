@@ -224,7 +224,7 @@ func uploadRequest(ctx context.Context, doer *http.Client, ulURL string, w int) 
 		return err
 	}
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "application/octet-stream")
 	resp, err := doer.Do(req)
 	if err != nil {
 		return err
