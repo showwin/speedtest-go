@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -217,10 +216,10 @@ func downloadRequest(ctx context.Context, doer *http.Client, dlURL string, w int
 
 func uploadRequest(ctx context.Context, doer *http.Client, ulURL string, w int) error {
 	size := ulSizes[w]
-	v := url.Values{}
-	v.Add("content", strings.Repeat("0123456789", size*100-51))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ulURL, strings.NewReader(v.Encode()))
+	reader := NewRepeatReader(size*100*10 - 51)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ulURL, reader)
+	req.ContentLength = reader.ContentLength
 	if err != nil {
 		return err
 	}
