@@ -217,7 +217,7 @@ func downloadRequest(ctx context.Context, doer *http.Client, dlURL string, w int
 func uploadRequest(ctx context.Context, doer *http.Client, ulURL string, w int) error {
 	size := ulSizes[w]
 
-	reader := NewRepeatReader(size*100*10 - 51)
+	reader := NewRepeatReader((size*100 - 51) * 10)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ulURL, reader)
 	req.ContentLength = reader.ContentLength
 	if err != nil {
