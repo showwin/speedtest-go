@@ -52,8 +52,8 @@ func (s *Server) downloadTestContext(
 	fTime := time.Now()
 
 	// If the bandwidth is too large, the download sometimes finish earlier than the latency.
-	// In this case, we ignore the the latency that is included server information.
-	// This is not affected to the final result since this is a warm up test.
+	// In this case, we ignore the latency that is included server information.
+	// This is not affected to the final result since this is a warm-up test.
 	timeToSpend := fTime.Sub(sTime.Add(s.Latency)).Seconds()
 	if timeToSpend < 0 {
 		timeToSpend = fTime.Sub(sTime).Seconds()
@@ -134,8 +134,14 @@ func (s *Server) uploadTestContext(
 		return err
 	}
 	fTime := time.Now()
+
+	timeToSpend := fTime.Sub(sTime.Add(s.Latency)).Seconds()
+	if timeToSpend < 0 {
+		timeToSpend = fTime.Sub(sTime).Seconds()
+	}
+
 	// 1.0 MB for each request
-	wuSpeed := 1.0 * 8 * 2 / fTime.Sub(sTime.Add(s.Latency)).Seconds()
+	wuSpeed := 1.0 * 8 * 2 / timeToSpend
 
 	// Decide workload by warm up speed
 	workload := 0
@@ -184,41 +190,11 @@ func (s *Server) uploadTestContext(
 }
 
 func dlWarmUp(ctx context.Context, doer *http.Client, dlURL string) error {
-	size := dlSizes[2]
-	xdlURL := dlURL + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, xdlURL, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := doer.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	_, err = io.Copy(io.Discard, resp.Body)
-	return err
+	return downloadRequest(ctx, doer, dlURL, 2)
 }
 
 func ulWarmUp(ctx context.Context, doer *http.Client, ulURL string) error {
-	size := ulSizes[4]
-	v := url.Values{}
-	v.Add("content", strings.Repeat("0123456789", size*100-51))
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ulURL, strings.NewReader(v.Encode()))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := doer.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	_, err = io.Copy(io.Discard, resp.Body)
-	return err
+	return uploadRequest(ctx, doer, ulURL, 4)
 }
 
 func downloadRequest(ctx context.Context, doer *http.Client, dlURL string, w int) error {
@@ -255,7 +231,6 @@ func uploadRequest(ctx context.Context, doer *http.Client, ulURL string, w int) 
 		return err
 	}
 	defer resp.Body.Close()
-
 	_, err = io.Copy(io.Discard, resp.Body)
 	return err
 }
