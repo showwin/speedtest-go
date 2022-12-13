@@ -46,6 +46,8 @@ type Server struct {
 	doer *http.Client
 }
 
+// CustomServer Given a URL string, return a new Server object, with as much
+// filled in as we can
 func CustomServer(s string) (*Server, error) {
 	if !strings.HasSuffix(s, "/upload.php") {
 		return nil, errors.New("please use the full URL of the server, ending in '/upload.php'")
