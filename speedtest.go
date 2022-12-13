@@ -13,6 +13,7 @@ import (
 var (
 	showList     = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
 	serverIds    = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
+	customURL    = kingpin.Flag("custom-url", "Specify the url of the server instead of getting a list from Speedtest.net").String()
 	savingMode   = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput   = kingpin.Flag("json", "Output results in json format").Bool()
 	location     = kingpin.Flag("location", "Change the location with a precise coordinate. Format: lat,lon").String()
@@ -37,38 +38,47 @@ func main() {
 		return
 	}
 
-	if *showCityList {
-		speedtest.PrintCityList()
-		return
-	}
+	var targets speedtest.Servers
+	if *customURL == "" {
 
-	if len(*city) > 0 {
-		err = user.SetLocationByCity(*city)
-		if err != nil {
-			fmt.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
+		if *showCityList {
+			speedtest.PrintCityList()
+			return
 		}
-	}
 
-	if len(*location) > 0 {
-		err = user.ParseAndSetLocation(*location)
-		if err != nil {
-			fmt.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
+		if len(*city) > 0 {
+			err = user.SetLocationByCity(*city)
+			if err != nil {
+				fmt.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
+			}
 		}
-	}
 
-	if !*jsonOutput {
-		showUser(user)
-	}
+		if len(*location) > 0 {
+			err = user.ParseAndSetLocation(*location)
+			if err != nil {
+				fmt.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
+			}
+		}
 
-	servers, err := speedtest.FetchServers(user)
-	checkError(err)
-	if *showList {
-		showServerList(servers)
-		return
-	}
+		if !*jsonOutput {
+			showUser(user)
+		}
 
-	targets, err := servers.FindServer(*serverIds)
-	checkError(err)
+		servers, err := speedtest.FetchServers(user)
+		checkError(err)
+		if *showList {
+			showServerList(servers)
+			return
+		}
+
+		targets, err = servers.FindServer(*serverIds)
+		checkError(err)
+
+	} else {
+		target, err := speedtest.CustomServer(*customURL)
+		checkError(err)
+		targets = []*speedtest.Server{target}
+	}
 
 	startTest(targets, *savingMode, *jsonOutput)
 

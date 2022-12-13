@@ -12,13 +12,17 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type downloadWarmUpFunc func(context.Context, *http.Client, string) error
-type downloadFunc func(context.Context, *http.Client, string, int) error
-type uploadWarmUpFunc func(context.Context, *http.Client, string) error
-type uploadFunc func(context.Context, *http.Client, string, int) error
+type (
+	downloadWarmUpFunc func(context.Context, *http.Client, string) error
+	downloadFunc       func(context.Context, *http.Client, string, int) error
+	uploadWarmUpFunc   func(context.Context, *http.Client, string) error
+	uploadFunc         func(context.Context, *http.Client, string, int) error
+)
 
-var dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
-var ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} //kB
+var (
+	dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
+	ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} // kB
+)
 
 // DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest(savingMode bool) error {
@@ -116,6 +120,7 @@ func (s *Server) UploadTest(savingMode bool) error {
 func (s *Server) UploadTestContext(ctx context.Context, savingMode bool) error {
 	return s.uploadTestContext(ctx, savingMode, ulWarmUp, uploadRequest)
 }
+
 func (s *Server) uploadTestContext(
 	ctx context.Context,
 	savingMode bool,

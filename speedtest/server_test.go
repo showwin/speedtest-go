@@ -99,3 +99,20 @@ func TestFindServer(t *testing.T) {
 		t.Errorf("Unexpected server ID. got: %v, expected: '1'", s[0].ID)
 	}
 }
+
+func TestCustomServer(t *testing.T) {
+	// Good server
+	got, err := CustomServer("https://example.com/upload.php")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	if got.Host != "example.com" {
+		t.Error("Did not properly set the Host field on a custom server")
+	}
+
+	// Missing upload.php
+	_, err = CustomServer("https://example.com")
+	if err == nil {
+		t.Error("did not fail to create a customserver without upload.php")
+	}
+}
