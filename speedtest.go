@@ -38,34 +38,33 @@ func main() {
 		return
 	}
 
+	if *showCityList {
+		speedtest.PrintCityList()
+		return
+	}
+
+	if len(*city) > 0 {
+		err = user.SetLocationByCity(*city)
+		if err != nil {
+			fmt.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
+		}
+	}
+
+	if len(*location) > 0 {
+		err = user.ParseAndSetLocation(*location)
+		if err != nil {
+			fmt.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
+		}
+	}
+
+	if !*jsonOutput {
+		showUser(user)
+	}
+
+	servers, err := speedtest.FetchServers(user)
+	checkError(err)
 	var targets speedtest.Servers
 	if *customURL == "" {
-
-		if *showCityList {
-			speedtest.PrintCityList()
-			return
-		}
-
-		if len(*city) > 0 {
-			err = user.SetLocationByCity(*city)
-			if err != nil {
-				fmt.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
-			}
-		}
-
-		if len(*location) > 0 {
-			err = user.ParseAndSetLocation(*location)
-			if err != nil {
-				fmt.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
-			}
-		}
-
-		if !*jsonOutput {
-			showUser(user)
-		}
-
-		servers, err := speedtest.FetchServers(user)
-		checkError(err)
 		if *showList {
 			showServerList(servers)
 			return
