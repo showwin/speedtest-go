@@ -113,6 +113,6 @@ func TestCustomServer(t *testing.T) {
 	// Missing upload.php
 	_, err = CustomServer("https://example.com")
 	if err == nil {
-		t.Error("did not fail to create a customserver without upload.php")
+		t.Error("did not create a custom server without upload.php")
 	}
 }
