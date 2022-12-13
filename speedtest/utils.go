@@ -22,10 +22,10 @@ func NewRepeatReader(size int) *RepeatReader {
 }
 
 func (r *RepeatReader) Read(b []byte) (n int, err error) {
-	if r.n <= 0 {
-		return 0, io.EOF
-	}
 	if r.n < readChunkSize {
+		if r.n <= 0 {
+			return n, io.EOF
+		}
 		n = copy(b, r.rs[:r.n])
 	} else {
 		n = copy(b, r.rs)
