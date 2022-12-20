@@ -34,6 +34,7 @@ Flags:
       --help               Show context-sensitive help (also try --help-long and --help-man).
   -l, --list               Show available speedtest.net servers.
   -s, --server=SERVER ...  Select server id to speedtest.
+      --custom-url=CUSTOM-URL Specify the url of the server instead of getting a list from Speedtest.net
       --saving-mode        Using less memory (≒10MB), though low accuracy (especially > 30Mbps).
       --json               Output results in json format
       --location=LOCATION  Change the location with a precise coordinate.
