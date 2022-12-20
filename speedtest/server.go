@@ -8,13 +8,17 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
-const speedTestServersUrl = "https://www.speedtest.net/api/js/servers?limit=10"
-const speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
+const (
+	speedTestServersUrl            = "https://www.speedtest.net/api/js/servers?limit=10"
+	speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
+)
 
 type PayloadType int
 
@@ -40,6 +44,29 @@ type Server struct {
 	ULSpeed  float64       `json:"ul_speed"`
 
 	doer *http.Client
+}
+
+// CustomServer given a URL string, return a new Server object, with as much
+// filled in as we can
+func CustomServer(s string) (*Server, error) {
+	if !strings.HasSuffix(s, "/upload.php") {
+		return nil, errors.New("Please use the full URL of the server, ending in '/upload.php'")
+	}
+	u, err := url.Parse(s)
+	if err != nil {
+		return nil, err
+	}
+	return &Server{
+		ID:      "?",
+		Lat:     "?",
+		Lon:     "?",
+		Country: "?",
+		URL:     s,
+		Name:    u.Host,
+		Host:    u.Host,
+		Sponsor: "?",
+		doer:    http.DefaultClient,
+	}, nil
 }
 
 // ServerList list of Server

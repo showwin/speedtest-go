@@ -29,9 +29,9 @@ func TestUserAgent(t *testing.T) {
 	testServer := func(expectedUserAgent string) *httptest.Server {
 		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.UserAgent() == "" {
-				t.Error("Did not receive User-Agent header")
+				t.Error("did not receive User-Agent header")
 			} else if r.UserAgent() != expectedUserAgent {
-				t.Errorf("Incorrect User-Agent header: %s, expected: %s", r.UserAgent(), expectedUserAgent)
+				t.Errorf("incorrect User-Agent header: %s, expected: %s", r.UserAgent(), expectedUserAgent)
 			}
 		}))
 	}

@@ -66,10 +66,10 @@ func TestFindServer(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 	if len(s) != 1 {
-		t.Errorf("Unexpected server length. got: %v, expected: 1", len(s))
+		t.Errorf("unexpected server length. got: %v, expected: 1", len(s))
 	}
 	if s[0].ID != "1" {
-		t.Errorf("Unexpected server ID. got: %v, expected: '1'", s[0].ID)
+		t.Errorf("unexpected server ID. got: %v, expected: '1'", s[0].ID)
 	}
 
 	serverID = []int{2}
@@ -78,10 +78,10 @@ func TestFindServer(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 	if len(s) != 1 {
-		t.Errorf("Unexpected server length. got: %v, expected: 1", len(s))
+		t.Errorf("unexpected server length. got: %v, expected: 1", len(s))
 	}
 	if s[0].ID != "2" {
-		t.Errorf("Unexpected server ID. got: %v, expected: '2'", s[0].ID)
+		t.Errorf("unexpected server ID. got: %v, expected: '2'", s[0].ID)
 	}
 
 	serverID = []int{3, 1}
@@ -90,12 +90,29 @@ func TestFindServer(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 	if len(s) != 2 {
-		t.Errorf("Unexpected server length. got: %v, expected: 2", len(s))
+		t.Errorf("unexpected server length. got: %v, expected: 2", len(s))
 	}
 	if s[0].ID != "3" {
-		t.Errorf("Unexpected server ID. got: %v, expected: '3'", s[0].ID)
+		t.Errorf("unexpected server ID. got: %v, expected: '3'", s[0].ID)
 	}
 	if s[1].ID != "1" {
-		t.Errorf("Unexpected server ID. got: %v, expected: '1'", s[0].ID)
+		t.Errorf("unexpected server ID. got: %v, expected: '1'", s[0].ID)
+	}
+}
+
+func TestCustomServer(t *testing.T) {
+	// Good server
+	got, err := CustomServer("https://example.com/upload.php")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	if got.Host != "example.com" {
+		t.Error("did not properly set the Host field on a custom server")
+	}
+
+	// Missing upload.php
+	_, err = CustomServer("https://example.com")
+	if err == nil {
+		t.Error("did not create a custom server without upload.php")
 	}
 }
