@@ -39,6 +39,7 @@ Flags:
       --location=LOCATION  Change the location with a precise coordinate.
       --city=CITY          Change the location with a predefined city label.
       --city-list          List all predefined city label.
+      --proxy              Set a proxy(http(s) or socks) for the speedtest.
       --version            Show application version.
 ```
 
@@ -142,12 +143,17 @@ import (
 )
 
 func main() {
-	user, _ := speedtest.FetchUserInfo()
+	var speedtestClient = speedtest.New()
+	
+	// Use a proxy for the speedtest. eg: socks://127.0.0.1:7890
+	// speedtest.WithProxy("socks://127.0.0.1:7890")(speedtestClient)
+	
+	user, _ := speedtestClient.FetchUserInfo()
 	// Get a list of servers near a specified location
 	// user.SetLocationByCity("Tokyo")
 	// user.SetLocation("Osaka", 34.6952, 135.5006)
 
-	serverList, _ := speedtest.FetchServers(user)
+	serverList, _ := speedtestClient.FetchServers(user)
 	targets, _ := serverList.FindServer([]int{})
 
 	for _, s := range targets {

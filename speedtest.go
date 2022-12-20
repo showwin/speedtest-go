@@ -18,6 +18,7 @@ var (
 	location     = kingpin.Flag("location", "Change the location with a precise coordinate. Format: lat,lon").String()
 	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
 	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
+	proxy        = kingpin.Flag("proxy", "Set a proxy(http(s) or socks) for the speedtest.").String()
 )
 
 type fullOutput struct {
@@ -31,9 +32,15 @@ func main() {
 	kingpin.Version(speedtest.Version())
 	kingpin.Parse()
 
-	user, err := speedtest.FetchUserInfo()
+	var speedtestClient = speedtest.New()
+
+	if len(*proxy) > 0 {
+		speedtest.WithProxy(*proxy)(speedtestClient)
+	}
+
+	user, err := speedtestClient.FetchUserInfo()
 	if err != nil {
-		fmt.Println("Warning: Cannot fetch user information. http://www.speedtest.net/speedtest-config.php is temporarily unavailable.")
+		fmt.Printf("Warning: Can not fetch user information. err: %v\n", err.Error())
 		return
 	}
 
@@ -45,14 +52,14 @@ func main() {
 	if len(*city) > 0 {
 		err = user.SetLocationByCity(*city)
 		if err != nil {
-			fmt.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
+			fmt.Printf("Warning: Skipping command line arguments: --city. err: %v\n", err.Error())
 		}
 	}
 
 	if len(*location) > 0 {
 		err = user.ParseAndSetLocation(*location)
 		if err != nil {
-			fmt.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
+			fmt.Printf("Warning: Skipping command line arguments: --location. err: %v\n", err.Error())
 		}
 	}
 
@@ -60,7 +67,7 @@ func main() {
 		showUser(user)
 	}
 
-	servers, err := speedtest.FetchServers(user)
+	servers, err := speedtestClient.FetchServers(user)
 	checkError(err)
 	if *showList {
 		showServerList(servers)
