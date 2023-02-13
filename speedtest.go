@@ -20,7 +20,7 @@ var (
 	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
 	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
 	proxy        = kingpin.Flag("proxy", "Set a proxy(http(s) or socks) for the speedtest.").String()
-	outbound     = kingpin.Flag("outbound", "Set a outbound interface(tcp[4/6]://ip) for the speedtest.").String()
+	outbound     = kingpin.Flag("outbound", "Set the outbound interface(tcp[4/6]://ip) for the speedtest.").String()
 )
 
 type fullOutput struct {
