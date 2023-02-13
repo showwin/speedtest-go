@@ -104,7 +104,7 @@ Upload Avg: 28.28 Mbit/s
 
 #### Test with virtual location
 
-With `--ciry` or `--location` option, the closest server of the location will be picked.
+With `--city` or `--location` option, the closest server of the location will be picked.
 You can measure the speed between your location and the target location.
 
 ```bash
@@ -139,7 +139,7 @@ go get github.com/showwin/speedtest-go
 
 ### API Usage
 
-The code below finds closest available speedtest server and tests the latency, download, and upload speeds.
+The code below finds the closest available speedtest server and tests the latency, download, and upload speeds.
 ```go
 package main
 
