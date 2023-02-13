@@ -98,8 +98,8 @@ func (b ByDistance) Less(i, j int) bool {
 }
 
 // FetchServers retrieves a list of available servers
-func (client *Speedtest) FetchServers(user *User) (Servers, error) {
-	return client.FetchServerListContext(context.Background(), user)
+func (s *Speedtest) FetchServers(user *User) (Servers, error) {
+	return s.FetchServerListContext(context.Background(), user)
 }
 
 // FetchServers retrieves a list of available servers
@@ -108,14 +108,14 @@ func FetchServers(user *User) (Servers, error) {
 }
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.
-func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Servers, error) {
+func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Servers, error) {
 	fetchUrl := fmt.Sprintf("%s&lat=%s&lon=%s", speedTestServersUrl, user.VLat, user.VLon)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fetchUrl, nil)
 	if err != nil {
 		return Servers{}, err
 	}
 
-	resp, err := client.doer.Do(req)
+	resp, err := s.doer.Do(req)
 	if err != nil {
 		return Servers{}, err
 	}
@@ -130,7 +130,7 @@ func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User)
 			return Servers{}, err
 		}
 
-		resp, err = client.doer.Do(req)
+		resp, err = s.doer.Do(req)
 		if err != nil {
 			return Servers{}, err
 		}
@@ -165,8 +165,8 @@ func (client *Speedtest) FetchServerListContext(ctx context.Context, user *User)
 	}
 
 	// set doer of server
-	for _, s := range servers {
-		s.doer = client.doer
+	for _, server := range servers {
+		server.doer = s.doer
 	}
 
 	// Calculate distance

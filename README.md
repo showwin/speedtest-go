@@ -41,6 +41,11 @@ Flags:
       --city=CITY          Change the location with a predefined city label.
       --city-list          List all predefined city label.
       --proxy              Set a proxy(http(s) or socks) for the speedtest.
+                           eg: socks://10.20.0.101 or http://10.20.0.101
+      --outbound           Set the outbound interface(tcp[4/6]://ip) for the speedtest.
+                           eg: tcp://10.20.0.101
+                               tcp4://10.20.0.101
+                               tcp6://fe80.244d:a1c7:815f:7253%9
       --version            Show application version.
 ```
 

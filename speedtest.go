@@ -20,6 +20,7 @@ var (
 	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
 	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
 	proxy        = kingpin.Flag("proxy", "Set a proxy(http(s) or socks) for the speedtest.").String()
+	outbound     = kingpin.Flag("outbound", "Set a outbound interface(tcp[4/6]://ip) for the speedtest.").String()
 )
 
 type fullOutput struct {
@@ -35,8 +36,13 @@ func main() {
 
 	var speedtestClient = speedtest.New()
 
-	if len(*proxy) > 0 {
-		speedtest.WithProxy(*proxy)(speedtestClient)
+	if len(*proxy) > 0 || len(*outbound) > 0 {
+		config := &speedtest.UserConfig{
+			UserAgent: speedtest.DefaultUserAgent,
+			Proxy:     *proxy,
+			OutBound:  *outbound,
+		}
+		speedtest.WithUserConfig(config)(speedtestClient)
 	}
 
 	user, err := speedtestClient.FetchUserInfo()
