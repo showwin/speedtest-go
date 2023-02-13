@@ -47,7 +47,7 @@ func main() {
 
 	user, err := speedtestClient.FetchUserInfo()
 	if err != nil {
-		fmt.Printf("Warning: Can not fetch user information. err: %v\n", err.Error())
+		fmt.Printf("Warning: can not fetch user information. err: %v\n", err.Error())
 		return
 	}
 
@@ -59,14 +59,14 @@ func main() {
 	if len(*city) > 0 {
 		err = user.SetLocationByCity(*city)
 		if err != nil {
-			fmt.Printf("Warning: Skipping command line arguments: --city. err: %v\n", err.Error())
+			fmt.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
 		}
 	}
 
 	if len(*location) > 0 {
 		err = user.ParseAndSetLocation(*location)
 		if err != nil {
-			fmt.Printf("Warning: Skipping command line arguments: --location. err: %v\n", err.Error())
+			fmt.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
 		}
 	}
 
