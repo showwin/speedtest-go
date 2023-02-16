@@ -215,16 +215,15 @@ func downloadRequest(ctx context.Context, doer *http.Client, dlURL string, w int
 		return err
 	}
 	defer resp.Body.Close()
-	_, err = io.Copy(io.Discard, resp.Body)
-	return err
+	return GlobalDataManager.NewDataChunk().DownloadSnapshotHandler(resp.Body)
 }
 
 func uploadRequest(ctx context.Context, doer *http.Client, ulURL string, w int) error {
 	size := ulSizes[w]
 
-	reader := NewRepeatReader((size*100 - 51) * 10)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ulURL, reader)
-	req.ContentLength = reader.ContentLength
+	dc := GlobalDataManager.NewDataChunk().UploadSnapshotHandler((size*100 - 51) * 10)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ulURL, dc)
+	req.ContentLength = dc.ContentLength
 	if err != nil {
 		return err
 	}
@@ -236,6 +235,7 @@ func uploadRequest(ctx context.Context, doer *http.Client, ulURL string, w int) 
 	}
 	defer resp.Body.Close()
 	_, err = io.Copy(io.Discard, resp.Body)
+
 	return err
 }
 

@@ -29,6 +29,7 @@ type fullOutput struct {
 type outputTime time.Time
 
 func main() {
+	//go speedtest.Hddd()
 	kingpin.Version(speedtest.Version())
 	kingpin.Parse()
 
@@ -80,7 +81,7 @@ func main() {
 	}
 
 	startTest(targets, *savingMode, *jsonOutput)
-
+	println(speedtest.GlobalDataManager.DataGroup)
 	if *jsonOutput {
 		jsonBytes, err := json.Marshal(
 			fullOutput{
