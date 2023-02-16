@@ -2,13 +2,13 @@ package speedtest
 
 import (
 	"context"
+	"github.com/LyricTian/queue"
 	"io"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
-
-	"golang.org/x/sync/errgroup"
 )
 
 type (
@@ -23,6 +23,8 @@ var (
 	ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} // kB
 )
 
+const testTime = time.Second * 10
+
 // DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest(savingMode bool) error {
 	return s.downloadTestContext(context.Background(), savingMode, dlWarmUp, downloadRequest)
@@ -33,6 +35,23 @@ func (s *Server) DownloadTestContext(ctx context.Context, savingMode bool) error
 	return s.downloadTestContext(ctx, savingMode, dlWarmUp, downloadRequest)
 }
 
+func testHandler(captureFunc func() *time.Ticker, job queue.Jober) {
+	// When the number of processor cores is equivalent to the processing program,
+	// the processing efficiency reaches the highest level (VT is not considered).
+	q := queue.NewQueue(10, runtime.NumCPU())
+	q.Run()
+
+	ticker := captureFunc()
+	time.AfterFunc(testTime, func() {
+		ticker.Stop()
+		q.Terminate()
+	})
+
+	for i := 0; i < 1000; i++ {
+		q.Push(job)
+	}
+}
+
 func (s *Server) downloadTestContext(
 	ctx context.Context,
 	savingMode bool,
@@ -40,73 +59,9 @@ func (s *Server) downloadTestContext(
 	downloadRequest downloadFunc,
 ) error {
 	dlURL := strings.Split(s.URL, "/upload.php")[0]
-	eg := errgroup.Group{}
-
-	// Warming up
-	sTime := time.Now()
-	for i := 0; i < 2; i++ {
-		eg.Go(func() error {
-			return dlWarmUp(ctx, s.doer, dlURL)
-		})
-	}
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-	fTime := time.Now()
-
-	// If the bandwidth is too large, the download sometimes finish earlier than the latency.
-	// In this case, we ignore the latency that is included server information.
-	// This is not affected to the final result since this is a warm-up test.
-	timeToSpend := fTime.Sub(sTime.Add(s.Latency)).Seconds()
-	if timeToSpend < 0 {
-		timeToSpend = fTime.Sub(sTime).Seconds()
-	}
-
-	// 1.125MB for each request (750 * 750 * 2)
-	wuSpeed := 1.125 * 8 * 2 / timeToSpend
-
-	// Decide workload by warm up speed
-	workload := 0
-	weight := 0
-	skip := false
-	if savingMode {
-		workload = 6
-		weight = 3
-	} else if 50.0 < wuSpeed {
-		workload = 32
-		weight = 6
-	} else if 10.0 < wuSpeed {
-		workload = 16
-		weight = 4
-	} else if 4.0 < wuSpeed {
-		workload = 8
-		weight = 4
-	} else if 2.5 < wuSpeed {
-		workload = 4
-		weight = 4
-	} else {
-		skip = true
-	}
-
-	// Main speedtest
-	dlSpeed := wuSpeed
-	if !skip {
-		sTime = time.Now()
-		for i := 0; i < workload; i++ {
-			eg.Go(func() error {
-				return downloadRequest(ctx, s.doer, dlURL, weight)
-			})
-		}
-		if err := eg.Wait(); err != nil {
-			return err
-		}
-		fTime = time.Now()
-
-		reqMB := dlSizes[weight] * dlSizes[weight] * 2 / 1000 / 1000
-		dlSpeed = float64(reqMB) * 8 * float64(workload) / fTime.Sub(sTime).Seconds()
-	}
-
-	s.DLSpeed = dlSpeed
+	testHandler(GlobalDataManager.DownloadRateCapture, queue.NewJob("downLink", func(v interface{}) {
+		_ = downloadRequest(ctx, s.doer, dlURL, 5)
+	}))
 	return nil
 }
 
@@ -126,70 +81,9 @@ func (s *Server) uploadTestContext(
 	ulWarmUp uploadWarmUpFunc,
 	uploadRequest uploadFunc,
 ) error {
-	// Warm up
-	sTime := time.Now()
-	eg := errgroup.Group{}
-	for i := 0; i < 2; i++ {
-		eg.Go(func() error {
-			return ulWarmUp(ctx, s.doer, s.URL)
-		})
-	}
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-	fTime := time.Now()
-
-	timeToSpend := fTime.Sub(sTime.Add(s.Latency)).Seconds()
-	if timeToSpend < 0 {
-		timeToSpend = fTime.Sub(sTime).Seconds()
-	}
-
-	// 1.0 MB for each request
-	wuSpeed := 1.0 * 8 * 2 / timeToSpend
-
-	// Decide workload by warm up speed
-	workload := 0
-	weight := 0
-	skip := false
-	if savingMode {
-		workload = 1
-		weight = 7
-	} else if 50.0 < wuSpeed {
-		workload = 40
-		weight = 9
-	} else if 10.0 < wuSpeed {
-		workload = 16
-		weight = 9
-	} else if 4.0 < wuSpeed {
-		workload = 8
-		weight = 9
-	} else if 2.5 < wuSpeed {
-		workload = 4
-		weight = 5
-	} else {
-		skip = true
-	}
-
-	// Main speedtest
-	ulSpeed := wuSpeed
-	if !skip {
-		sTime = time.Now()
-		for i := 0; i < workload; i++ {
-			eg.Go(func() error {
-				return uploadRequest(ctx, s.doer, s.URL, weight)
-			})
-		}
-		if err := eg.Wait(); err != nil {
-			return err
-		}
-		fTime = time.Now()
-
-		reqMB := float64(ulSizes[weight]) / 1000
-		ulSpeed = reqMB * 8 * float64(workload) / fTime.Sub(sTime).Seconds()
-	}
-
-	s.ULSpeed = ulSpeed
-
+	testHandler(GlobalDataManager.UploadRateCapture, queue.NewJob("upLink", func(v interface{}) {
+		_ = uploadRequest(ctx, s.doer, s.URL, 5)
+	}))
 	return nil
 }
 

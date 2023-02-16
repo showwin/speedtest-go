@@ -29,7 +29,6 @@ type fullOutput struct {
 type outputTime time.Time
 
 func main() {
-	//go speedtest.Hddd()
 	kingpin.Version(speedtest.Version())
 	kingpin.Parse()
 
@@ -81,7 +80,7 @@ func main() {
 	}
 
 	startTest(targets, *savingMode, *jsonOutput)
-	println(speedtest.GlobalDataManager.DataGroup)
+
 	if *jsonOutput {
 		jsonBytes, err := json.Marshal(
 			fullOutput{
@@ -119,9 +118,11 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 
 		err = testDownload(s, savingMode)
 		checkError(err)
+		// It is necessary to wait for the release of the last test resource,
+		// otherwise the overload will cause excessive data deviation
+		time.Sleep(time.Second * 5)
 		err = testUpload(s, savingMode)
 		checkError(err)
-
 		showServerResult(s)
 	}
 
@@ -195,8 +196,8 @@ func showLatencyResult(server *speedtest.Server) {
 func showServerResult(server *speedtest.Server) {
 	fmt.Printf(" \n")
 
-	fmt.Printf("Download: %5.2f Mbit/s\n", server.DLSpeed)
-	fmt.Printf("Upload: %5.2f Mbit/s\n\n", server.ULSpeed)
+	fmt.Printf("Download: %5.2f Mbit/s\n", speedtest.GlobalDataManager.GetAvgDownloadRate())
+	fmt.Printf("Upload: %5.2f Mbit/s\n\n", speedtest.GlobalDataManager.GetAvgUploadRate())
 	valid := server.CheckResultValid()
 	if !valid {
 		fmt.Println("Warning: Result seems to be wrong. Please speedtest again.")

@@ -3,12 +3,14 @@ package speedtest
 import (
 	"bytes"
 	"io"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 const readChunkSize = 1024 * 32 // 32 KBytes
+const rateCaptureFrequency = time.Second
 
 type DataType int32
 
@@ -19,6 +21,9 @@ type DataManager struct {
 	totalDownload int64
 	totalUpload   int64
 
+	DownloadRateSequence []float64
+	UploadRateSequence   []float64
+
 	DataGroup []*DataChunk
 	sync.Mutex
 
@@ -28,6 +33,30 @@ type DataManager struct {
 func NewDataManager() *DataManager {
 	var ret DataManager
 	return &ret
+}
+
+func (dm *DataManager) DownloadRateCapture() *time.Ticker {
+	return dm.rateCapture(dm.GetTotalDownload, &dm.DownloadRateSequence)
+}
+
+func (dm *DataManager) UploadRateCapture() *time.Ticker {
+	return dm.rateCapture(dm.GetTotalUpload, &dm.UploadRateSequence)
+}
+
+func (dm *DataManager) rateCapture(rateFunc func() int64, dst *[]float64) *time.Ticker {
+	ticker := time.NewTicker(rateCaptureFrequency)
+	oldTotal := rateFunc()
+	step := float64(time.Second / rateCaptureFrequency)
+	go func() {
+		for range ticker.C {
+			newTotal := rateFunc()
+			delta := newTotal - oldTotal
+			oldTotal = newTotal
+			rate := float64(delta) * 8 / 1000000 * step // 125000
+			*dst = append(*dst, rate)
+		}
+	}()
+	return ticker
 }
 
 func (dm *DataManager) NewDataChunk() *DataChunk {
@@ -45,6 +74,21 @@ func (dm *DataManager) GetTotalDownload() int64 {
 
 func (dm *DataManager) GetTotalUpload() int64 {
 	return dm.totalUpload
+}
+
+func (dm *DataManager) Reset() int64 {
+	dm.totalDownload = 0
+	dm.totalUpload = 0
+	dm.DataGroup = []*DataChunk{}
+	return dm.totalUpload
+}
+
+func (dm *DataManager) GetAvgDownloadRate() float64 {
+	return calcMAFilter(dm.DownloadRateSequence)
+}
+
+func (dm *DataManager) GetAvgUploadRate() float64 {
+	return calcMAFilter(dm.UploadRateSequence)
 }
 
 type DataChunk struct {
@@ -126,6 +170,20 @@ func (dc *DataChunk) Read(b []byte) (n int, err error) {
 	dc.n -= n
 	atomic.AddInt64(&dc.manager.totalUpload, int64(n))
 	return
+}
+
+// calcMAFilter Median-Averaging Filter
+func calcMAFilter(list []float64) float64 {
+	sum := 0.0
+	n := len(list)
+	if n == 0 {
+		return 0
+	}
+	sort.Float64s(list)
+	for i := 1; i < n-1; i++ {
+		sum += list[i]
+	}
+	return sum / float64(n-2)
 }
 
 var GlobalDataManager = NewDataManager()
