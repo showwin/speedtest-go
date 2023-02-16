@@ -26,7 +26,7 @@ type UserConfig struct {
 	T         *http.Transport
 	UserAgent string
 	Proxy     string
-	OutBound  string
+	Source    string
 }
 
 func parseAddr(addr string) (string, string) {
@@ -38,18 +38,18 @@ func parseAddr(addr string) (string, string) {
 }
 
 func (s *Speedtest) NewUserConfig(uc *UserConfig) {
-	var outbound *net.TCPAddr // If nil, a local address is automatically chosen.
+	var source *net.TCPAddr // If nil, a local address is automatically chosen.
 	var proxy = http.ProxyFromEnvironment
 
 	s.config = uc
 
-	if len(uc.OutBound) > 0 {
-		network, address := parseAddr(uc.OutBound)
+	if len(uc.Source) > 0 {
+		network, address := parseAddr(uc.Source)
 		addr, err := net.ResolveTCPAddr(network, fmt.Sprintf("%s:0", address)) // dynamic tcp port
 		if err == nil {
-			outbound = addr
+			source = addr
 		} else {
-			log.Printf("Skip: can not parse the outbound address. err: %s\n", err.Error())
+			log.Printf("Skip: can not parse the source address. err: %s\n", err.Error())
 		}
 	}
 
@@ -65,7 +65,7 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 	}
 
 	dialer := net.Dialer{
-		LocalAddr: outbound,
+		LocalAddr: source,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}

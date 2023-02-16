@@ -41,8 +41,8 @@ Flags:
       --city=CITY          Change the location with a predefined city label.
       --city-list          List all predefined city label.
       --proxy              Set a proxy(http(s) or socks) for the speedtest.
-                           eg: socks://10.20.0.101 or http://10.20.0.101
-      --outbound           Set the outbound interface(tcp[4/6]://ip) for the speedtest.
+                           eg: socks://10.20.0.101:7890 or http://10.20.0.101:7890
+      --source             Set the source interface(tcp[4/6]://ip) for the speedtest.
                            eg: tcp://10.20.0.101
                                tcp4://10.20.0.101
                                tcp6://fe80.244d:a1c7:815f:7253%9
@@ -152,7 +152,7 @@ func main() {
 	var speedtestClient = speedtest.New()
 	
 	// Use a proxy for the speedtest. eg: socks://127.0.0.1:7890
-	// speedtest.WithProxy("socks://127.0.0.1:7890")(speedtestClient)
+	// speedtest.WithUserConfig(&speedtest.UserConfig{Proxy: "socks://127.0.0.1:7890"})(speedtestClient)
 	
 	user, _ := speedtestClient.FetchUserInfo()
 	// Get a list of servers near a specified location
