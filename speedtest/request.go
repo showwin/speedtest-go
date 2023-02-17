@@ -60,7 +60,7 @@ func (s *Server) downloadTestContext(
 ) error {
 	dlURL := strings.Split(s.URL, "/upload.php")[0]
 	testHandler(GlobalDataManager.DownloadRateCapture, queue.NewJob("downLink", func(v interface{}) {
-		_ = downloadRequest(ctx, s.doer, dlURL, 5)
+		_ = downloadRequest(ctx, s.context.doer, dlURL, 5)
 	}))
 	s.DLSpeed = GlobalDataManager.GetAvgDownloadRate()
 	return nil
@@ -83,7 +83,7 @@ func (s *Server) uploadTestContext(
 	uploadRequest uploadFunc,
 ) error {
 	testHandler(GlobalDataManager.UploadRateCapture, queue.NewJob("upLink", func(v interface{}) {
-		_ = uploadRequest(ctx, s.doer, s.URL, 5)
+		_ = uploadRequest(ctx, s.context.doer, s.URL, 5)
 	}))
 	s.ULSpeed = GlobalDataManager.GetAvgUploadRate()
 	return nil
@@ -153,7 +153,7 @@ func (s *Server) PingTestContext(ctx context.Context) error {
 			return err
 		}
 
-		resp, err := s.doer.Do(req)
+		resp, err := s.context.doer.Do(req)
 		if err != nil {
 			return err
 		}

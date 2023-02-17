@@ -43,16 +43,22 @@ type Server struct {
 	DLSpeed  float64       `json:"dl_speed"`
 	ULSpeed  float64       `json:"ul_speed"`
 
-	doer *http.Client
+	context *Speedtest
+}
+
+// CustomServer use defaultClient, given a URL string, return a new Server object, with as much
+// filled in as we can
+func CustomServer(host string) (*Server, error) {
+	return defaultClient.CustomServer(host)
 }
 
 // CustomServer given a URL string, return a new Server object, with as much
 // filled in as we can
-func CustomServer(s string) (*Server, error) {
-	if !strings.HasSuffix(s, "/upload.php") {
+func (s *Speedtest) CustomServer(host string) (*Server, error) {
+	if !strings.HasSuffix(host, "/upload.php") {
 		return nil, errors.New("please use the full URL of the server, ending in '/upload.php'")
 	}
-	u, err := url.Parse(s)
+	u, err := url.Parse(host)
 	if err != nil {
 		return nil, err
 	}
@@ -61,11 +67,11 @@ func CustomServer(s string) (*Server, error) {
 		Lat:     "?",
 		Lon:     "?",
 		Country: "?",
-		URL:     s,
+		URL:     host,
 		Name:    u.Host,
 		Host:    u.Host,
 		Sponsor: "?",
-		doer:    http.DefaultClient,
+		context: s,
 	}, nil
 }
 
@@ -83,13 +89,13 @@ type ByDistance struct {
 }
 
 // Len finds length of servers. For sorting servers.
-func (svrs Servers) Len() int {
-	return len(svrs)
+func (servers Servers) Len() int {
+	return len(servers)
 }
 
 // Swap swaps i-th and j-th. For sorting servers.
-func (svrs Servers) Swap(i, j int) {
-	svrs[i], svrs[j] = svrs[j], svrs[i]
+func (servers Servers) Swap(i, j int) {
+	servers[i], servers[j] = servers[j], servers[i]
 }
 
 // Less compares the distance. For sorting servers.
@@ -166,7 +172,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 
 	// set doer of server
 	for _, server := range servers {
-		server.doer = s.doer
+		server.context = s
 	}
 
 	// Calculate distance
@@ -206,43 +212,43 @@ func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 }
 
 // FindServer finds server by serverID
-func (l Servers) FindServer(serverID []int) (Servers, error) {
-	servers := Servers{}
+func (servers Servers) FindServer(serverID []int) (Servers, error) {
+	retServer := Servers{}
 
-	if len(l) <= 0 {
-		return servers, errors.New("no servers available")
+	if len(servers) <= 0 {
+		return retServer, errors.New("no servers available")
 	}
 
 	for _, sid := range serverID {
-		for _, s := range l {
+		for _, s := range servers {
 			id, _ := strconv.Atoi(s.ID)
 			if sid == id {
-				servers = append(servers, s)
+				retServer = append(retServer, s)
 			}
 		}
 	}
 
-	if len(servers) == 0 {
-		servers = append(servers, l[0])
+	if len(retServer) == 0 {
+		retServer = append(retServer, servers[0])
 	}
 
-	return servers, nil
+	return retServer, nil
 }
 
 // String representation of ServerList
-func (l ServerList) String() string {
+func (servers ServerList) String() string {
 	slr := ""
-	for _, s := range l.Servers {
-		slr += s.String()
+	for _, server := range servers.Servers {
+		slr += server.String()
 	}
 	return slr
 }
 
 // String representation of Servers
-func (l Servers) String() string {
+func (servers Servers) String() string {
 	slr := ""
-	for _, s := range l {
-		slr += s.String()
+	for _, server := range servers {
+		slr += server.String()
 	}
 	return slr
 }

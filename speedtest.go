@@ -28,6 +28,7 @@ type fullOutput struct {
 	UserInfo  *speedtest.User   `json:"user_info"`
 	Servers   speedtest.Servers `json:"servers"`
 }
+
 type outputTime time.Time
 
 func main() {
@@ -87,7 +88,7 @@ func main() {
 		checkError(err)
 
 	} else {
-		target, err := speedtest.CustomServer(*customURL)
+		target, err := speedtestClient.CustomServer(*customURL)
 		checkError(err)
 		targets = []*speedtest.Server{target}
 	}

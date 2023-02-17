@@ -20,6 +20,7 @@ func TestDownloadTestContext(t *testing.T) {
 	server := Server{
 		URL:     "http://dummy.com/upload.php",
 		Latency: latency,
+		context: defaultClient,
 	}
 
 	err := server.downloadTestContext(
@@ -46,6 +47,7 @@ func TestUploadTestContext(t *testing.T) {
 	server := Server{
 		URL:     "http://dummy.com/upload.php",
 		Latency: latency,
+		context: defaultClient,
 	}
 
 	err := server.uploadTestContext(

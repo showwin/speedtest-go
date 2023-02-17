@@ -61,7 +61,7 @@ func TestFindServer(t *testing.T) {
 		},
 	}
 
-	serverID := []int{}
+	var serverID []int
 	s, err := servers.FindServer(serverID)
 	if err != nil {
 		t.Errorf(err.Error())
