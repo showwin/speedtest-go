@@ -20,6 +20,7 @@ var (
 	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
 	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
 	proxy        = kingpin.Flag("proxy", "Set a proxy(http(s) or socks) for the speedtest.").String()
+	source       = kingpin.Flag("source", "Set the source interface(tcp[4/6]://ip) for the speedtest.").String()
 )
 
 type fullOutput struct {
@@ -35,13 +36,18 @@ func main() {
 
 	var speedtestClient = speedtest.New()
 
-	if len(*proxy) > 0 {
-		speedtest.WithProxy(*proxy)(speedtestClient)
+	if len(*proxy) > 0 || len(*source) > 0 {
+		config := &speedtest.UserConfig{
+			UserAgent: speedtest.DefaultUserAgent,
+			Proxy:     *proxy,
+			Source:    *source,
+		}
+		speedtest.WithUserConfig(config)(speedtestClient)
 	}
 
 	user, err := speedtestClient.FetchUserInfo()
 	if err != nil {
-		fmt.Printf("Warning: Can not fetch user information. err: %v\n", err.Error())
+		fmt.Printf("Warning: can not fetch user information. err: %v\n", err.Error())
 		return
 	}
 
@@ -53,14 +59,14 @@ func main() {
 	if len(*city) > 0 {
 		err = user.SetLocationByCity(*city)
 		if err != nil {
-			fmt.Printf("Warning: Skipping command line arguments: --city. err: %v\n", err.Error())
+			fmt.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
 		}
 	}
 
 	if len(*location) > 0 {
 		err = user.ParseAndSetLocation(*location)
 		if err != nil {
-			fmt.Printf("Warning: Skipping command line arguments: --location. err: %v\n", err.Error())
+			fmt.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
 		}
 	}
 

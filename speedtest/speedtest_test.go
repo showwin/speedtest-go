@@ -37,8 +37,8 @@ func TestUserAgent(t *testing.T) {
 	}
 
 	t.Run("DefaultUserAgent", func(t *testing.T) {
-		c := New()
-		s := testServer(defaultUserAgent)
+		c := New(WithUserConfig(&UserConfig{UserAgent: DefaultUserAgent}))
+		s := testServer(DefaultUserAgent)
 		_, err := c.doer.Get(s.URL)
 		if err != nil {
 			t.Errorf(err.Error())
@@ -48,7 +48,7 @@ func TestUserAgent(t *testing.T) {
 	t.Run("CustomUserAgent", func(t *testing.T) {
 		testAgent := "asdf1234"
 		s := testServer(testAgent)
-		c := New(WithUserAgent(testAgent))
+		c := New(WithUserConfig(&UserConfig{UserAgent: testAgent}))
 		_, err := c.doer.Get(s.URL)
 		if err != nil {
 			t.Errorf(err.Error())
@@ -60,7 +60,7 @@ func TestUserAgent(t *testing.T) {
 		testAgent := "asdf2345"
 		doer := &http.Client{}
 		s := testServer(testAgent)
-		c := New(WithDoer(doer), WithUserAgent(testAgent))
+		c := New(WithDoer(doer), WithUserConfig(&UserConfig{UserAgent: testAgent}))
 		if c.doer != doer {
 			t.Error("doer is not the same")
 		}

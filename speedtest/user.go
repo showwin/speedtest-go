@@ -29,8 +29,8 @@ type Users struct {
 }
 
 // FetchUserInfo returns information about caller determined by speedtest.net
-func (client *Speedtest) FetchUserInfo() (*User, error) {
-	return client.FetchUserInfoContext(context.Background())
+func (s *Speedtest) FetchUserInfo() (*User, error) {
+	return s.FetchUserInfoContext(context.Background())
 }
 
 // FetchUserInfo returns information about caller determined by speedtest.net
@@ -39,13 +39,13 @@ func FetchUserInfo() (*User, error) {
 }
 
 // FetchUserInfoContext returns information about caller determined by speedtest.net, observing the given context.
-func (client *Speedtest) FetchUserInfoContext(ctx context.Context) (*User, error) {
+func (s *Speedtest) FetchUserInfoContext(ctx context.Context) (*User, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, speedTestConfigUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := client.doer.Do(req)
+	resp, err := s.doer.Do(req)
 	if err != nil {
 		return nil, err
 	}
