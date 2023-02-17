@@ -62,6 +62,7 @@ func (s *Server) downloadTestContext(
 	testHandler(GlobalDataManager.DownloadRateCapture, queue.NewJob("downLink", func(v interface{}) {
 		_ = downloadRequest(ctx, s.doer, dlURL, 5)
 	}))
+	s.DLSpeed = GlobalDataManager.GetAvgDownloadRate()
 	return nil
 }
 
@@ -84,6 +85,7 @@ func (s *Server) uploadTestContext(
 	testHandler(GlobalDataManager.UploadRateCapture, queue.NewJob("upLink", func(v interface{}) {
 		_ = uploadRequest(ctx, s.doer, s.URL, 5)
 	}))
+	s.ULSpeed = GlobalDataManager.GetAvgUploadRate()
 	return nil
 }
 

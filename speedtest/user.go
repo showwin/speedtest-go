@@ -96,7 +96,7 @@ func (u *User) SetLocationByCity(locationLabel string) (err error) {
 func (u *User) SetLocation(locationName string, latitude float64, longitude float64) {
 	u.VLat = fmt.Sprintf("%v", latitude)
 	u.VLon = fmt.Sprintf("%v", longitude)
-	u.VLoc = strings.Title(locationName)
+	u.VLoc = locationName
 }
 
 // ParseAndSetLocation parse latitude and longitude string
