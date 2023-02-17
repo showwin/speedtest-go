@@ -123,7 +123,7 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 		if jsonOutput {
 			err := s.DownloadTest(savingMode)
 			checkError(err)
-			time.Sleep(time.Second * 5)
+			speedtest.GlobalDataManager.Wait()
 			err = s.UploadTest(savingMode)
 			checkError(err)
 
@@ -136,7 +136,7 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 		checkError(err)
 		// It is necessary to wait for the release of the last test resource,
 		// otherwise the overload will cause excessive data deviation
-		time.Sleep(time.Second * 5)
+		speedtest.GlobalDataManager.Wait()
 		err = testUpload(s, savingMode)
 		checkError(err)
 		showServerResult(s)

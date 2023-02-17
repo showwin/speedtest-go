@@ -21,7 +21,7 @@ func TestDynamicRate(t *testing.T) {
 	oldUpTotal := GlobalDataManager.GetTotalUpload()
 
 	go func() {
-		for i := 0; i < 2; i++ {
+		for i := 0; i < 20; i++ {
 			time.Sleep(time.Second)
 			newDownTotal := GlobalDataManager.GetTotalDownload()
 			newUpTotal := GlobalDataManager.GetTotalUpload()
@@ -42,6 +42,8 @@ func TestDynamicRate(t *testing.T) {
 		fmt.Println("not found server")
 		//t.Error(err)
 	}
+
+	GlobalDataManager.Wait()
 
 	err = server.UploadTest(false)
 	if err != nil {

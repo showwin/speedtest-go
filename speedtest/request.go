@@ -37,7 +37,7 @@ func (s *Server) downloadTestContext(
 	downloadRequest downloadFunc,
 ) error {
 	dlURL := strings.Split(s.URL, "/upload.php")[0]
-	GlobalDataManager.DownloadRateCaptureHandler(func(v interface{}) {
+	GlobalDataManager.DownloadRateCaptureHandler(func() {
 		_ = downloadRequest(ctx, s.context.doer, dlURL, 5)
 	})
 	s.DLSpeed = GlobalDataManager.GetAvgDownloadRate()
@@ -60,7 +60,7 @@ func (s *Server) uploadTestContext(
 	ulWarmUp uploadWarmUpFunc,
 	uploadRequest uploadFunc,
 ) error {
-	GlobalDataManager.UploadRateCaptureHandler(func(v interface{}) {
+	GlobalDataManager.UploadRateCaptureHandler(func() {
 		_ = uploadRequest(ctx, s.context.doer, s.URL, 5)
 	})
 	s.ULSpeed = GlobalDataManager.GetAvgUploadRate()
@@ -95,7 +95,7 @@ func downloadRequest(ctx context.Context, doer *http.Client, dlURL string, w int
 func uploadRequest(ctx context.Context, doer *http.Client, ulURL string, w int) error {
 	size := ulSizes[w]
 
-	dc := GlobalDataManager.NewDataChunk().UploadSnapshotHandler((size*100 - 51) * 10)
+	dc := GlobalDataManager.NewDataChunk().UploadSnapshotHandler(int64(size*100-51) * 10)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ulURL, dc)
 	req.ContentLength = dc.ContentLength
 	if err != nil {
