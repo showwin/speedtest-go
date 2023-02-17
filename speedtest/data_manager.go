@@ -2,7 +2,9 @@ package speedtest
 
 import (
 	"bytes"
+	"github.com/LyricTian/queue"
 	"io"
+	"runtime"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -10,7 +12,6 @@ import (
 )
 
 const readChunkSize = 1024 * 32 // 32 KBytes
-const rateCaptureFrequency = time.Second
 
 type DataType int32
 
@@ -28,25 +29,58 @@ type DataManager struct {
 	sync.Mutex
 
 	repeatByte *[]byte
+
+	captureTime          time.Duration
+	rateCaptureFrequency time.Duration
+	nThread              int
 }
 
 func NewDataManager() *DataManager {
-	var ret DataManager
-	return &ret
+	ret := &DataManager{
+		nThread:              runtime.NumCPU(),
+		captureTime:          time.Second * 10,
+		rateCaptureFrequency: time.Second,
+	}
+	return ret
 }
 
-func (dm *DataManager) DownloadRateCapture() *time.Ticker {
+func (dm *DataManager) DownloadRateCaptureHandler(fn func(v interface{})) {
+	dm.testHandler(dm.downloadRateCapture, queue.NewJob("upLink", fn))
+}
+
+func (dm *DataManager) UploadRateCaptureHandler(fn func(v interface{})) {
+	dm.testHandler(dm.uploadRateCapture, queue.NewJob("upLink", fn))
+}
+
+func (dm *DataManager) testHandler(captureFunc func() *time.Ticker, job queue.Jober) {
+	// When the number of processor cores is equivalent to the processing program,
+	// the processing efficiency reaches the highest level (VT is not considered).
+	q := queue.NewQueue(10, dm.nThread)
+	q.Run()
+
+	ticker := captureFunc()
+	time.AfterFunc(dm.captureTime, func() {
+		ticker.Stop()
+		q.Terminate()
+	})
+
+	for i := 0; i < 1000; i++ {
+		q.Push(job)
+	}
+}
+
+func (dm *DataManager) downloadRateCapture() *time.Ticker {
 	return dm.rateCapture(dm.GetTotalDownload, &dm.DownloadRateSequence)
 }
 
-func (dm *DataManager) UploadRateCapture() *time.Ticker {
+func (dm *DataManager) uploadRateCapture() *time.Ticker {
 	return dm.rateCapture(dm.GetTotalUpload, &dm.UploadRateSequence)
 }
 
 func (dm *DataManager) rateCapture(rateFunc func() int64, dst *[]float64) *time.Ticker {
-	ticker := time.NewTicker(rateCaptureFrequency)
+	ticker := time.NewTicker(dm.rateCaptureFrequency)
 	oldTotal := rateFunc()
-	step := float64(time.Second / rateCaptureFrequency)
+	step := float64(time.Second / dm.rateCaptureFrequency)
 	go func() {
 		for range ticker.C {
 			newTotal := rateFunc()
@@ -74,6 +108,21 @@ func (dm *DataManager) GetTotalDownload() int64 {
 
 func (dm *DataManager) GetTotalUpload() int64 {
 	return dm.totalUpload
+}
+
+func (dm *DataManager) SetRateCaptureFrequency(duration time.Duration) *DataManager {
+	dm.rateCaptureFrequency = duration
+	return dm
+}
+
+func (dm *DataManager) SetCaptureTime(duration time.Duration) *DataManager {
+	dm.captureTime = duration
+	return dm
+}
+
+func (dm *DataManager) SetNThread(n int) *DataManager {
+	dm.nThread = n
+	return dm
 }
 
 func (dm *DataManager) Reset() int64 {

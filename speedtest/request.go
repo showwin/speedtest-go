@@ -2,10 +2,7 @@ package speedtest
 
 import (
 	"context"
-	"github.com/LyricTian/queue"
-	"io"
 	"net/http"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -23,8 +20,6 @@ var (
 	ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} // kB
 )
 
-const testTime = time.Second * 10
-
 // DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest(savingMode bool) error {
 	return s.downloadTestContext(context.Background(), savingMode, dlWarmUp, downloadRequest)
@@ -35,23 +30,6 @@ func (s *Server) DownloadTestContext(ctx context.Context, savingMode bool) error
 	return s.downloadTestContext(ctx, savingMode, dlWarmUp, downloadRequest)
 }
 
-func testHandler(captureFunc func() *time.Ticker, job queue.Jober) {
-	// When the number of processor cores is equivalent to the processing program,
-	// the processing efficiency reaches the highest level (VT is not considered).
-	q := queue.NewQueue(10, runtime.NumCPU())
-	q.Run()
-
-	ticker := captureFunc()
-	time.AfterFunc(testTime, func() {
-		ticker.Stop()
-		q.Terminate()
-	})
-
-	for i := 0; i < 1000; i++ {
-		q.Push(job)
-	}
-}
-
 func (s *Server) downloadTestContext(
 	ctx context.Context,
 	savingMode bool,
@@ -59,9 +37,9 @@ func (s *Server) downloadTestContext(
 	downloadRequest downloadFunc,
 ) error {
 	dlURL := strings.Split(s.URL, "/upload.php")[0]
-	testHandler(GlobalDataManager.DownloadRateCapture, queue.NewJob("downLink", func(v interface{}) {
+	GlobalDataManager.DownloadRateCaptureHandler(func(v interface{}) {
 		_ = downloadRequest(ctx, s.context.doer, dlURL, 5)
-	}))
+	})
 	s.DLSpeed = GlobalDataManager.GetAvgDownloadRate()
 	return nil
 }
@@ -82,9 +60,9 @@ func (s *Server) uploadTestContext(
 	ulWarmUp uploadWarmUpFunc,
 	uploadRequest uploadFunc,
 ) error {
-	testHandler(GlobalDataManager.UploadRateCapture, queue.NewJob("upLink", func(v interface{}) {
+	GlobalDataManager.UploadRateCaptureHandler(func(v interface{}) {
 		_ = uploadRequest(ctx, s.context.doer, s.URL, 5)
-	}))
+	})
 	s.ULSpeed = GlobalDataManager.GetAvgUploadRate()
 	return nil
 }
@@ -130,8 +108,6 @@ func uploadRequest(ctx context.Context, doer *http.Client, ulURL string, w int) 
 		return err
 	}
 	defer resp.Body.Close()
-	_, err = io.Copy(io.Discard, resp.Body)
-
 	return err
 }
 
