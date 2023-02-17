@@ -16,6 +16,7 @@ func BenchmarkDataManager_NewDataChunk(b *testing.B) {
 }
 
 func TestDynamicRate(t *testing.T) {
+
 	oldDownTotal := GlobalDataManager.GetTotalDownload()
 	oldUpTotal := GlobalDataManager.GetTotalUpload()
 

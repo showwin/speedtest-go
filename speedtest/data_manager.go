@@ -80,6 +80,8 @@ func (dm *DataManager) Reset() int64 {
 	dm.totalDownload = 0
 	dm.totalUpload = 0
 	dm.DataGroup = []*DataChunk{}
+	dm.DownloadRateSequence = []float64{}
+	dm.UploadRateSequence = []float64{}
 	return dm.totalUpload
 }
 
