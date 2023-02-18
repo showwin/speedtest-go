@@ -31,16 +31,17 @@ $ speedtest --help
 usage: speedtest-go [<flags>]
 
 Flags:
-      --help                   Show context-sensitive help (also try --help-long and --help-man).
-  -l, --list                   Show available speedtest.net servers.
-  -s, --server=SERVER ...      Select server id to run speedtest.
-      --custom-url=CUSTOM-URL  Specify the url of the server instead of getting a list from Speedtest.net
-      --saving-mode            Using less memory (≒10MB), though low accuracy (especially > 30Mbps).
-      --json                   Output results in json format
-      --location=LOCATION      Change the location with a precise coordinate. Format: lat,lon
-      --city=CITY              Change the location with a predefined city label.
-      --city-list              List all predefined city labels.
-      --version                Show application version.
+      --help               Show context-sensitive help (also try --help-long and --help-man).
+  -l, --list               Show available speedtest.net servers.
+  -s, --server=SERVER ...  Select server id to speedtest.
+      --custom-url=CUSTOM-URL Specify the url of the server instead of getting a list from Speedtest.net
+      --saving-mode        Using less memory (≒10MB), though low accuracy (especially > 30Mbps).
+      --json               Output results in json format
+      --location=LOCATION  Change the location with a precise coordinate.
+      --city=CITY          Change the location with a predefined city label.
+      --city-list          List all predefined city label.
+      --proxy              Set a proxy(http(s) or socks) for the speedtest.
+      --version            Show application version.
 ```
 
 #### Test Internet Speed
@@ -143,12 +144,17 @@ import (
 )
 
 func main() {
-	user, _ := speedtest.FetchUserInfo()
+	var speedtestClient = speedtest.New()
+	
+	// Use a proxy for the speedtest. eg: socks://127.0.0.1:7890
+	// speedtest.WithProxy("socks://127.0.0.1:7890")(speedtestClient)
+	
+	user, _ := speedtestClient.FetchUserInfo()
 	// Get a list of servers near a specified location
 	// user.SetLocationByCity("Tokyo")
 	// user.SetLocation("Osaka", 34.6952, 135.5006)
 
-	serverList, _ := speedtest.FetchServers(user)
+	serverList, _ := speedtestClient.FetchServers(user)
 	targets, _ := serverList.FindServer([]int{})
 
 	for _, s := range targets {

@@ -2,7 +2,9 @@ package speedtest
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"net/url"
 )
 
 var (
@@ -45,9 +47,23 @@ func WithDoer(doer *http.Client) Option {
 // WithUserAgent adds the passed "User-Agent" header to all requests.
 // To use with a custom Doer, "WithDoer" must be passed before WithUserAgent:
 // `New(WithDoer(myDoer), WithUserAgent(myUserAgent))`
-func WithUserAgent(UserAgent string) Option {
+func WithUserAgent(userAgent string) Option {
 	return func(s *Speedtest) {
-		s.doer.Transport = newUserAgentTransport(s.doer.Transport, UserAgent)
+		s.doer.Transport = newUserAgentTransport(s.doer.Transport, userAgent)
+	}
+}
+
+// WithProxy provides an easy way to set a proxy(http(s) or socks) for requests.
+func WithProxy(host string) Option {
+	return func(s *Speedtest) {
+		parse, err := url.Parse(host)
+		if err != nil {
+			log.Printf("Skip: can not parse the proxy: %s\n, please check.", parse.String())
+			return
+		}
+		s.doer.Transport = &http.Transport{Proxy: func(_ *http.Request) (*url.URL, error) {
+			return url.Parse(host)
+		}}
 	}
 }
 
