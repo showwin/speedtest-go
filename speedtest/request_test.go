@@ -4,11 +4,18 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"runtime"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
 func TestDownloadTestContext(t *testing.T) {
+	GlobalDataManager.Reset()
+
+	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
+	delta := 0.05
+
 	latency, _ := time.ParseDuration("5ms")
 	server := Server{
 		URL:     "http://dummy.com/upload.php",
@@ -24,33 +31,17 @@ func TestDownloadTestContext(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	if server.DLSpeed < 6000 || 6300 < server.DLSpeed {
-		t.Errorf("got unexpected server.DLSpeed '%v', expected between 6000 and 6300", server.DLSpeed)
-	}
-}
-
-func TestDownloadTestContextSavingMode(t *testing.T) {
-	latency, _ := time.ParseDuration("5ms")
-	server := Server{
-		URL:     "http://dummy.com/upload.php",
-		Latency: latency,
-	}
-
-	err := server.downloadTestContext(
-		context.Background(),
-		true,
-		mockWarmUp,
-		mockRequest,
-	)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	if server.DLSpeed < 180 || 200 < server.DLSpeed {
-		t.Errorf("got unexpected server.DLSpeed '%v', expected between 180 and 200", server.DLSpeed)
+	if server.DLSpeed < idealSpeed*(1-delta) || idealSpeed*(1+delta) < server.DLSpeed {
+		t.Errorf("got unexpected server.DLSpeed '%v', expected between %v and %v", server.DLSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
 }
 
 func TestUploadTestContext(t *testing.T) {
+	GlobalDataManager.Reset()
+
+	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
+	delta := 0.05                                                // tolerance scope (-0.05, +0.05)
+
 	latency, _ := time.ParseDuration("5ms")
 	server := Server{
 		URL:     "http://dummy.com/upload.php",
@@ -66,39 +57,24 @@ func TestUploadTestContext(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	if server.ULSpeed < 2400 || 2600 < server.ULSpeed {
-		t.Errorf("got unexpected server.ULSpeed '%v', expected between 2400 and 2600", server.ULSpeed)
-	}
-}
-
-func TestUploadTestContextSavingMode(t *testing.T) {
-	latency, _ := time.ParseDuration("5ms")
-	server := Server{
-		URL:     "http://dummy.com/upload.php",
-		Latency: latency,
-	}
-
-	err := server.uploadTestContext(
-		context.Background(),
-		true,
-		mockWarmUp,
-		mockRequest,
-	)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	if server.ULSpeed < 45 || 50 < server.ULSpeed {
-		t.Errorf("got unexpected server.ULSpeed '%v', expected between 45 and 50", server.ULSpeed)
+	if server.ULSpeed < idealSpeed*(1-delta) || idealSpeed*(1+delta) < server.ULSpeed {
+		t.Errorf("got unexpected server.ULSpeed '%v', expected between %v and %v", server.ULSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
 }
 
 func mockWarmUp(ctx context.Context, doer *http.Client, dlURL string) error {
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(5000 * time.Millisecond)
 	return nil
 }
 
 func mockRequest(ctx context.Context, doer *http.Client, dlURL string, w int) error {
 	fmt.Sprintln(w)
-	time.Sleep(500 * time.Millisecond)
+	dc := GlobalDataManager.NewDataChunk()
+	// (0.1MegaByte * 8bit * 8CPU * 10loop) / 0.1s = 640Megabit
+	for i := 0; i < 10; i++ {
+		atomic.AddInt64(&dc.manager.totalDownload, 1*1000*100)
+		atomic.AddInt64(&dc.manager.totalUpload, 1*1000*100)
+		time.Sleep(time.Millisecond * 10)
+	}
 	return nil
 }

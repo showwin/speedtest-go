@@ -110,6 +110,8 @@ func main() {
 
 func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 	for _, s := range servers {
+		// Reset DataManager counters, avoid measurement of multiple server result mixing.
+		speedtest.GlobalDataManager.Reset()
 		if !jsonOutput {
 			showServer(s)
 		}
@@ -120,7 +122,7 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 		if jsonOutput {
 			err := s.DownloadTest(savingMode)
 			checkError(err)
-
+			time.Sleep(time.Second * 5)
 			err = s.UploadTest(savingMode)
 			checkError(err)
 
@@ -131,9 +133,11 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 
 		err = testDownload(s, savingMode)
 		checkError(err)
+		// It is necessary to wait for the release of the last test resource,
+		// otherwise the overload will cause excessive data deviation
+		time.Sleep(time.Second * 5)
 		err = testUpload(s, savingMode)
 		checkError(err)
-
 		showServerResult(s)
 	}
 

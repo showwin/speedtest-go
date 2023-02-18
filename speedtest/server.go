@@ -50,7 +50,7 @@ type Server struct {
 // filled in as we can
 func CustomServer(s string) (*Server, error) {
 	if !strings.HasSuffix(s, "/upload.php") {
-		return nil, errors.New("Please use the full URL of the server, ending in '/upload.php'")
+		return nil, errors.New("please use the full URL of the server, ending in '/upload.php'")
 	}
 	u, err := url.Parse(s)
 	if err != nil {
@@ -253,6 +253,6 @@ func (s *Server) String() string {
 }
 
 // CheckResultValid checks that results are logical given UL and DL speeds
-func (s Server) CheckResultValid() bool {
+func (s *Server) CheckResultValid() bool {
 	return !(s.DLSpeed*100 < s.ULSpeed) || !(s.DLSpeed > s.ULSpeed*100)
 }
