@@ -130,6 +130,7 @@ To get more accurate results, run multiple times and average.
 
 For more details, please see [saving mode experimental result](https://github.com/showwin/speedtest-go/blob/master/docs/saving_mode_experimental_result.md).
 
+⚠️This feature has been deprecated > v1.4.0, because speedtest-go can always run with less than 10MByte of memory now.
 
 ## Go API
 
@@ -139,7 +140,7 @@ go get github.com/showwin/speedtest-go
 
 ### API Usage
 
-The code below finds the closest available speedtest server and tests the latency, download, and upload speeds.
+The [code](https://github.com/showwin/speedtest-go/blob/master/example/main.go) below finds the closest available speedtest server and tests the latency, download, and upload speeds.
 ```go
 package main
 
@@ -154,6 +155,9 @@ func main() {
 	// Use a proxy for the speedtest. eg: socks://127.0.0.1:7890
 	// speedtest.WithUserConfig(&speedtest.UserConfig{Proxy: "socks://127.0.0.1:7890"})(speedtestClient)
 	
+	// Select a network card as the data interface.
+	// speedtest.WithUserConfig(&speedtest.UserConfig{Source: "tcp4://192.168.1.101"})(speedtestClient)
+	
 	user, _ := speedtestClient.FetchUserInfo()
 	// Get a list of servers near a specified location
 	// user.SetLocationByCity("Tokyo")
@@ -163,10 +167,12 @@ func main() {
 	targets, _ := serverList.FindServer([]int{})
 
 	for _, s := range targets {
+		// Please make sure your host can access this test server,
+		// otherwise you will get an error.
+		// It is recommended to replace a server at this time
 		s.PingTest()
 		s.DownloadTest(false)
 		s.UploadTest(false)
-
 		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
 	}
 }
@@ -175,7 +181,9 @@ func main() {
 
 ## Summary of Experimental Results
 
-Speedtest-go is a great tool because of following 2 reasons:
+Speedtest-go is a great tool because of following 4 reasons:
+* Cross-platform available.
+* Low memory environment.
 * Testing time is the **SHORTEST** compare to [speedtest.net](http://www.speedtest.net/) and [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli), especially about 2x faster then [speedtest.net](http://www.speedtest.net/).
 * Result is **MORE CLOSE** to [speedtest.net](http://www.speedtest.net/) than [speedtest-cli](https://github.com/sivel/speedtest-cli).
 
