@@ -41,6 +41,11 @@ Flags:
       --city=CITY          Change the location with a predefined city label.
       --city-list          List all predefined city label.
       --proxy              Set a proxy(http(s) or socks) for the speedtest.
+                           eg: socks://10.20.0.101:7890 or http://10.20.0.101:7890
+      --source             Set the source interface(tcp[4/6]://ip) for the speedtest.
+                           eg: tcp://10.20.0.101
+                               tcp4://10.20.0.101
+                               tcp6://fe80.244d:a1c7:815f:7253%9
       --version            Show application version.
 ```
 
@@ -99,7 +104,7 @@ Upload Avg: 28.28 Mbit/s
 
 #### Test with virtual location
 
-With `--ciry` or `--location` option, the closest server of the location will be picked.
+With `--city` or `--location` option, the closest server of the location will be picked.
 You can measure the speed between your location and the target location.
 
 ```bash
@@ -134,7 +139,7 @@ go get github.com/showwin/speedtest-go
 
 ### API Usage
 
-The code below finds closest available speedtest server and tests the latency, download, and upload speeds.
+The code below finds the closest available speedtest server and tests the latency, download, and upload speeds.
 ```go
 package main
 
@@ -147,7 +152,7 @@ func main() {
 	var speedtestClient = speedtest.New()
 	
 	// Use a proxy for the speedtest. eg: socks://127.0.0.1:7890
-	// speedtest.WithProxy("socks://127.0.0.1:7890")(speedtestClient)
+	// speedtest.WithUserConfig(&speedtest.UserConfig{Proxy: "socks://127.0.0.1:7890"})(speedtestClient)
 	
 	user, _ := speedtestClient.FetchUserInfo()
 	// Get a list of servers near a specified location
@@ -185,26 +190,26 @@ distance = distance to testing server
 * 20000km is the half of the circumference of our planet.
 
 | distance (km) | speedtest.net | speedtest-go | speedtest-cli |
-| :-- | :--: | :--: | :--: |
-| 0 - 1000 | 92.12 | **91.21** | 70.27 |
-| 1000 - 8000 | 66.45 | **65.51** | 56.56 |
-| 8000 - 20000 | 11.84 | 9.43 | **11.87** |
+|:-------------:|:-------------:|:------------:|:-------------:|
+|   0 - 1000    |     92.12     |  **91.21**   |     70.27     |
+|  1000 - 8000  |     66.45     |  **65.51**   |     56.56     |
+| 8000 - 20000  |     11.84     |     9.43     |   **11.87**   |
 
 ### Upload (Mbps)
 
 | distance (km) | speedtest.net | speedtest-go | speedtest-cli |
-| :-- | :--: | :--: | :--: |
-| 0 - 1000 | 65.56 | **47.58** | 36.16 |
-| 1000 - 8000 | 58.02 | **54.74** | 26.78 |
-| 8000 - 20000 | 5.20 | 8.32 | **2.58** |
+|:-------------:|:-------------:|:------------:|:-------------:|
+|   0 - 1000    |     65.56     |  **47.58**   |     36.16     |
+|  1000 - 8000  |     58.02     |  **54.74**   |     26.78     |
+| 8000 - 20000  |     5.20      |   **8.32**   |     2.58      |
 
 ### Testing Time (sec)
 
 | distance (km) | speedtest.net | speedtest-go | speedtest-cli |
-| :-- | :--: | :--: | :--: |
-| 0 - 1000 | 45.03 | **22.84** | 24.46 |
-| 1000 - 8000 | 44.89 | **24.45** | 28.52 |
-| 8000 - 20000 | 49.64 | **34.08** | 41.26 |
+|:-------------:|:-------------:|:------------:|:-------------:|
+|   0 - 1000    |     45.03     |  **22.84**   |     24.46     |
+|  1000 - 8000  |     44.89     |  **24.45**   |     28.52     |
+| 8000 - 20000  |     49.64     |  **34.08**   |     41.26     |
 
 ## Contributors
 

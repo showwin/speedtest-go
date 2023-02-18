@@ -18,6 +18,7 @@ func TestFetchServerList(t *testing.T) {
 	}
 	if len(servers) == 0 {
 		t.Errorf("Failed to fetch server list.")
+		return
 	}
 	if len(servers[0].Country) == 0 {
 		t.Errorf("got unexpected country name '%v'", servers[0].Country)
