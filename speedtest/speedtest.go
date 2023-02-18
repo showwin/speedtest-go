@@ -11,15 +11,16 @@ import (
 )
 
 var (
-	version          = "1.3.2"
+	version          = "1.4.0"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
 )
 
 // Speedtest is a speedtest client.
 type Speedtest struct {
-	doer *http.Client
-
+	doer   *http.Client
 	config *UserConfig
+
+	Manager
 }
 
 type UserConfig struct {
@@ -111,8 +112,10 @@ func WithUserConfig(userAgent *UserConfig) Option {
 // New creates a new speedtest client.
 func New(opts ...Option) *Speedtest {
 	s := &Speedtest{
-		doer: http.DefaultClient,
+		doer:    http.DefaultClient,
+		Manager: GlobalDataManager,
 	}
+
 	for _, opt := range opts {
 		opt(s)
 	}

@@ -10,8 +10,7 @@ func BenchmarkDataManager_NewDataChunk(b *testing.B) {
 	dmp := NewDataManager()
 	dmp.DataGroup = make([]*DataChunk, 64)
 	for i := 0; i < b.N; i++ {
-		dmp.NewDataChunk()
-
+		dmp.NewChunk()
 	}
 }
 
@@ -20,8 +19,11 @@ func TestDynamicRate(t *testing.T) {
 	oldDownTotal := GlobalDataManager.GetTotalDownload()
 	oldUpTotal := GlobalDataManager.GetTotalUpload()
 
+	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 100)
+	GlobalDataManager.SetCaptureTime(time.Second)
+
 	go func() {
-		for i := 0; i < 20; i++ {
+		for i := 0; i < 2; i++ {
 			time.Sleep(time.Second)
 			newDownTotal := GlobalDataManager.GetTotalDownload()
 			newUpTotal := GlobalDataManager.GetTotalUpload()
@@ -39,7 +41,7 @@ func TestDynamicRate(t *testing.T) {
 
 	err := server.DownloadTest(false)
 	if err != nil {
-		fmt.Println("not found server")
+		fmt.Println("Warning: not found server")
 		//t.Error(err)
 	}
 
@@ -47,7 +49,7 @@ func TestDynamicRate(t *testing.T) {
 
 	err = server.UploadTest(false)
 	if err != nil {
-		fmt.Println("not found server")
+		fmt.Println("Warning: not found server")
 		//t.Error(err)
 	}
 
@@ -57,6 +59,6 @@ func TestDynamicRate(t *testing.T) {
 	fmt.Printf("Upload: %5.2f Mbit/s\n\n", server.ULSpeed)
 	valid := server.CheckResultValid()
 	if !valid {
-		fmt.Println("Warning: Result seems to be wrong. Please speedtest again.")
+		fmt.Println("Warning: result seems to be wrong. Please test again.")
 	}
 }

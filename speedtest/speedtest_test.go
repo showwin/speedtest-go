@@ -46,7 +46,7 @@ func TestUserAgent(t *testing.T) {
 	})
 
 	t.Run("CustomUserAgent", func(t *testing.T) {
-		testAgent := "asdf1234"
+		testAgent := "1234"
 		s := testServer(testAgent)
 		c := New(WithUserConfig(&UserConfig{UserAgent: testAgent}))
 		_, err := c.doer.Get(s.URL)
@@ -57,7 +57,7 @@ func TestUserAgent(t *testing.T) {
 
 	// Test that With
 	t.Run("CustomUserAgentAndDoer", func(t *testing.T) {
-		testAgent := "asdf2345"
+		testAgent := "4321"
 		doer := &http.Client{}
 		s := testServer(testAgent)
 		c := New(WithDoer(doer), WithUserConfig(&UserConfig{UserAgent: testAgent}))

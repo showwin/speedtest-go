@@ -43,7 +43,7 @@ type Server struct {
 	DLSpeed  float64       `json:"dl_speed"`
 	ULSpeed  float64       `json:"ul_speed"`
 
-	context *Speedtest
+	Context *Speedtest
 }
 
 // CustomServer use defaultClient, given a URL string, return a new Server object, with as much
@@ -71,7 +71,7 @@ func (s *Speedtest) CustomServer(host string) (*Server, error) {
 		Name:    u.Host,
 		Host:    u.Host,
 		Sponsor: "?",
-		context: s,
+		Context: s,
 	}, nil
 }
 
@@ -172,7 +172,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 
 	// set doer of server
 	for _, server := range servers {
-		server.context = s
+		server.Context = s
 	}
 
 	// Calculate distance

@@ -10,6 +10,41 @@ import (
 	"time"
 )
 
+type Manager interface {
+	//SetRateCaptureFrequency(duration time.Duration) *DataManager
+	//SetCaptureTime(duration time.Duration) *DataManager
+
+	NewChunk() Chunk
+
+	GetTotalDownload() int64
+	GetTotalUpload() int64
+	AddTotalDownload(value int64)
+	AddTotalUpload(value int64)
+
+	GetAvgDownloadRate() float64
+	GetAvgUploadRate() float64
+
+	CallbackDownloadRate(callback func(downRate float64)) *time.Ticker
+	CallbackUploadRate(callback func(upRate float64)) *time.Ticker
+
+	DownloadRateCaptureHandler(fn func())
+	UploadRateCaptureHandler(fn func())
+
+	// Wait for the upload or download task to end to avoid errors caused by core occupation
+	Wait()
+	Reset()
+}
+
+type Chunk interface {
+	UploadHandler(size int64) *DataChunk
+	DownloadHandler(r io.Reader) error
+
+	GetRate() float64
+	GetDuration() time.Duration
+
+	GetParent() Manager
+}
+
 const readChunkSize = 1024 * 32 // 32 KBytes
 
 type DataType int32
@@ -46,12 +81,12 @@ func NewDataManager() *DataManager {
 
 func (dm *DataManager) CallbackDownloadRate(callback func(downRate float64)) *time.Ticker {
 	ticker := time.NewTicker(dm.rateCaptureFrequency)
-	oldDownTotal := GlobalDataManager.GetTotalDownload()
+	oldDownTotal := dm.GetTotalDownload()
 	unit := float64(time.Second / dm.rateCaptureFrequency)
 
 	go func() {
 		for range ticker.C {
-			newDownTotal := GlobalDataManager.GetTotalDownload()
+			newDownTotal := dm.GetTotalDownload()
 			delta := newDownTotal - oldDownTotal
 			oldDownTotal = newDownTotal
 			callback(float64(delta) * 8 / 1000000 * unit)
@@ -62,12 +97,12 @@ func (dm *DataManager) CallbackDownloadRate(callback func(downRate float64)) *ti
 
 func (dm *DataManager) CallbackUploadRate(callback func(upRate float64)) *time.Ticker {
 	ticker := time.NewTicker(dm.rateCaptureFrequency)
-	oldUpTotal := GlobalDataManager.GetTotalUpload()
+	oldUpTotal := dm.GetTotalUpload()
 	unit := float64(time.Second / dm.rateCaptureFrequency)
 
 	go func() {
 		for range ticker.C {
-			newUpTotal := GlobalDataManager.GetTotalUpload()
+			newUpTotal := dm.GetTotalUpload()
 			delta := newUpTotal - oldUpTotal
 			oldUpTotal = newUpTotal
 			callback(float64(delta) * 8 / 1000000 * unit)
@@ -77,12 +112,12 @@ func (dm *DataManager) CallbackUploadRate(callback func(upRate float64)) *time.T
 }
 
 func (dm *DataManager) Wait() {
-	oldDownTotal := GlobalDataManager.GetTotalDownload()
-	oldUpTotal := GlobalDataManager.GetTotalUpload()
+	oldDownTotal := dm.GetTotalDownload()
+	oldUpTotal := dm.GetTotalUpload()
 	for {
 		time.Sleep(dm.rateCaptureFrequency)
-		newDownTotal := GlobalDataManager.GetTotalDownload()
-		newUpTotal := GlobalDataManager.GetTotalUpload()
+		newDownTotal := dm.GetTotalDownload()
+		newUpTotal := dm.GetTotalUpload()
 		deltaDown := newDownTotal - oldDownTotal
 		deltaUp := newUpTotal - oldUpTotal
 		oldDownTotal = newDownTotal
@@ -148,13 +183,21 @@ func (dm *DataManager) rateCapture(rateFunc func() int64, dst *[]int64) *time.Ti
 	return ticker
 }
 
-func (dm *DataManager) NewDataChunk() *DataChunk {
+func (dm *DataManager) NewChunk() Chunk {
 	var dc DataChunk
 	dc.manager = dm
 	dm.Lock()
 	dm.DataGroup = append(dm.DataGroup, &dc)
 	dm.Unlock()
 	return &dc
+}
+
+func (dm *DataManager) AddTotalDownload(value int64) {
+	atomic.AddInt64(&dm.totalDownload, value)
+}
+
+func (dm *DataManager) AddTotalUpload(value int64) {
+	atomic.AddInt64(&dm.totalUpload, value)
 }
 
 func (dm *DataManager) GetTotalDownload() int64 {
@@ -180,13 +223,12 @@ func (dm *DataManager) SetNThread(n int) *DataManager {
 	return dm
 }
 
-func (dm *DataManager) Reset() int64 {
+func (dm *DataManager) Reset() {
 	dm.totalDownload = 0
 	dm.totalUpload = 0
 	dm.DataGroup = []*DataChunk{}
 	dm.DownloadRateSequence = []int64{}
 	dm.UploadRateSequence = []int64{}
-	return dm.totalUpload
 }
 
 func (dm *DataManager) GetAvgDownloadRate() float64 {
@@ -222,7 +264,7 @@ func (dc *DataChunk) GetDuration() time.Duration {
 	return dc.endTime.Sub(dc.startTime)
 }
 
-func (dc *DataChunk) GetChunkRate() float64 {
+func (dc *DataChunk) GetRate() float64 {
 	if dc.dateType == TypeDownload {
 		return float64(dc.remainOrDiscardSize) / dc.GetDuration().Seconds()
 	} else if dc.dateType == TypeUpload {
@@ -231,9 +273,9 @@ func (dc *DataChunk) GetChunkRate() float64 {
 	return 0
 }
 
-// DownloadSnapshotHandler No value will be returned here, because the error will interrupt the test.
+// DownloadHandler No value will be returned here, because the error will interrupt the test.
 // The error chunk is generally caused by the remote server actively closing the connection.
-func (dc *DataChunk) DownloadSnapshotHandler(r io.Reader) error {
+func (dc *DataChunk) DownloadHandler(r io.Reader) error {
 	if dc.dateType != TypeEmptyChunk {
 		dc.err = errors.New("multiple calls to the same chunk handler are not allowed")
 		return dc.err
@@ -260,7 +302,7 @@ func (dc *DataChunk) DownloadSnapshotHandler(r io.Reader) error {
 	}
 }
 
-func (dc *DataChunk) UploadSnapshotHandler(size int64) *DataChunk {
+func (dc *DataChunk) UploadHandler(size int64) *DataChunk {
 	if dc.dateType != TypeEmptyChunk {
 		dc.err = errors.New("multiple calls to the same chunk handler are not allowed")
 	}
@@ -279,6 +321,10 @@ func (dc *DataChunk) UploadSnapshotHandler(size int64) *DataChunk {
 
 	dc.startTime = time.Now()
 	return dc
+}
+
+func (dc *DataChunk) GetParent() Manager {
+	return dc.manager
 }
 
 func (dc *DataChunk) Read(b []byte) (n int, err error) {

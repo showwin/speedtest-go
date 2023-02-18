@@ -5,28 +5,26 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
-	"sync/atomic"
 	"testing"
 	"time"
 )
 
 func TestDownloadTestContext(t *testing.T) {
 	GlobalDataManager.Reset()
-
+	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 100)
+	GlobalDataManager.SetCaptureTime(time.Second)
 	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
 	delta := 0.05
 
 	latency, _ := time.ParseDuration("5ms")
 	server := Server{
-		URL:     "http://dummy.com/upload.php",
+		URL:     "https://dummy.com/upload.php",
 		Latency: latency,
-		context: defaultClient,
+		Context: defaultClient,
 	}
 
 	err := server.downloadTestContext(
 		context.Background(),
-		false,
-		mockWarmUp,
 		mockRequest,
 	)
 	if err != nil {
@@ -39,21 +37,21 @@ func TestDownloadTestContext(t *testing.T) {
 
 func TestUploadTestContext(t *testing.T) {
 	GlobalDataManager.Reset()
+	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 100)
+	GlobalDataManager.SetCaptureTime(time.Second)
 
 	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
 	delta := 0.05                                                // tolerance scope (-0.05, +0.05)
 
 	latency, _ := time.ParseDuration("5ms")
 	server := Server{
-		URL:     "http://dummy.com/upload.php",
+		URL:     "https://dummy.com/upload.php",
 		Latency: latency,
-		context: defaultClient,
+		Context: defaultClient,
 	}
 
 	err := server.uploadTestContext(
 		context.Background(),
-		false,
-		mockWarmUp,
 		mockRequest,
 	)
 	if err != nil {
@@ -69,13 +67,17 @@ func mockWarmUp(ctx context.Context, doer *http.Client, dlURL string) error {
 	return nil
 }
 
-func mockRequest(ctx context.Context, doer *http.Client, dlURL string, w int) error {
+func mockRequest(ctx context.Context, s *Server, w int) error {
 	fmt.Sprintln(w)
-	dc := GlobalDataManager.NewDataChunk()
+	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 100)
+	GlobalDataManager.SetCaptureTime(time.Second)
+
+	dc := GlobalDataManager.NewChunk()
+
 	// (0.1MegaByte * 8bit * 8CPU * 10loop) / 0.1s = 640Megabit
 	for i := 0; i < 10; i++ {
-		atomic.AddInt64(&dc.manager.totalDownload, 1*1000*100)
-		atomic.AddInt64(&dc.manager.totalUpload, 1*1000*100)
+		dc.GetParent().AddTotalDownload(1 * 1000 * 100)
+		dc.GetParent().AddTotalUpload(1 * 1000 * 100)
 		time.Sleep(time.Millisecond * 10)
 	}
 	return nil
