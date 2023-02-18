@@ -3,7 +3,6 @@ package speedtest
 import (
 	"context"
 	"net/http"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
