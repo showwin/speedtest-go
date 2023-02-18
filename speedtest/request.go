@@ -3,6 +3,7 @@ package speedtest
 import (
 	"context"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,8 @@ var (
 	dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
 	ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} // kB
 )
+
+const testTime = time.Second * 10
 
 // DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest(savingMode bool) error {

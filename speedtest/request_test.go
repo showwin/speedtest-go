@@ -15,7 +15,6 @@ func TestDownloadTestContext(t *testing.T) {
 	GlobalDataManager.SetCaptureTime(time.Second)
 	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
 	delta := 0.05
-
 	latency, _ := time.ParseDuration("5ms")
 	server := Server{
 		URL:     "https://dummy.com/upload.php",

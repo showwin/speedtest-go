@@ -21,7 +21,6 @@ func TestDynamicRate(t *testing.T) {
 
 	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 100)
 	GlobalDataManager.SetCaptureTime(time.Second)
-
 	go func() {
 		for i := 0; i < 2; i++ {
 			time.Sleep(time.Second)

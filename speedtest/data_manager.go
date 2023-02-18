@@ -184,6 +184,7 @@ func (dm *DataManager) rateCapture(rateFunc func() int64, dst *[]int64) *time.Ti
 }
 
 func (dm *DataManager) NewChunk() Chunk {
+
 	var dc DataChunk
 	dc.manager = dm
 	dm.Lock()
@@ -207,6 +208,7 @@ func (dm *DataManager) GetTotalDownload() int64 {
 func (dm *DataManager) GetTotalUpload() int64 {
 	return dm.totalUpload
 }
+
 
 func (dm *DataManager) SetRateCaptureFrequency(duration time.Duration) *DataManager {
 	dm.rateCaptureFrequency = duration
@@ -264,6 +266,7 @@ func (dc *DataChunk) GetDuration() time.Duration {
 	return dc.endTime.Sub(dc.startTime)
 }
 
+
 func (dc *DataChunk) GetRate() float64 {
 	if dc.dateType == TypeDownload {
 		return float64(dc.remainOrDiscardSize) / dc.GetDuration().Seconds()
@@ -290,6 +293,7 @@ func (dc *DataChunk) DownloadHandler(r io.Reader) error {
 	for {
 		readSize, dc.err = r.Read(*bufP)
 		rs := int64(readSize)
+
 		dc.remainOrDiscardSize += rs
 		atomic.AddInt64(&dc.manager.totalDownload, rs)
 		if dc.err != nil {
@@ -306,6 +310,7 @@ func (dc *DataChunk) UploadHandler(size int64) *DataChunk {
 	if dc.dateType != TypeEmptyChunk {
 		dc.err = errors.New("multiple calls to the same chunk handler are not allowed")
 	}
+
 	if size <= 0 {
 		panic("the size of repeated bytes should be > 0")
 	}
@@ -350,7 +355,6 @@ func calcMAFilter(list []int64) float64 {
 	if n == 0 {
 		return 0
 	}
-
 	length := len(list)
 	for i := 0; i < length-1; i++ {
 		for j := i + 1; j < length; j++ {
@@ -359,7 +363,6 @@ func calcMAFilter(list []int64) float64 {
 			}
 		}
 	}
-
 	for i := 1; i < n-1; i++ {
 		sum += list[i]
 	}
