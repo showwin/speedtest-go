@@ -115,6 +115,8 @@ func New(opts ...Option) *Speedtest {
 		doer:    http.DefaultClient,
 		Manager: GlobalDataManager,
 	}
+	// load default config
+	s.NewUserConfig(&UserConfig{UserAgent: DefaultUserAgent})
 
 	for _, opt := range opts {
 		opt(s)
@@ -126,4 +128,4 @@ func Version() string {
 	return version
 }
 
-var defaultClient = New(WithUserConfig(&UserConfig{UserAgent: DefaultUserAgent}))
+var defaultClient = New()
