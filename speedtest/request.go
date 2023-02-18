@@ -18,8 +18,6 @@ var (
 	ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} // kB
 )
 
-const testTime = time.Second * 10
-
 // DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest(savingMode bool) error {
 	return s.downloadTestContext(context.Background(), downloadRequest)

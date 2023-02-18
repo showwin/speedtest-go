@@ -3,7 +3,6 @@ package speedtest
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"runtime"
 	"testing"
 	"time"
@@ -59,11 +58,6 @@ func TestUploadTestContext(t *testing.T) {
 	if server.ULSpeed < idealSpeed*(1-delta) || idealSpeed*(1+delta) < server.ULSpeed {
 		t.Errorf("got unexpected server.ULSpeed '%v', expected between %v and %v", server.ULSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
-}
-
-func mockWarmUp(ctx context.Context, doer *http.Client, dlURL string) error {
-	time.Sleep(5000 * time.Millisecond)
-	return nil
 }
 
 func mockRequest(ctx context.Context, s *Server, w int) error {
