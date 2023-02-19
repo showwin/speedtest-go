@@ -193,8 +193,14 @@ func showUser(user *speedtest.User) {
 
 func showServerList(servers speedtest.Servers) {
 	for _, s := range servers {
-		fmt.Printf("[%4s] %8.2fkm ", s.ID, s.Distance)
-		fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
+		fmt.Printf("[%5s] %9.2fkm ", s.ID, s.Distance)
+
+		if s.Latency == -1 {
+			fmt.Printf("%v", "Timeout ")
+		} else {
+			fmt.Printf("%-dms ", s.Latency/time.Millisecond)
+		}
+		fmt.Printf("\t%s (%s) by %s \n", s.Name, s.Country, s.Sponsor)
 	}
 }
 

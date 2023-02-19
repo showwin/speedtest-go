@@ -2,7 +2,6 @@ package speedtest
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -42,29 +41,29 @@ func parseAddr(addr string) (string, string) {
 func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 	var source net.Addr // If nil, a local address is automatically chosen.
 	var proxy = http.ProxyFromEnvironment
-	var ipDialer net.Addr
+	var source1 net.Addr
 	s.config = uc
 
 	if len(uc.Source) > 0 {
 		_, address := parseAddr(uc.Source)
-		addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:0", address)) // dynamic tcp port
+		addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("[%s]:0", address)) // dynamic tcp port
 		if err == nil {
 			source = addr
 		} else {
-			log.Printf("Skip: can not parse the source address. err: %s\n", err.Error())
+			fmt.Printf("Skip: can not parse the source address. err: %s\n", err.Error())
 		}
 
 		addr1, err := net.ResolveIPAddr("ip", address) // dynamic tcp port
 		if err == nil {
-			ipDialer = addr1
+			source1 = addr1
 		} else {
-			log.Printf("Skip: can not parse the source address. err: %s\n", err.Error())
+			fmt.Printf("Skip: can not parse the source address. err: %s\n", err.Error())
 		}
 	}
 
 	if len(uc.Proxy) > 0 {
 		if parse, err := url.Parse(uc.Proxy); err != nil {
-			log.Printf("Skip: can not parse the proxy host. err: %s\n", err.Error())
+			fmt.Printf("Skip: can not parse the proxy host. err: %s\n", err.Error())
 		} else {
 			proxy = func(_ *http.Request) (*url.URL, error) {
 				//return url.Parse(uc.Proxy)
@@ -80,7 +79,7 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 	}
 
 	s.ipDialer = &net.Dialer{
-		LocalAddr: ipDialer,
+		LocalAddr: source1,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}

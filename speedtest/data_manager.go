@@ -12,8 +12,8 @@ import (
 )
 
 type Manager interface {
-	//SetRateCaptureFrequency(duration time.Duration) *DataManager
-	//SetCaptureTime(duration time.Duration) *DataManager
+	//SetRateCaptureFrequency(duration time.Duration) Manager
+	//SetCaptureTime(duration time.Duration) Manager
 
 	NewChunk() Chunk
 
@@ -37,13 +37,14 @@ type Manager interface {
 }
 
 type Chunk interface {
-	UploadHandler(size int64) *DataChunk
+	UploadHandler(size int64) Chunk
 	DownloadHandler(r io.Reader) error
 
 	GetRate() float64
 	GetDuration() time.Duration
-
 	GetParent() Manager
+
+	Read(b []byte) (n int, err error)
 }
 
 const readChunkSize = 1024 * 32 // 32 KBytes
@@ -305,7 +306,7 @@ func (dc *DataChunk) DownloadHandler(r io.Reader) error {
 	}
 }
 
-func (dc *DataChunk) UploadHandler(size int64) *DataChunk {
+func (dc *DataChunk) UploadHandler(size int64) Chunk {
 	if dc.dateType != TypeEmptyChunk {
 		dc.err = errors.New("multiple calls to the same chunk handler are not allowed")
 	}

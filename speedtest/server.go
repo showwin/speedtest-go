@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -194,6 +195,27 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 		return servers, errors.New("unable to retrieve server list")
 	}
 
+	var wg sync.WaitGroup
+	for _, server := range servers {
+		URL, err1 := url.ParseRequestURI(server.URL)
+		if err1 != nil {
+			server.Latency = -1
+			continue
+		}
+
+		pingURL := strings.Split(URL.Host, ":")[0]
+		wg.Add(1)
+		go func(gs *Server) {
+			if latency, err2 := gs.StdPing(ctx, pingURL, 2000, 32, 1, time.Millisecond*100, nil); err2 != nil || len(latency) != 1 {
+				gs.Latency = -1
+			} else {
+				gs.Latency = time.Duration(latency[0]) * time.Nanosecond
+			}
+			wg.Done()
+		}(server)
+	}
+
+	wg.Wait()
 	return servers, nil
 }
 
@@ -232,9 +254,20 @@ func (servers Servers) FindServer(serverID []int) (Servers, error) {
 	}
 
 	if len(retServer) == 0 {
-		retServer = append(retServer, servers[0])
+		// choose the lowest latency server
+		var min int64 = math.MaxInt64
+		var minServerIndex int
+		for index, server := range servers {
+			if server.Latency <= 0 {
+				continue
+			}
+			if min > server.Latency.Milliseconds() {
+				min = server.Latency.Milliseconds()
+				minServerIndex = index
+			}
+		}
+		retServer = append(retServer, servers[minServerIndex])
 	}
-
 	return retServer, nil
 }
 
