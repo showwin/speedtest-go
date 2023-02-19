@@ -110,10 +110,10 @@ func (s *Server) PingTestContext(ctx context.Context) error {
 	}
 
 	mean, _, std, min, max := standardDeviation(vectorPingResult)
-	s.Latency = time.Duration(mean) * time.Microsecond
-	s.Jitter = time.Duration(std) * time.Microsecond
-	s.MinLatency = time.Duration(min) * time.Microsecond
-	s.MaxLatency = time.Duration(max) * time.Microsecond
+	s.Latency = time.Duration(mean) * time.Nanosecond
+	s.Jitter = time.Duration(std) * time.Nanosecond
+	s.MinLatency = time.Duration(min) * time.Nanosecond
+	s.MaxLatency = time.Duration(max) * time.Nanosecond
 	return nil
 }
 
@@ -172,8 +172,8 @@ func (s *Server) StdPing(
 			failTimes++
 			continue
 		}
-		endTime := time.Now().Sub(sTime)
-		latencies = append(latencies, endTime.Microseconds())
+		endTime := time.Since(sTime)
+		latencies = append(latencies, endTime.Nanoseconds())
 		if callback != nil {
 			callback(endTime)
 		}
