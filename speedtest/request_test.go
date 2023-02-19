@@ -75,3 +75,18 @@ func mockRequest(ctx context.Context, s *Server, w int) error {
 	}
 	return nil
 }
+
+func TestPautaFilter(t *testing.T) {
+	//vector := []float64{6, 6, 6, 6, 6, 6, 6, 6, 6, 6}
+	vector0 := []int64{26, 23, 32}
+	vector1 := []int64{3, 4, 5, 6, 6, 6, 1, 7, 9, 5, 200}
+	_, _, std, _, _ := standardDeviation(vector0)
+	if std != 3 {
+		t.Fail()
+	}
+
+	result := pautaFilter(vector1)
+	if len(result) != 10 {
+		t.Fail()
+	}
+}

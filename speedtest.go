@@ -20,7 +20,7 @@ var (
 	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
 	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
 	proxy        = kingpin.Flag("proxy", "Set a proxy(http(s) or socks) for the speedtest.").String()
-	source       = kingpin.Flag("source", "Set the source interface(tcp[4/6]://ip) for the speedtest.").String()
+	source       = kingpin.Flag("source", "bind a source interface for the speedtest.").String()
 )
 
 type fullOutput struct {
@@ -199,13 +199,17 @@ func showServerList(servers speedtest.Servers) {
 }
 
 func showServer(s *speedtest.Server) {
-	fmt.Printf(" \n")
-	fmt.Printf("Target Server: [%4s] %8.2fkm ", s.ID, s.Distance)
-	fmt.Printf(s.Name + " (" + s.Country + ") by " + s.Sponsor + "\n")
+	fmt.Println()
+	fmt.Printf("Target Server: [%4s] %8.2fkm %s", s.ID, s.Distance, s.Name)
+	if s.ID == "Custom" {
+		fmt.Println()
+		return
+	}
+	fmt.Printf(" (" + s.Country + ") by " + s.Sponsor + "\n")
 }
 
 func showLatencyResult(server *speedtest.Server) {
-	fmt.Println("Latency:", server.Latency)
+	fmt.Printf("Latency: %v\nJitter: %v\nMin: %v\nMax: %v\n", server.Latency, server.Jitter, server.MinLatency, server.MaxLatency)
 }
 
 // ShowResult : show testing result

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -209,7 +210,6 @@ func (dm *DataManager) GetTotalUpload() int64 {
 	return dm.totalUpload
 }
 
-
 func (dm *DataManager) SetRateCaptureFrequency(duration time.Duration) *DataManager {
 	dm.rateCaptureFrequency = duration
 	return dm
@@ -235,13 +235,13 @@ func (dm *DataManager) Reset() {
 
 func (dm *DataManager) GetAvgDownloadRate() float64 {
 	unit := float64(time.Second / dm.rateCaptureFrequency)
-	d := calcMAFilter(dm.DownloadRateSequence)
+	d := calcMAFilter(pautaFilter(dm.DownloadRateSequence))
 	return d * 8 / 1000000 * unit
 }
 
 func (dm *DataManager) GetAvgUploadRate() float64 {
 	unit := float64(time.Second / dm.rateCaptureFrequency)
-	d := calcMAFilter(dm.UploadRateSequence)
+	d := calcMAFilter(pautaFilter(dm.UploadRateSequence))
 	return d * 8 / 1000000 * unit
 }
 
@@ -265,7 +265,6 @@ var blackHolePool = sync.Pool{
 func (dc *DataChunk) GetDuration() time.Duration {
 	return dc.endTime.Sub(dc.startTime)
 }
-
 
 func (dc *DataChunk) GetRate() float64 {
 	if dc.dateType == TypeDownload {
@@ -367,6 +366,40 @@ func calcMAFilter(list []int64) float64 {
 		sum += list[i]
 	}
 	return float64(sum) / float64(n-2)
+}
+
+func pautaFilter(vector []int64) []int64 {
+	mean, _, std, _, _ := sampleVariance(vector)
+	var retVec []int64
+	for _, value := range vector {
+		if math.Abs(float64(value-mean)) < float64(3*std) {
+			retVec = append(retVec, value)
+		}
+	}
+	return retVec
+}
+
+// standardDeviation sample Variance
+func sampleVariance(vector []int64) (mean, variance, stdDev, min, max int64) {
+	var sumNum, accumulate int64
+	min = math.MaxInt64
+	max = math.MinInt64
+	for _, value := range vector {
+		sumNum += value
+		if min > value {
+			min = value
+		}
+		if max < value {
+			max = value
+		}
+	}
+	mean = sumNum / int64(len(vector))
+	for _, value := range vector {
+		accumulate += (value - mean) * (value - mean)
+	}
+	variance = accumulate / int64(len(vector)-1) // Bessel's correction
+	stdDev = int64(math.Sqrt(float64(variance)))
+	return
 }
 
 var GlobalDataManager = NewDataManager()

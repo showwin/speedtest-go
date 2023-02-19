@@ -29,19 +29,22 @@ const (
 
 // Server information
 type Server struct {
-	URL      string        `xml:"url,attr" json:"url"`
-	Lat      string        `xml:"lat,attr" json:"lat"`
-	Lon      string        `xml:"lon,attr" json:"lon"`
-	Name     string        `xml:"name,attr" json:"name"`
-	Country  string        `xml:"country,attr" json:"country"`
-	Sponsor  string        `xml:"sponsor,attr" json:"sponsor"`
-	ID       string        `xml:"id,attr" json:"id"`
-	URL2     string        `xml:"url2,attr" json:"url_2"`
-	Host     string        `xml:"host,attr" json:"host"`
-	Distance float64       `json:"distance"`
-	Latency  time.Duration `json:"latency"`
-	DLSpeed  float64       `json:"dl_speed"`
-	ULSpeed  float64       `json:"ul_speed"`
+	URL        string        `xml:"url,attr" json:"url"`
+	Lat        string        `xml:"lat,attr" json:"lat"`
+	Lon        string        `xml:"lon,attr" json:"lon"`
+	Name       string        `xml:"name,attr" json:"name"`
+	Country    string        `xml:"country,attr" json:"country"`
+	Sponsor    string        `xml:"sponsor,attr" json:"sponsor"`
+	ID         string        `xml:"id,attr" json:"id"`
+	URL2       string        `xml:"url2,attr" json:"url_2"`
+	Host       string        `xml:"host,attr" json:"host"`
+	Distance   float64       `json:"distance"`
+	Latency    time.Duration `json:"latency"`
+	MaxLatency time.Duration `json:"max_latency"`
+	MinLatency time.Duration `json:"min_latency"`
+	Jitter     time.Duration `json:"jitter"`
+	DLSpeed    float64       `json:"dl_speed"`
+	ULSpeed    float64       `json:"ul_speed"`
 
 	Context *Speedtest
 }
@@ -63,7 +66,7 @@ func (s *Speedtest) CustomServer(host string) (*Server, error) {
 		return nil, err
 	}
 	return &Server{
-		ID:      "?",
+		ID:      "Custom",
 		Lat:     "?",
 		Lon:     "?",
 		Country: "?",

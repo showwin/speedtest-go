@@ -11,15 +11,16 @@ import (
 )
 
 var (
-	version          = "1.4.0"
+	version          = "1.4.1"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
 )
 
 // Speedtest is a speedtest client.
 type Speedtest struct {
-	doer   *http.Client
-	config *UserConfig
-
+	doer      *http.Client
+	config    *UserConfig
+	tcpDialer *net.Dialer
+	ipDialer  *net.Dialer
 	Manager
 }
 
@@ -39,16 +40,23 @@ func parseAddr(addr string) (string, string) {
 }
 
 func (s *Speedtest) NewUserConfig(uc *UserConfig) {
-	var source *net.TCPAddr // If nil, a local address is automatically chosen.
+	var source net.Addr // If nil, a local address is automatically chosen.
 	var proxy = http.ProxyFromEnvironment
-
+	var ipDialer net.Addr
 	s.config = uc
 
 	if len(uc.Source) > 0 {
-		network, address := parseAddr(uc.Source)
-		addr, err := net.ResolveTCPAddr(network, fmt.Sprintf("%s:0", address)) // dynamic tcp port
+		_, address := parseAddr(uc.Source)
+		addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:0", address)) // dynamic tcp port
 		if err == nil {
 			source = addr
+		} else {
+			log.Printf("Skip: can not parse the source address. err: %s\n", err.Error())
+		}
+
+		addr1, err := net.ResolveIPAddr("ip", address) // dynamic tcp port
+		if err == nil {
+			ipDialer = addr1
 		} else {
 			log.Printf("Skip: can not parse the source address. err: %s\n", err.Error())
 		}
@@ -65,15 +73,21 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 		}
 	}
 
-	dialer := net.Dialer{
+	s.tcpDialer = &net.Dialer{
 		LocalAddr: source,
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	s.ipDialer = &net.Dialer{
+		LocalAddr: ipDialer,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
 
 	s.config.T = &http.Transport{
 		Proxy:                 proxy,
-		DialContext:           dialer.DialContext,
+		DialContext:           s.tcpDialer.DialContext,
 		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
@@ -103,9 +117,9 @@ func WithDoer(doer *http.Client) Option {
 // This configuration may be overwritten again by WithDoer,
 // because client and transport are parent-child relationship:
 // `New(WithDoer(myDoer), WithUserAgent(myUserAgent), WithDoer(myDoer))`
-func WithUserConfig(userAgent *UserConfig) Option {
+func WithUserConfig(userConfig *UserConfig) Option {
 	return func(s *Speedtest) {
-		s.NewUserConfig(userAgent)
+		s.NewUserConfig(userConfig)
 	}
 }
 
