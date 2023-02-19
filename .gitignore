@@ -27,3 +27,4 @@ dist/*
 speedtest-go
 
 .idea/
+.run/
