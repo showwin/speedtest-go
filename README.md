@@ -43,7 +43,7 @@ Flags:
       --proxy              Set a proxy(http(s) or socks) for the speedtest.
                            eg: --proxy=socks://10.20.0.101:7890
                            eg: --proxy=http://10.20.0.101:7890
-      --source             bind a  source interface(tcp[4/6]://ip) for the speedtest.
+      --source             Bind a  source interface(tcp[4/6]://ip) for the speedtest.
                            eg: --source=10.20.0.101
       --version            Show application version.
 ```
