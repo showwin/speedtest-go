@@ -13,19 +13,33 @@ builds:
       - linux
       - windows
       - darwin
+      - openbsd
     goarch:
-      - 386
       - amd64
       - arm
       - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64
+      - 386
+      - s390x
+      - ppc64
+      - ppc64le
+      - riscv64
+      - mips
+      - mips64
+      - mipsle
+      - mips64le
+    goarm:
+      - 5
+      - 6
+      - 7
+    gomips:
+      - hardfloat
+      - softfloat
 archives:
   - replacements:
       darwin: Darwin
       linux: Linux
       windows: Windows
+      openbsd: OpenBSD
       386: i386
       amd64: x86_64
 checksum:
