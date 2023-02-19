@@ -41,11 +41,10 @@ Flags:
       --city=CITY          Change the location with a predefined city label.
       --city-list          List all predefined city label.
       --proxy              Set a proxy(http(s) or socks) for the speedtest.
-                           eg: socks://10.20.0.101:7890 or http://10.20.0.101:7890
-      --source             Set the source interface(tcp[4/6]://ip) for the speedtest.
-                           eg: tcp://10.20.0.101
-                               tcp4://10.20.0.101
-                               tcp6://fe80.244d:a1c7:815f:7253%9
+                           eg: --proxy=socks://10.20.0.101:7890
+                           eg: --proxy=http://10.20.0.101:7890
+      --source             bind a  source interface(tcp[4/6]://ip) for the speedtest.
+                           eg: --source=10.20.0.101
       --version            Show application version.
 ```
 
@@ -87,12 +86,18 @@ $ speedtest --server 6691 --server 6087
 Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 
 Target Server: [6691]     9.03km Shizuoka (Japan) by sudosan
-Latency: 23.612861ms
+Latency: 21.424ms
+Jitter: 1.644ms
+Min: 19.142ms
+Max: 23.926ms
 Download Test: ................
 Upload Test: ........
 
 Target Server: [6087]   120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
 Latency: 38.694699ms
+Jitter: 2.724ms
+Min: 36.443ms
+Max: 39.953ms
 Download Test: ................
 Upload Test: ................
 
@@ -156,7 +161,7 @@ func main() {
 	// speedtest.WithUserConfig(&speedtest.UserConfig{Proxy: "socks://127.0.0.1:7890"})(speedtestClient)
 	
 	// Select a network card as the data interface.
-	// speedtest.WithUserConfig(&speedtest.UserConfig{Source: "tcp4://192.168.1.101"})(speedtestClient)
+	// speedtest.WithUserConfig(&speedtest.UserConfig{Source: "192.168.1.101"})(speedtestClient)
 	
 	user, _ := speedtestClient.FetchUserInfo()
 	// Get a list of servers near a specified location

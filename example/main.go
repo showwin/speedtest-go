@@ -13,7 +13,7 @@ func main() {
 	// user.SetLocation("Osaka", 34.6952, 135.5006)
 
 	// Select a network card as the data interface.
-	// speedtest.WithUserConfig(&speedtest.UserConfig{Source: "tcp4://192.168.1.101"})(speedtestClient)
+	// speedtest.WithUserConfig(&speedtest.UserConfig{Source: "192.168.1.101"})(speedtestClient)
 
 	serverList, _ := speedtest.FetchServers(user)
 	targets, _ := serverList.FindServer([]int{})

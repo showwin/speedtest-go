@@ -2,7 +2,10 @@ package speedtest
 
 import (
 	"context"
+	"errors"
+	"math"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -96,31 +99,126 @@ func (s *Server) PingTest() error {
 
 // PingTestContext executes test to measure latency, observing the given context.
 func (s *Server) PingTestContext(ctx context.Context) error {
-	pingURL := strings.Split(s.URL, "/upload.php")[0] + "/latency.txt"
-
-	l := time.Second * 10
-	for i := 0; i < 3; i++ {
-		sTime := time.Now()
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, pingURL, nil)
-		if err != nil {
-			return err
-		}
-
-		resp, err := s.Context.doer.Do(req)
-		if err != nil {
-			return err
-		}
-
-		fTime := time.Now()
-		if fTime.Sub(sTime) < l {
-			l = fTime.Sub(sTime)
-		}
-
-		resp.Body.Close()
+	URL, err := url.ParseRequestURI(s.URL)
+	if err != nil {
+		return err
+	}
+	pingURL := strings.Split(URL.Host, ":")[0]
+	vectorPingResult, err := s.StdPing(ctx, pingURL, 32, 10, time.Millisecond*200, nil)
+	if err != nil || len(vectorPingResult) == 0 {
+		return err
 	}
 
-	s.Latency = time.Duration(l.Nanoseconds() / 2)
-
+	mean, _, std, min, max := standardDeviation(vectorPingResult)
+	s.Latency = time.Duration(mean) * time.Microsecond
+	s.Jitter = time.Duration(std) * time.Microsecond
+	s.MinLatency = time.Duration(min) * time.Microsecond
+	s.MaxLatency = time.Duration(max) * time.Microsecond
 	return nil
+}
+
+func (s *Server) StdPing(
+	ctx context.Context,
+	dst string,
+	echoOptionDataSize int,
+	echoTimes int,
+	echoFreq time.Duration,
+	callback func(latency time.Duration),
+) (latencies []int64, err error) {
+	dialContext, err := s.Context.ipDialer.DialContext(ctx, "ip:icmp", dst)
+	if err != nil {
+		return nil, err
+	}
+	defer dialContext.Close()
+
+	ICMPData := make([]byte, 8+echoOptionDataSize) // header + data
+	ICMPData[0] = 8                                // echo
+	ICMPData[1] = 0                                // code
+	ICMPData[2] = 0                                // checksum
+	ICMPData[3] = 0                                // checksum
+	ICMPData[4] = 0                                // id
+	ICMPData[5] = 1                                // id
+	ICMPData[6] = 0                                // seq
+	ICMPData[7] = 1                                // seq
+
+	var echoMessage = "Hi! SpeedTest-Go \\(●'◡'●)/"
+
+	for i := 0; i < len(echoMessage); i++ {
+		ICMPData[7+i] = echoMessage[i]
+	}
+
+	failTimes := 0
+	for i := 0; i < echoTimes; i++ {
+		ICMPData[2] = byte(0)
+		ICMPData[3] = byte(0)
+
+		ICMPData[6] = byte(1 >> 8)
+		ICMPData[7] = byte(1)
+		ICMPData[8+echoOptionDataSize-1] = 6
+		cs := checkSum(ICMPData)
+		ICMPData[2] = byte(cs >> 8)
+		ICMPData[3] = byte(cs)
+
+		sTime := time.Now()
+		_ = dialContext.SetDeadline(sTime.Add(time.Duration(6666) * time.Millisecond))
+		_, err = dialContext.Write(ICMPData)
+		if err != nil {
+			failTimes += echoTimes - i
+			break
+		}
+		buf := make([]byte, 20+32+8)
+		_, err = dialContext.Read(buf)
+		if err != nil {
+			failTimes++
+			continue
+		}
+		endTime := time.Now().Sub(sTime)
+		latencies = append(latencies, endTime.Microseconds())
+		if callback != nil {
+			callback(endTime)
+		}
+		time.Sleep(echoFreq)
+	}
+	if failTimes == echoTimes {
+		return nil, errors.New("server connect timeout")
+	}
+	return
+}
+
+func checkSum(data []byte) uint16 {
+	var sum uint32
+	var length = len(data)
+	var index int
+	for length > 1 {
+		sum += uint32(data[index])<<8 + uint32(data[index+1])
+		index += 2
+		length -= 2
+	}
+	if length > 0 {
+		sum += uint32(data[index])
+	}
+	sum += sum >> 16
+	return uint16(^sum)
+}
+
+func standardDeviation(vector []int64) (mean, variance, stdDev, min, max int64) {
+	var sumNum, accumulate int64
+	min = math.MaxInt64
+	max = math.MinInt64
+	for _, value := range vector {
+		sumNum += value
+		if min > value {
+			min = value
+		}
+		if max < value {
+			max = value
+		}
+	}
+	mean = sumNum / int64(len(vector))
+	for _, value := range vector {
+		accumulate += (value - mean) * (value - mean)
+	}
+	variance = accumulate / int64(len(vector))
+	stdDev = int64(math.Sqrt(float64(variance)))
+	return
 }
