@@ -43,7 +43,7 @@ Flags:
       --proxy              Set a proxy(http(s) or socks) for the speedtest.
                            eg: --proxy=socks://10.20.0.101:7890
                            eg: --proxy=http://10.20.0.101:7890
-      --source             Bind a  source interface for the speedtest.
+      --source             Bind a source interface for the speedtest.
                            eg: --source=10.20.0.101
       --version            Show application version.
 ```
@@ -57,7 +57,10 @@ $ speedtest
 Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 
 Target Server: [6691]     9.03km Shizuoka (Japan) by sudosan
-latency: 39.436061ms
+Latency: 24.15396ms
+Jitter: 777.465µs
+Min: 22.8926ms
+Max: 25.5387ms
 Download Test: ................
 Upload Test: ................
 
