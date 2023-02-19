@@ -78,7 +78,7 @@ func uploadRequest(ctx context.Context, s *Server, w int) error {
 	size := ulSizes[w]
 	dc := s.Context.NewChunk().UploadHandler(int64(size*100-51) * 10)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.URL, dc)
-	req.ContentLength = dc.ContentLength
+	req.ContentLength = dc.(*DataChunk).ContentLength
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (s *Server) PingTestContext(ctx context.Context) error {
 		return err
 	}
 	pingURL := strings.Split(URL.Host, ":")[0]
-	vectorPingResult, err := s.StdPing(ctx, pingURL, 32, 10, time.Millisecond*200, nil)
+	vectorPingResult, err := s.StdPing(ctx, pingURL, 6666, 32, 10, time.Millisecond*200, nil)
 	if err != nil || len(vectorPingResult) == 0 {
 		return err
 	}
@@ -120,6 +120,7 @@ func (s *Server) PingTestContext(ctx context.Context) error {
 func (s *Server) StdPing(
 	ctx context.Context,
 	dst string,
+	readTimeout int,
 	echoOptionDataSize int,
 	echoTimes int,
 	echoFreq time.Duration,
@@ -160,7 +161,7 @@ func (s *Server) StdPing(
 		ICMPData[3] = byte(cs)
 
 		sTime := time.Now()
-		_ = dialContext.SetDeadline(sTime.Add(time.Duration(6666) * time.Millisecond))
+		_ = dialContext.SetDeadline(sTime.Add(time.Duration(readTimeout) * time.Millisecond))
 		_, err = dialContext.Write(ICMPData)
 		if err != nil {
 			failTimes += echoTimes - i
