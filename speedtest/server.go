@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	speedTestServersUrl            = "https://www.speedtest.net/api/js/servers?limit=10"
+	speedTestServersUrl            = "https://www.speedtest.net/api/js/servers?"
 	speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
 )
 
