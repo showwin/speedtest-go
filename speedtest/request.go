@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -33,7 +32,7 @@ func (s *Server) DownloadTestContext(ctx context.Context) error {
 
 func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downloadFunc) error {
 	s.Context.DownloadRateCaptureHandler(func() {
-		_ = downloadRequest(ctx, s, 5)
+		_ = downloadRequest(ctx, s, 3)
 	})
 	s.DLSpeed = s.Context.GetAvgDownloadRate()
 	return nil
@@ -51,7 +50,7 @@ func (s *Server) UploadTestContext(ctx context.Context, savingMode bool) error {
 
 func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc) error {
 	s.Context.UploadRateCaptureHandler(func() {
-		_ = uploadRequest(ctx, s, 5)
+		_ = uploadRequest(ctx, s, 4)
 	})
 	s.ULSpeed = s.Context.GetAvgUploadRate()
 	return nil
@@ -99,12 +98,10 @@ func (s *Server) PingTest() error {
 
 // PingTestContext executes test to measure latency, observing the given context.
 func (s *Server) PingTestContext(ctx context.Context) error {
-	URL, err := url.ParseRequestURI(s.URL)
-	if err != nil {
-		return err
-	}
-	pingURL := strings.Split(URL.Host, ":")[0]
-	vectorPingResult, err := s.StdPing(ctx, pingURL, 6666, 32, 10, time.Millisecond*200, nil)
+
+	pingURL := strings.Split(s.URL, "/upload.php")[0] + "/latency.txt"
+
+	vectorPingResult, err := s.HTTPPing(ctx, pingURL, 10, time.Millisecond*200, nil)
 	if err != nil || len(vectorPingResult) == 0 {
 		return err
 	}
@@ -117,7 +114,45 @@ func (s *Server) PingTestContext(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) StdPing(
+func (s *Server) HTTPPing(
+	ctx context.Context,
+	dst string,
+	echoTimes int,
+	echoFreq time.Duration,
+	callback func(latency time.Duration),
+) ([]int64, error) {
+
+	failTimes := 0
+	var latencies []int64
+
+	for i := 0; i < echoTimes; i++ {
+		sTime := time.Now()
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, dst, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := s.Context.doer.Do(req)
+
+		endTime := time.Since(sTime)
+		if err != nil {
+			failTimes++
+			continue
+		}
+		resp.Body.Close()
+		latencies = append(latencies, endTime.Nanoseconds()/2)
+		if callback != nil {
+			callback(endTime)
+		}
+		time.Sleep(echoFreq)
+	}
+	if failTimes == echoTimes {
+		return nil, errors.New("server connect timeout")
+	}
+	return latencies, nil
+}
+
+func (s *Server) ICMPPing(
 	ctx context.Context,
 	dst string,
 	readTimeout int,

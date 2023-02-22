@@ -196,17 +196,12 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 	}
 
 	var wg sync.WaitGroup
+	pCtx, fc := context.WithTimeout(context.Background(), time.Second*5)
 	for _, server := range servers {
-		URL, err1 := url.ParseRequestURI(server.URL)
-		if err1 != nil {
-			server.Latency = -1
-			continue
-		}
-
-		pingURL := strings.Split(URL.Host, ":")[0]
 		wg.Add(1)
 		go func(gs *Server) {
-			if latency, err2 := gs.StdPing(ctx, pingURL, 2000, 32, 1, time.Millisecond*100, nil); err2 != nil || len(latency) != 1 {
+			pingURL := strings.Split(gs.URL, "/upload.php")[0] + "/latency.txt"
+			if latency, err2 := gs.HTTPPing(pCtx, pingURL, 1, time.Millisecond, nil); err2 != nil || len(latency) != 1 {
 				gs.Latency = -1
 			} else {
 				gs.Latency = time.Duration(latency[0]) * time.Nanosecond
@@ -216,6 +211,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 	}
 
 	wg.Wait()
+	fc()
 	return servers, nil
 }
 
