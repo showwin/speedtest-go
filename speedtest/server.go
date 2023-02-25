@@ -92,6 +92,23 @@ type ByDistance struct {
 	Servers
 }
 
+func (servers Servers) Available() *Servers {
+	retServer := Servers{}
+	for _, server := range servers {
+		if server.Latency != -1 {
+			retServer = append(retServer, server)
+		}
+	}
+	for i := 0; i < len(retServer)-1; i++ {
+		for j := 0; j < len(retServer)-i-1; j++ {
+			if retServer[j].Latency > retServer[j+1].Latency {
+				retServer[j], retServer[j+1] = retServer[j+1], retServer[j]
+			}
+		}
+	}
+	return &retServer
+}
+
 // Len finds length of servers. For sorting servers.
 func (servers Servers) Len() int {
 	return len(servers)

@@ -28,12 +28,14 @@ type Manager interface {
 	CallbackDownloadRate(callback func(downRate float64)) *time.Ticker
 	CallbackUploadRate(callback func(upRate float64)) *time.Ticker
 
-	DownloadRateCaptureHandler(fn func())
-	UploadRateCaptureHandler(fn func())
+	RegisterDownloadHandler(fn func()) *FuncGroup
+	RegisterUploadHandler(fn func()) *FuncGroup
 
 	// Wait for the upload or download task to end to avoid errors caused by core occupation
 	Wait()
 	Reset()
+
+	SetNThread(n int) Manager
 }
 
 type Chunk interface {
@@ -55,6 +57,15 @@ const TypeEmptyChunk = 0
 const TypeDownload = 1
 const TypeUpload = 2
 
+type FuncGroup struct {
+	fns     []func()
+	manager *DataManager
+}
+
+func (f *FuncGroup) Add(fn func()) {
+	f.fns = append(f.fns, fn)
+}
+
 type DataManager struct {
 	totalDownload int64
 	totalUpload   int64
@@ -70,6 +81,11 @@ type DataManager struct {
 	captureTime          time.Duration
 	rateCaptureFrequency time.Duration
 	nThread              int
+
+	running bool
+
+	dFn *FuncGroup
+	uFn *FuncGroup
 }
 
 func NewDataManager() *DataManager {
@@ -78,6 +94,8 @@ func NewDataManager() *DataManager {
 		captureTime:          time.Second * 10,
 		rateCaptureFrequency: time.Second,
 	}
+	ret.dFn = &FuncGroup{manager: ret}
+	ret.uFn = &FuncGroup{manager: ret}
 	return ret
 }
 
@@ -130,56 +148,103 @@ func (dm *DataManager) Wait() {
 	}
 }
 
-func (dm *DataManager) DownloadRateCaptureHandler(fn func()) {
-	dm.testHandler(dm.downloadRateCapture, fn)
+func (dm *DataManager) RegisterUploadHandler(fn func()) *FuncGroup {
+	if len(dm.uFn.fns) < dm.nThread {
+		dm.uFn.Add(fn)
+	}
+	return dm.uFn
 }
 
-func (dm *DataManager) UploadRateCaptureHandler(fn func()) {
-	dm.testHandler(dm.uploadRateCapture, fn)
+func (dm *DataManager) RegisterDownloadHandler(fn func()) *FuncGroup {
+	if len(dm.dFn.fns) < dm.nThread {
+		dm.dFn.Add(fn)
+	}
+	return dm.dFn
 }
 
-func (dm *DataManager) testHandler(captureFunc func() *time.Ticker, fn func()) {
-	ticker := captureFunc()
-	running := true
-	wg := sync.WaitGroup{}
-	time.AfterFunc(dm.captureTime, func() {
-		ticker.Stop()
-		running = false
-	})
+func (f *FuncGroup) Start(mainRequestHandlerIndex int) {
+	if len(f.fns) == 0 {
+		panic("empty task stack")
+	}
+	if mainRequestHandlerIndex > len(f.fns)-1 {
+		mainRequestHandlerIndex = 0
+	}
+	mainLoadFactor := 0.3
 	// When the number of processor cores is equivalent to the processing program,
 	// the processing efficiency reaches the highest level (VT is not considered).
-	for i := 0; i < dm.nThread; i++ {
+	mainN := int(mainLoadFactor * float64(len(f.fns)))
+	if mainN == 0 {
+		mainN = 1
+	}
+	if len(f.fns) == 1 {
+		mainN = f.manager.nThread
+	}
+	auxN := f.manager.nThread - mainN
+
+	wg := sync.WaitGroup{}
+	f.manager.running = true
+	ticker := f.manager.rateCapture()
+	time.AfterFunc(f.manager.captureTime, func() {
+		ticker.Stop()
+		f.manager.running = false
+	})
+
+	for i := 0; i < mainN; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for {
-				if !running {
+				if !f.manager.running {
 					return
 				}
-				fn()
+				f.fns[mainRequestHandlerIndex]()
 			}
 		}()
 	}
+	for j := 0; j < auxN; {
+		for i := range f.fns {
+			if j == auxN {
+				break
+			}
+			if i == mainRequestHandlerIndex {
+				continue
+			}
+			wg.Add(1)
+			t := i
+			go func() {
+				defer wg.Done()
+				for {
+					if !f.manager.running {
+						return
+					}
+					f.fns[t]()
+				}
+			}()
+			j++
+		}
+	}
+
 	wg.Wait()
 }
 
-func (dm *DataManager) downloadRateCapture() *time.Ticker {
-	return dm.rateCapture(dm.GetTotalDownload, &dm.DownloadRateSequence)
-}
-
-func (dm *DataManager) uploadRateCapture() *time.Ticker {
-	return dm.rateCapture(dm.GetTotalUpload, &dm.UploadRateSequence)
-}
-
-func (dm *DataManager) rateCapture(rateFunc func() int64, dst *[]int64) *time.Ticker {
+func (dm *DataManager) rateCapture() *time.Ticker {
 	ticker := time.NewTicker(dm.rateCaptureFrequency)
-	oldTotal := rateFunc()
+	oldTotalDownload := dm.totalDownload
+	oldTotalUpload := dm.totalUpload
 	go func() {
 		for range ticker.C {
-			newTotal := rateFunc()
-			delta := newTotal - oldTotal
-			oldTotal = newTotal
-			*dst = append(*dst, delta)
+			newTotalDownload := dm.totalDownload
+			newTotalUpload := dm.totalUpload
+			deltaDownload := newTotalDownload - oldTotalDownload
+			deltaUpload := newTotalUpload - oldTotalUpload
+			oldTotalDownload = newTotalDownload
+			oldTotalUpload = newTotalUpload
+			if deltaDownload != 0 {
+				dm.DownloadRateSequence = append(dm.DownloadRateSequence, deltaDownload)
+			}
+			if deltaUpload != 0 {
+				dm.UploadRateSequence = append(dm.UploadRateSequence, deltaUpload)
+			}
 		}
 	}()
 	return ticker
@@ -221,8 +286,12 @@ func (dm *DataManager) SetCaptureTime(duration time.Duration) *DataManager {
 	return dm
 }
 
-func (dm *DataManager) SetNThread(n int) *DataManager {
-	dm.nThread = n
+func (dm *DataManager) SetNThread(n int) Manager {
+	if n < 1 {
+		dm.nThread = runtime.NumCPU()
+	} else {
+		dm.nThread = n
+	}
 	return dm
 }
 
@@ -232,6 +301,8 @@ func (dm *DataManager) Reset() {
 	dm.DataGroup = []*DataChunk{}
 	dm.DownloadRateSequence = []int64{}
 	dm.UploadRateSequence = []int64{}
+	dm.dFn.fns = []func(){}
+	dm.uFn.fns = []func(){}
 }
 
 func (dm *DataManager) GetAvgDownloadRate() float64 {
@@ -350,6 +421,9 @@ func (dc *DataChunk) Read(b []byte) (n int, err error) {
 
 // calcMAFilter Median-Averaging Filter
 func calcMAFilter(list []int64) float64 {
+	if len(list) == 0 {
+		return 0
+	}
 	var sum int64 = 0
 	n := len(list)
 	if n == 0 {
@@ -370,6 +444,9 @@ func calcMAFilter(list []int64) float64 {
 }
 
 func pautaFilter(vector []int64) []int64 {
+	if len(vector) == 0 {
+		return vector
+	}
 	mean, _, std, _, _ := sampleVariance(vector)
 	var retVec []int64
 	for _, value := range vector {
@@ -382,6 +459,9 @@ func pautaFilter(vector []int64) []int64 {
 
 // standardDeviation sample Variance
 func sampleVariance(vector []int64) (mean, variance, stdDev, min, max int64) {
+	if len(vector) == 0 {
+		return 0, 0, 0, 0, 0
+	}
 	var sumNum, accumulate int64
 	min = math.MaxInt64
 	max = math.MinInt64

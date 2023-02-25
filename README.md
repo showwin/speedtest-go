@@ -45,6 +45,8 @@ Flags:
                            eg: --proxy=http://10.20.0.101:7890
       --source             Bind a source interface for the speedtest.
                            eg: --source=10.20.0.101
+  -m  --multi              Enable multi mode.
+  -t  --thread             Set the number of speedtest threads.
       --version            Show application version.
 ```
 
