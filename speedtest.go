@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,7 +14,7 @@ import (
 var (
 	showList     = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
 	serverIds    = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
-	customURL    = kingpin.Flag("custom-url", "Specify the url of the server instead of getting a list from Speedtest.net").String()
+	customURL    = kingpin.Flag("custom-url", "Specify the url of the server instead of getting a list from Speedtest.net.").String()
 	savingMode   = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput   = kingpin.Flag("json", "Output results in json format").Bool()
 	location     = kingpin.Flag("location", "Change the location with a precise coordinate. Format: lat,lon").String()
@@ -21,6 +22,8 @@ var (
 	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
 	proxy        = kingpin.Flag("proxy", "Set a proxy(http(s) or socks) for the speedtest.").String()
 	source       = kingpin.Flag("source", "Bind a source interface for the speedtest.").String()
+	multi        = kingpin.Flag("multi", "Enable multi mode.").Short('m').Bool()
+	thread       = kingpin.Flag("thread", "Set the number of speedtest threads.").Short('t').Int()
 )
 
 type fullOutput struct {
@@ -36,6 +39,7 @@ func main() {
 	kingpin.Parse()
 
 	var speedtestClient = speedtest.New()
+	speedtestClient.SetNThread(*thread)
 
 	if len(*proxy) > 0 || len(*source) > 0 {
 		config := &speedtest.UserConfig{
@@ -93,7 +97,11 @@ func main() {
 		targets = []*speedtest.Server{target}
 	}
 
-	startTest(targets, *savingMode, *jsonOutput)
+	if *multi {
+		startMultiTest(targets[0], servers, *savingMode, *jsonOutput)
+	} else {
+		startTest(targets, *savingMode, *jsonOutput, *multi)
+	}
 
 	if *jsonOutput {
 		jsonBytes, err := json.Marshal(
@@ -109,7 +117,37 @@ func main() {
 	}
 }
 
-func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
+func startMultiTest(s *speedtest.Server, servers speedtest.Servers, savingMode bool, jsonOutput bool) {
+	// Reset DataManager counters, avoid measurement of multiple server result mixing.
+	s.Context.Reset()
+	if !jsonOutput {
+		showServer(s)
+	}
+
+	err := s.PingTest()
+	checkError(err)
+
+	if jsonOutput {
+		err = s.MultiDownloadTestContext(context.Background(), servers, savingMode)
+		checkError(err)
+		s.Context.Wait()
+		err = s.MultiUploadTestContext(context.Background(), servers, savingMode)
+		checkError(err)
+		return
+	}
+
+	showLatencyResult(s)
+	err = testDownloadM(s, servers, savingMode)
+	checkError(err)
+	// It is necessary to wait for the release of the last test resource,
+	// otherwise the overload will cause excessive data deviation
+	s.Context.Wait()
+	err = testUploadM(s, servers, savingMode)
+	checkError(err)
+	showServerResult(s)
+}
+
+func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool, multi bool) {
 	for _, s := range servers {
 		// Reset DataManager counters, avoid measurement of multiple server result mixing.
 		s.Context.Reset()
@@ -121,12 +159,11 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 		checkError(err)
 
 		if jsonOutput {
-			err := s.DownloadTest(savingMode)
+			err = s.DownloadTest(savingMode)
 			checkError(err)
 			s.Context.Wait()
 			err = s.UploadTest(savingMode)
 			checkError(err)
-
 			continue
 		}
 
@@ -145,6 +182,34 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 	if !jsonOutput && len(servers) > 1 {
 		showAverageServerResult(servers)
 	}
+}
+
+func testDownloadM(server *speedtest.Server, servers speedtest.Servers, savingMode bool) error {
+	quit := make(chan bool)
+	fmt.Printf("Download Test: ")
+	go dots(quit)
+	err := server.MultiDownloadTestContext(context.Background(), servers, savingMode)
+	checkError(err)
+	quit <- true
+	if err != nil {
+		return err
+	}
+	fmt.Println()
+	return err
+}
+
+func testUploadM(server *speedtest.Server, servers speedtest.Servers, savingMode bool) error {
+	quit := make(chan bool)
+	fmt.Printf("Upload Test: ")
+	go dots(quit)
+	err := server.MultiUploadTestContext(context.Background(), servers, savingMode)
+	checkError(err)
+	quit <- true
+	if err != nil {
+		return err
+	}
+	fmt.Println()
+	return nil
 }
 
 func testDownload(server *speedtest.Server, savingMode bool) error {

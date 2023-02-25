@@ -20,6 +20,50 @@ var (
 	ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} // kB
 )
 
+func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers, savingMode bool) error {
+	ss := servers.Available()
+	if ss.Len() == 0 {
+		return errors.New("not found available servers")
+	}
+	mainIDIndex := 0
+	var fp *FuncGroup
+	for i, server := range *ss {
+		if server.ID == s.ID {
+			mainIDIndex = i
+		}
+		sp := server
+		fp = server.Context.RegisterDownloadHandler(func() {
+			_ = downloadRequest(ctx, sp, 3)
+		})
+	}
+	fp.Start(mainIDIndex) // block here
+	//var serverPointer *Server = (*ss)[0]
+	s.DLSpeed = fp.manager.GetAvgDownloadRate()
+	return nil
+}
+
+func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers, savingMode bool) error {
+	ss := servers.Available()
+	if ss.Len() == 0 {
+		return errors.New("not found available servers")
+	}
+	mainIDIndex := 0
+	var fp *FuncGroup
+	for i, server := range *ss {
+		if server.ID == s.ID {
+			mainIDIndex = i
+		}
+		sp := server
+		fp = server.Context.RegisterUploadHandler(func() {
+			_ = uploadRequest(ctx, sp, 3)
+		})
+	}
+	fp.Start(mainIDIndex) // block here
+	//var serverPointer *Server = (*ss)[0]
+	s.ULSpeed = fp.manager.GetAvgUploadRate()
+	return nil
+}
+
 // DownloadTest executes the test to measure download speed
 func (s *Server) DownloadTest(savingMode bool) error {
 	return s.downloadTestContext(context.Background(), downloadRequest)
@@ -31,9 +75,9 @@ func (s *Server) DownloadTestContext(ctx context.Context) error {
 }
 
 func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downloadFunc) error {
-	s.Context.DownloadRateCaptureHandler(func() {
+	s.Context.RegisterDownloadHandler(func() {
 		_ = downloadRequest(ctx, s, 3)
-	})
+	}).Start(0)
 	s.DLSpeed = s.Context.GetAvgDownloadRate()
 	return nil
 }
@@ -49,9 +93,9 @@ func (s *Server) UploadTestContext(ctx context.Context, savingMode bool) error {
 }
 
 func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc) error {
-	s.Context.UploadRateCaptureHandler(func() {
+	s.Context.RegisterUploadHandler(func() {
 		_ = uploadRequest(ctx, s, 4)
-	})
+	}).Start(0)
 	s.ULSpeed = s.Context.GetAvgUploadRate()
 	return nil
 }
@@ -59,7 +103,6 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 func downloadRequest(ctx context.Context, s *Server, w int) error {
 	size := dlSizes[w]
 	xdlURL := strings.Split(s.URL, "/upload.php")[0] + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, xdlURL, nil)
 	if err != nil {
 		return err
