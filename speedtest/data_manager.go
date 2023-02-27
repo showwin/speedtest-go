@@ -362,6 +362,9 @@ func (dc *DataChunk) DownloadHandler(r io.Reader) error {
 	bufP := blackHolePool.Get().(*[]byte)
 	readSize := 0
 	for {
+		if !dc.manager.running {
+			return nil
+		}
 		readSize, dc.err = r.Read(*bufP)
 		rs := int64(readSize)
 
@@ -404,6 +407,9 @@ func (dc *DataChunk) GetParent() Manager {
 }
 
 func (dc *DataChunk) Read(b []byte) (n int, err error) {
+	if !dc.manager.running {
+		return n, io.EOF
+	}
 	if dc.remainOrDiscardSize < readChunkSize {
 		if dc.remainOrDiscardSize <= 0 {
 			dc.endTime = time.Now()
