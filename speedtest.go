@@ -22,8 +22,8 @@ var (
 	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
 	proxy        = kingpin.Flag("proxy", "Set a proxy(http(s) or socks) for the speedtest.").String()
 	source       = kingpin.Flag("source", "Bind a source interface for the speedtest.").String()
-	multi        = kingpin.Flag("multi", "Enable multi mode.").Short('m').Bool()
-	thread       = kingpin.Flag("thread", "Set the number of speedtest threads.").Short('t').Int()
+	multi        = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
+	thread       = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
 )
 
 type fullOutput struct {
