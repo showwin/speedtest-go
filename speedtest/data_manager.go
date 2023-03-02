@@ -463,7 +463,7 @@ func pautaFilter(vector []int64) []int64 {
 	return retVec
 }
 
-// standardDeviation sample Variance
+// sampleVariance sample Variance
 func sampleVariance(vector []int64) (mean, variance, stdDev, min, max int64) {
 	if len(vector) == 0 {
 		return 0, 0, 0, 0, 0
