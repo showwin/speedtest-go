@@ -1,7 +1,7 @@
 # speedtest-go
 **Command Line Interface and pure Go API to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)**.
 
-You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/) with almost the same result. [See the experimental results.](https://github.com/showwin/speedtest-go#summary-of-experimental-results).
+You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/) with almost the same result. [See the experimental results](https://github.com/showwin/speedtest-go#summary-of-experimental-results).
 Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
 
 Go API Installation below.
@@ -31,31 +31,31 @@ $ speedtest --help
 usage: speedtest-go [<flags>]
 
 Flags:
-      --help               Show context-sensitive help (also try --help-long and --help-man).
-  -l, --list               Show available speedtest.net servers.
-  -s, --server=SERVER ...  Select server id to speedtest.
-      --custom-url=CUSTOM-URL Specify the url of the server instead of getting a list from Speedtest.net
-      --saving-mode        Using less memory (≒10MB), though low accuracy (especially > 30Mbps).
-      --json               Output results in json format
-      --location=LOCATION  Change the location with a precise coordinate.
-      --city=CITY          Change the location with a predefined city label.
-      --city-list          List all predefined city label.
-      --proxy              Set a proxy(http(s) or socks) for the speedtest.
-                           eg: --proxy=socks://10.20.0.101:7890
-                           eg: --proxy=http://10.20.0.101:7890
-      --source             Bind a source interface for the speedtest.
-                           eg: --source=10.20.0.101
-  -m  --multi              Enable multi mode.
-  -t  --thread             Set the number of speedtest threads.
-      --version            Show application version.
+      --help                   Show context-sensitive help (also try --help-long and --help-man).
+  -l, --list                   Show available speedtest.net servers.
+  -s, --server=SERVER ...      Select server id to speedtest.
+      --custom-url=CUSTOM-URL  Specify the url of the server instead of getting a list from Speedtest.net
+      --saving-mode            Using less memory (≒10MB), though low accuracy (especially > 30Mbps).
+      --json                   Output results in json format
+      --location=LOCATION      Change the location with a precise coordinate.
+      --city=CITY              Change the location with a predefined city label.
+      --city-list              List all predefined city labels.
+      --proxyproxy=PROXY       Set a proxy(http(s) or socks) for the speedtest.
+                               eg: --proxy=socks://10.20.0.101:7890
+                               eg: --proxy=http://10.20.0.101:7890
+      --source=SOURCE          Bind a source interface for the speedtest.
+                               eg: --source=10.20.0.101
+  -m  --multi                  Enable multi-server mode.
+  -t  --thread=THREAD          Set the number of concurrent connections.
+      --version                Show application version.
 ```
 
 #### Test Internet Speed
 
-Simply use `speedtest` command. The closest server is selected by default.
+Simply use `speedtest` command. The closest server is selected by default. Use the `-m` flag to enable multi measurement mode
 
 ```bash
-$ speedtest
+$ speedtest 
 Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 
 Target Server: [6691]     9.03km Shizuoka (Japan) by sudosan
@@ -77,10 +77,10 @@ If you want to select other server to test, you can see available server list.
 ```bash
 $ speedtest --list
 Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
-[6691]     9.03km Shizuoka (Japan) by sudosan
-[6087]   120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
-[6508]   125.44km Yokohama (Japan) by at2wn
-[6424]   148.23km Tokyo (Japan) by Cordeos Corp.
+[6691]     9.03km   32.3365ms  Shizuoka (Japan) by sudosan
+[6087]   120.55km   51.7453ms  Fussa-shi (Japan) by Allied Telesis Capital Corporation
+[6508]   125.44km   54.6683ms  Yokohama (Japan) by at2wn
+[6424]   148.23km   61.4724ms  Tokyo (Japan) by Cordeos Corp.
 ...
 ```
 
@@ -114,7 +114,7 @@ Upload Avg: 28.28 Mbit/s
 
 #### Test with virtual location
 
-With `--city` or `--location` option, the closest server of the location will be picked.
+With `--city` or `--location` option, the closest servers of the location will be picked.
 You can measure the speed between your location and the target location.
 
 ```bash
@@ -194,7 +194,7 @@ func main() {
 Speedtest-go is a great tool because of following 4 reasons:
 * Cross-platform available.
 * Low memory environment.
-* Testing time is the **SHORTEST** compare to [speedtest.net](http://www.speedtest.net/) and [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli), especially about 2x faster then [speedtest.net](http://www.speedtest.net/).
+* Testing time is the **SHORTEST** compare to [speedtest.net](http://www.speedtest.net/) and [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli), especially about 2x faster than [speedtest.net](http://www.speedtest.net/).
 * Result is **MORE CLOSE** to [speedtest.net](http://www.speedtest.net/) than [speedtest-cli](https://github.com/sivel/speedtest-cli).
 
 Following data is summarized. If you got interested in, please see [more details](https://github.com/showwin/speedtest-go/blob/master/docs/experimental_result.md).
