@@ -92,7 +92,7 @@ func NewDataManager() *DataManager {
 	ret := &DataManager{
 		nThread:              runtime.NumCPU(),
 		captureTime:          time.Second * 10,
-		rateCaptureFrequency: time.Second,
+		rateCaptureFrequency: time.Millisecond * 500,
 	}
 	ret.dFn = &FuncGroup{manager: ret}
 	ret.uFn = &FuncGroup{manager: ret}
@@ -169,7 +169,7 @@ func (f *FuncGroup) Start(mainRequestHandlerIndex int) {
 	if mainRequestHandlerIndex > len(f.fns)-1 {
 		mainRequestHandlerIndex = 0
 	}
-	mainLoadFactor := 0.3
+	mainLoadFactor := 0.1
 	// When the number of processor cores is equivalent to the processing program,
 	// the processing efficiency reaches the highest level (VT is not considered).
 	mainN := int(mainLoadFactor * float64(len(f.fns)))
