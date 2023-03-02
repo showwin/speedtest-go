@@ -6,6 +6,18 @@ import (
 	"testing"
 )
 
+func BenchmarkLogSpeed(b *testing.B) {
+	s := New()
+	config := &UserConfig{
+		UserAgent: DefaultUserAgent,
+		Debug:     false,
+	}
+	WithUserConfig(config)(s)
+	for i := 0; i < b.N; i++ {
+		dbg.Printf("hello %s\n", "s20080123") // ~1ns/op
+	}
+}
+
 func TestNew(t *testing.T) {
 	t.Run("DefaultDoer", func(t *testing.T) {
 		c := New()

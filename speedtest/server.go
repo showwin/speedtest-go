@@ -9,8 +9,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"os"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -139,6 +137,7 @@ func FetchServers(user *User) (Servers, error) {
 // FetchServerListContext retrieves a list of available servers, observing the given context.
 func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Servers, error) {
 	fetchUrl := fmt.Sprintf("%s&lat=%s&lon=%s", speedTestServersUrl, user.VLat, user.VLon)
+	dbg.Printf("Fetch servers: %s\n", fetchUrl)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fetchUrl, nil)
 	if err != nil {
 		return Servers{}, err
@@ -193,6 +192,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 		return servers, fmt.Errorf("response payload decoding not implemented")
 	}
 
+	dbg.Printf("Servers Num: %d\n", len(servers))
 	// set doer of server
 	for _, server := range servers {
 		server.Context = s
@@ -216,12 +216,12 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 
 	var wg sync.WaitGroup
 	pCtx, fc := context.WithTimeout(context.Background(), time.Second*5)
-	icmp := os.Geteuid() == 0 || runtime.GOOS == "windows"
+	dbg.Println("Echo each server...")
 	for _, server := range servers {
 		wg.Add(1)
 		go func(gs *Server) {
 			var latency []int64
-			if icmp {
+			if s.config.ICMP {
 				latency, err = gs.ICMPPing(pCtx, 4*time.Second, 1, time.Millisecond, nil)
 			} else {
 				latency, err = gs.HTTPPing(pCtx, 1, time.Millisecond, nil)

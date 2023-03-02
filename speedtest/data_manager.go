@@ -92,7 +92,7 @@ func NewDataManager() *DataManager {
 	ret := &DataManager{
 		nThread:              runtime.NumCPU(),
 		captureTime:          time.Second * 10,
-		rateCaptureFrequency: time.Millisecond * 500,
+		rateCaptureFrequency: time.Millisecond * 100,
 	}
 	ret.dFn = &FuncGroup{manager: ret}
 	ret.uFn = &FuncGroup{manager: ret}
@@ -180,13 +180,16 @@ func (f *FuncGroup) Start(mainRequestHandlerIndex int) {
 		mainN = f.manager.nThread
 	}
 	auxN := f.manager.nThread - mainN
-
+	dbg.Printf("Available fns: %d\n", len(f.fns))
+	dbg.Printf("mainN: %d\n", mainN)
+	dbg.Printf("auxN: %d\n", auxN)
 	wg := sync.WaitGroup{}
 	f.manager.running = true
 	ticker := f.manager.rateCapture()
 	time.AfterFunc(f.manager.captureTime, func() {
 		ticker.Stop()
 		f.manager.running = false
+		dbg.Println("FuncGroup: Stop")
 	})
 
 	for i := 0; i < mainN; i++ {
@@ -231,8 +234,10 @@ func (dm *DataManager) rateCapture() *time.Ticker {
 	ticker := time.NewTicker(dm.rateCaptureFrequency)
 	oldTotalDownload := dm.totalDownload
 	oldTotalUpload := dm.totalUpload
+	dbg.Printf("firstEnter: %s\n", time.Now().String())
 	go func() {
 		for range ticker.C {
+			dbg.Printf("tickerEnter: %s\n", time.Now().String())
 			newTotalDownload := dm.totalDownload
 			newTotalUpload := dm.totalUpload
 			deltaDownload := newTotalDownload - oldTotalDownload
@@ -251,7 +256,6 @@ func (dm *DataManager) rateCapture() *time.Ticker {
 }
 
 func (dm *DataManager) NewChunk() Chunk {
-
 	var dc DataChunk
 	dc.manager = dm
 	dm.Lock()
@@ -306,15 +310,13 @@ func (dm *DataManager) Reset() {
 }
 
 func (dm *DataManager) GetAvgDownloadRate() float64 {
-	unit := float64(time.Second / dm.rateCaptureFrequency)
-	d := calcMAFilter(pautaFilter(dm.DownloadRateSequence))
-	return d * 8 / 1000000 * unit
+	unit := float64(dm.captureTime / time.Millisecond)
+	return float64(dm.totalDownload*8/1000) / unit
 }
 
 func (dm *DataManager) GetAvgUploadRate() float64 {
-	unit := float64(time.Second / dm.rateCaptureFrequency)
-	d := calcMAFilter(pautaFilter(dm.UploadRateSequence))
-	return d * 8 / 1000000 * unit
+	unit := float64(dm.captureTime / time.Millisecond)
+	return float64(dm.totalUpload*8/1000) / unit
 }
 
 type DataChunk struct {
@@ -450,6 +452,9 @@ func calcMAFilter(list []int64) float64 {
 }
 
 func pautaFilter(vector []int64) []int64 {
+	dbg.Println("Per capture unit")
+	dbg.Printf("Raw Sequence len: %d\n", len(vector))
+	dbg.Printf("Raw Sequence: %v\n", vector)
 	if len(vector) == 0 {
 		return vector
 	}
@@ -460,6 +465,9 @@ func pautaFilter(vector []int64) []int64 {
 			retVec = append(retVec, value)
 		}
 	}
+	dbg.Printf("Raw average: %dByte\n", mean)
+	dbg.Printf("Pauta Sequence len: %d\n", len(retVec))
+	dbg.Printf("Pauta Sequence: %v\n", retVec)
 	return retVec
 }
 
