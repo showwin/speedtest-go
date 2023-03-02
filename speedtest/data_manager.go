@@ -12,8 +12,8 @@ import (
 )
 
 type Manager interface {
-	//SetRateCaptureFrequency(duration time.Duration) Manager
-	//SetCaptureTime(duration time.Duration) Manager
+	SetRateCaptureFrequency(duration time.Duration) Manager
+	SetCaptureTime(duration time.Duration) Manager
 
 	NewChunk() Chunk
 
@@ -276,12 +276,12 @@ func (dm *DataManager) GetTotalUpload() int64 {
 	return dm.totalUpload
 }
 
-func (dm *DataManager) SetRateCaptureFrequency(duration time.Duration) *DataManager {
+func (dm *DataManager) SetRateCaptureFrequency(duration time.Duration) Manager {
 	dm.rateCaptureFrequency = duration
 	return dm
 }
 
-func (dm *DataManager) SetCaptureTime(duration time.Duration) *DataManager {
+func (dm *DataManager) SetCaptureTime(duration time.Duration) Manager {
 	dm.captureTime = duration
 	return dm
 }

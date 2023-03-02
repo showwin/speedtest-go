@@ -3,8 +3,12 @@ package speedtest
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
+	"net/url"
+	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -37,7 +41,6 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers, 
 		})
 	}
 	fp.Start(mainIDIndex) // block here
-	//var serverPointer *Server = (*ss)[0]
 	s.DLSpeed = fp.manager.GetAvgDownloadRate()
 	return nil
 }
@@ -59,7 +62,6 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers, sa
 		})
 	}
 	fp.Start(mainIDIndex) // block here
-	//var serverPointer *Server = (*ss)[0]
 	s.ULSpeed = fp.manager.GetAvgUploadRate()
 	return nil
 }
@@ -140,11 +142,14 @@ func (s *Server) PingTest() error {
 }
 
 // PingTestContext executes test to measure latency, observing the given context.
-func (s *Server) PingTestContext(ctx context.Context) error {
+func (s *Server) PingTestContext(ctx context.Context) (err error) {
+	var vectorPingResult []int64
 
-	pingURL := strings.Split(s.URL, "/upload.php")[0] + "/latency.txt"
-
-	vectorPingResult, err := s.HTTPPing(ctx, pingURL, 10, time.Millisecond*200, nil)
+	if os.Geteuid() == 0 || runtime.GOOS == "windows" {
+		vectorPingResult, err = s.ICMPPing(ctx, time.Second*4, 10, time.Millisecond*200, nil)
+	} else {
+		vectorPingResult, err = s.HTTPPing(ctx, 10, time.Millisecond*200, nil)
+	}
 	if err != nil || len(vectorPingResult) == 0 {
 		return err
 	}
@@ -159,52 +164,57 @@ func (s *Server) PingTestContext(ctx context.Context) error {
 
 func (s *Server) HTTPPing(
 	ctx context.Context,
-	dst string,
 	echoTimes int,
 	echoFreq time.Duration,
 	callback func(latency time.Duration),
-) ([]int64, error) {
+) (latencies []int64, err error) {
+	u, err := url.Parse(s.URL)
+	if err != nil || len(u.Host) == 0 {
+		return nil, err
+	}
+	pingDst := fmt.Sprintf("%s/latency.txt", s.URL)
 
 	failTimes := 0
-	var latencies []int64
-
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pingDst, nil)
+	if err != nil {
+		return nil, err
+	}
 	for i := 0; i < echoTimes; i++ {
 		sTime := time.Now()
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, dst, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		resp, err := s.Context.doer.Do(req)
-
+		_, err = s.Context.doer.Do(req)
 		endTime := time.Since(sTime)
 		if err != nil {
 			failTimes++
 			continue
 		}
-		resp.Body.Close()
 		latencies = append(latencies, endTime.Nanoseconds()/2)
 		if callback != nil {
-			callback(endTime)
+			callback(endTime / 2)
 		}
 		time.Sleep(echoFreq)
 	}
 	if failTimes == echoTimes {
 		return nil, errors.New("server connect timeout")
 	}
-	return latencies, nil
+	return
 }
 
+const PingTimeout = -1
+const echoOptionDataSize = 32 // `echoMessage` need to change at same time
+
+// ICMPPing privileged method
 func (s *Server) ICMPPing(
 	ctx context.Context,
-	dst string,
-	readTimeout int,
-	echoOptionDataSize int,
+	readTimeout time.Duration,
 	echoTimes int,
 	echoFreq time.Duration,
 	callback func(latency time.Duration),
 ) (latencies []int64, err error) {
-	dialContext, err := s.Context.ipDialer.DialContext(ctx, "ip:icmp", dst)
+	u, err := url.ParseRequestURI(s.URL)
+	if err != nil || len(u.Host) == 0 {
+		return nil, err
+	}
+	dialContext, err := s.Context.ipDialer.DialContext(ctx, "ip:icmp", strings.Split(u.Host, ":")[0])
 	if err != nil {
 		return nil, err
 	}
@@ -239,13 +249,13 @@ func (s *Server) ICMPPing(
 		ICMPData[3] = byte(cs)
 
 		sTime := time.Now()
-		_ = dialContext.SetDeadline(sTime.Add(time.Duration(readTimeout) * time.Millisecond))
+		_ = dialContext.SetDeadline(sTime.Add(readTimeout))
 		_, err = dialContext.Write(ICMPData)
 		if err != nil {
 			failTimes += echoTimes - i
 			break
 		}
-		buf := make([]byte, 20+32+8)
+		buf := make([]byte, 20+echoOptionDataSize+8)
 		_, err = dialContext.Read(buf)
 		if err != nil {
 			failTimes++
