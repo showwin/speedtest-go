@@ -9,6 +9,8 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -95,7 +97,7 @@ type ByDistance struct {
 func (servers Servers) Available() *Servers {
 	retServer := Servers{}
 	for _, server := range servers {
-		if server.Latency != -1 {
+		if server.Latency != PingTimeout {
 			retServer = append(retServer, server)
 		}
 	}
@@ -174,7 +176,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 		// Decode xml
 		decoder := json.NewDecoder(resp.Body)
 
-		if err := decoder.Decode(&servers); err != nil {
+		if err = decoder.Decode(&servers); err != nil {
 			return servers, err
 		}
 	case XMLPayload:
@@ -182,7 +184,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 		// Decode xml
 		decoder := xml.NewDecoder(resp.Body)
 
-		if err := decoder.Decode(&list); err != nil {
+		if err = decoder.Decode(&list); err != nil {
 			return servers, err
 		}
 
@@ -214,12 +216,18 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 
 	var wg sync.WaitGroup
 	pCtx, fc := context.WithTimeout(context.Background(), time.Second*5)
+	icmp := os.Geteuid() == 0 || runtime.GOOS == "windows"
 	for _, server := range servers {
 		wg.Add(1)
 		go func(gs *Server) {
-			pingURL := strings.Split(gs.URL, "/upload.php")[0] + "/latency.txt"
-			if latency, err2 := gs.HTTPPing(pCtx, pingURL, 1, time.Millisecond, nil); err2 != nil || len(latency) != 1 {
-				gs.Latency = -1
+			var latency []int64
+			if icmp {
+				latency, err = gs.ICMPPing(pCtx, 4*time.Second, 1, time.Millisecond, nil)
+			} else {
+				latency, err = gs.HTTPPing(pCtx, 1, time.Millisecond, nil)
+			}
+			if err != nil || len(latency) < 1 {
+				gs.Latency = PingTimeout
 			} else {
 				gs.Latency = time.Duration(latency[0]) * time.Nanosecond
 			}
