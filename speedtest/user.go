@@ -40,6 +40,7 @@ func FetchUserInfo() (*User, error) {
 
 // FetchUserInfoContext returns information about caller determined by speedtest.net, observing the given context.
 func (s *Speedtest) FetchUserInfoContext(ctx context.Context) (*User, error) {
+	dbg.Printf("Fetch user info: %s\n", speedTestConfigUrl)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, speedTestConfigUrl, nil)
 	if err != nil {
 		return nil, err

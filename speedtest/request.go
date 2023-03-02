@@ -7,8 +7,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +34,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers, 
 			mainIDIndex = i
 		}
 		sp := server
+		dbg.Printf("Register Download Handler: %s\n", sp.URL)
 		fp = server.Context.RegisterDownloadHandler(func() {
 			_ = downloadRequest(ctx, sp, 3)
 		})
@@ -57,6 +56,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers, sa
 			mainIDIndex = i
 		}
 		sp := server
+		dbg.Printf("Register Upload Handler: %s\n", sp.URL)
 		fp = server.Context.RegisterUploadHandler(func() {
 			_ = uploadRequest(ctx, sp, 3)
 		})
@@ -105,6 +105,7 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 func downloadRequest(ctx context.Context, s *Server, w int) error {
 	size := dlSizes[w]
 	xdlURL := strings.Split(s.URL, "/upload.php")[0] + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	dbg.Printf("XdlURL: %s\n", xdlURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, xdlURL, nil)
 	if err != nil {
 		return err
@@ -123,6 +124,7 @@ func uploadRequest(ctx context.Context, s *Server, w int) error {
 	dc := s.Context.NewChunk().UploadHandler(int64(size*100-51) * 10)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.URL, dc)
 	req.ContentLength = dc.(*DataChunk).ContentLength
+	dbg.Printf("Len=%d, XulURL: %s\n", req.ContentLength, s.URL)
 	if err != nil {
 		return err
 	}
@@ -144,8 +146,7 @@ func (s *Server) PingTest() error {
 // PingTestContext executes test to measure latency, observing the given context.
 func (s *Server) PingTestContext(ctx context.Context) (err error) {
 	var vectorPingResult []int64
-
-	if os.Geteuid() == 0 || runtime.GOOS == "windows" {
+	if s.Context.config.ICMP {
 		vectorPingResult, err = s.ICMPPing(ctx, time.Second*4, 10, time.Millisecond*200, nil)
 	} else {
 		vectorPingResult, err = s.HTTPPing(ctx, 10, time.Millisecond*200, nil)
@@ -153,7 +154,7 @@ func (s *Server) PingTestContext(ctx context.Context) (err error) {
 	if err != nil || len(vectorPingResult) == 0 {
 		return err
 	}
-
+	dbg.Printf("Before StandardDeviation: %v\n", vectorPingResult)
 	mean, _, std, min, max := standardDeviation(vectorPingResult)
 	s.Latency = time.Duration(mean) * time.Nanosecond
 	s.Jitter = time.Duration(std) * time.Nanosecond
@@ -173,7 +174,7 @@ func (s *Server) HTTPPing(
 		return nil, err
 	}
 	pingDst := fmt.Sprintf("%s/latency.txt", s.URL)
-
+	dbg.Printf("Echo: %s\n", pingDst)
 	failTimes := 0
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pingDst, nil)
 	if err != nil {
@@ -188,6 +189,7 @@ func (s *Server) HTTPPing(
 			continue
 		}
 		latencies = append(latencies, endTime.Nanoseconds()/2)
+		dbg.Printf("2RTT: %s\n", endTime)
 		if callback != nil {
 			callback(endTime / 2)
 		}
@@ -214,6 +216,7 @@ func (s *Server) ICMPPing(
 	if err != nil || len(u.Host) == 0 {
 		return nil, err
 	}
+	dbg.Printf("Echo: %s\n", strings.Split(u.Host, ":")[0])
 	dialContext, err := s.Context.ipDialer.DialContext(ctx, "ip:icmp", strings.Split(u.Host, ":")[0])
 	if err != nil {
 		return nil, err
@@ -263,6 +266,7 @@ func (s *Server) ICMPPing(
 		}
 		endTime := time.Since(sTime)
 		latencies = append(latencies, endTime.Nanoseconds())
+		dbg.Printf("1RTT: %s\n", endTime)
 		if callback != nil {
 			callback(endTime)
 		}

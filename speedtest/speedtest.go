@@ -2,15 +2,18 @@ package speedtest
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strings"
 	"time"
 )
 
 var (
-	version          = "1.5.0"
+	version          = "1.5.1"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
 )
 
@@ -28,6 +31,8 @@ type UserConfig struct {
 	UserAgent string
 	Proxy     string
 	Source    string
+	Debug     bool
+	ICMP      bool
 }
 
 func parseAddr(addr string) (string, string) {
@@ -39,6 +44,10 @@ func parseAddr(addr string) (string, string) {
 }
 
 func (s *Speedtest) NewUserConfig(uc *UserConfig) {
+	if uc.Debug {
+		dbg.Enable()
+	}
+
 	var source net.Addr // If nil, a local address is automatically chosen.
 	var proxy = http.ProxyFromEnvironment
 	var source1 net.Addr
@@ -119,11 +128,16 @@ func WithDoer(doer *http.Client) Option {
 func WithUserConfig(userConfig *UserConfig) Option {
 	return func(s *Speedtest) {
 		s.NewUserConfig(userConfig)
+		dbg.Printf("Source: %s\n", s.config.Source)
+		dbg.Printf("Proxy: %s\n", s.config.Proxy)
+		dbg.Printf("ICMP: %v\n", s.config.ICMP)
+		dbg.Printf("OS: %s, ARCH: %s, NumCPU: %d\n", runtime.GOOS, runtime.GOARCH, runtime.NumCPU())
 	}
 }
 
 // New creates a new speedtest client.
 func New(opts ...Option) *Speedtest {
+	log.SetOutput(io.Discard)
 	s := &Speedtest{
 		doer:    http.DefaultClient,
 		Manager: GlobalDataManager,

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"runtime"
 	"time"
 
 	"github.com/showwin/speedtest-go/speedtest"
@@ -24,6 +26,7 @@ var (
 	source       = kingpin.Flag("source", "Bind a source interface for the speedtest.").String()
 	multi        = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
 	thread       = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
+	debug        = kingpin.Flag("debug", "Start debug mode").Short('d').Bool()
 )
 
 type fullOutput struct {
@@ -40,15 +43,14 @@ func main() {
 
 	var speedtestClient = speedtest.New()
 	speedtestClient.SetNThread(*thread)
-
-	if len(*proxy) > 0 || len(*source) > 0 {
-		config := &speedtest.UserConfig{
-			UserAgent: speedtest.DefaultUserAgent,
-			Proxy:     *proxy,
-			Source:    *source,
-		}
-		speedtest.WithUserConfig(config)(speedtestClient)
+	config := &speedtest.UserConfig{
+		UserAgent: speedtest.DefaultUserAgent,
+		Proxy:     *proxy,
+		Source:    *source,
+		Debug:     *debug,
+		ICMP:      os.Geteuid() == 0 || runtime.GOOS == "windows",
 	}
+	speedtest.WithUserConfig(config)(speedtestClient)
 
 	user, err := speedtestClient.FetchUserInfo()
 	if err != nil {

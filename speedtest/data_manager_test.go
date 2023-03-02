@@ -14,6 +14,16 @@ func BenchmarkDataManager_NewDataChunk(b *testing.B) {
 	}
 }
 
+func TestDataManager_GetAvgDownloadRate(t *testing.T) {
+	GlobalDataManager.totalDownload = 377642000
+	GlobalDataManager.captureTime = time.Second * 10
+
+	result := GlobalDataManager.GetAvgDownloadRate()
+	if result != 302.1136 {
+		t.Fatal()
+	}
+}
+
 func TestDynamicRate(t *testing.T) {
 
 	oldDownTotal := GlobalDataManager.GetTotalDownload()
