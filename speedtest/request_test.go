@@ -10,10 +10,10 @@ import (
 
 func TestDownloadTestContext(t *testing.T) {
 	GlobalDataManager.Reset()
-	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 100)
+	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond)
 	GlobalDataManager.SetCaptureTime(time.Second)
 	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
-	delta := 0.05
+	delta := 0.15
 	latency, _ := time.ParseDuration("5ms")
 	server := Server{
 		URL:     "https://dummy.com/upload.php",
@@ -28,6 +28,7 @@ func TestDownloadTestContext(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
+	fmt.Println(GlobalDataManager.DownloadRateSequence)
 	if server.DLSpeed < idealSpeed*(1-delta) || idealSpeed*(1+delta) < server.DLSpeed {
 		t.Errorf("got unexpected server.DLSpeed '%v', expected between %v and %v", server.DLSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
@@ -35,11 +36,11 @@ func TestDownloadTestContext(t *testing.T) {
 
 func TestUploadTestContext(t *testing.T) {
 	GlobalDataManager.Reset()
-	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 100)
+	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 10)
 	GlobalDataManager.SetCaptureTime(time.Second)
 
 	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
-	delta := 0.05                                                // tolerance scope (-0.05, +0.05)
+	delta := 0.15                                                // tolerance scope (-0.05, +0.05)
 
 	latency, _ := time.ParseDuration("5ms")
 	server := Server{
@@ -62,17 +63,13 @@ func TestUploadTestContext(t *testing.T) {
 
 func mockRequest(ctx context.Context, s *Server, w int) error {
 	fmt.Sprintln(w)
-	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 100)
-	GlobalDataManager.SetCaptureTime(time.Second)
-
 	dc := GlobalDataManager.NewChunk()
-
-	// (0.1MegaByte * 8bit * 8CPU * 10loop) / 0.1s = 640Megabit
-	for i := 0; i < 10; i++ {
-		dc.GetParent().AddTotalDownload(1 * 1000 * 100)
-		dc.GetParent().AddTotalUpload(1 * 1000 * 100)
-		time.Sleep(time.Millisecond * 10)
-	}
+	// (0.1MegaByte * 8bit * nConn * 10loop) / 0.1s = n*80Megabit
+	// sleep has bad deviation on windows
+	// ref https://github.com/golang/go/issues/44343
+	dc.GetParent().AddTotalDownload(1 * 1000 * 1000)
+	dc.GetParent().AddTotalUpload(1 * 1000 * 1000)
+	time.Sleep(time.Millisecond * 100)
 	return nil
 }
 

@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	speedTestServersUrl            = "https://www.speedtest.net/api/js/servers?"
+	speedTestServersUrl            = "https://www.speedtest.net/api/js/servers"
 	speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
 )
 
@@ -136,9 +136,21 @@ func FetchServers(user *User) (Servers, error) {
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.
 func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Servers, error) {
-	fetchUrl := fmt.Sprintf("%s&lat=%s&lon=%s", speedTestServersUrl, user.VLat, user.VLon)
-	dbg.Printf("Fetch servers: %s\n", fetchUrl)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fetchUrl, nil)
+	u, err := url.Parse(speedTestServersUrl)
+	if err != nil {
+		return Servers{}, err
+	}
+	query := u.Query()
+	if len(s.config.Keyword) > 0 {
+		query.Set("search", s.config.Keyword)
+	}
+	if s.config.Location != nil {
+		query.Set("lat", strconv.FormatFloat(s.config.Location.Lat, 'f', -1, 64))
+		query.Set("lon", strconv.FormatFloat(s.config.Location.Lon, 'f', -1, 64))
+	}
+	u.RawQuery = query.Encode()
+	dbg.Printf("Retrieving servers: %s\n", u.String())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return Servers{}, err
 	}

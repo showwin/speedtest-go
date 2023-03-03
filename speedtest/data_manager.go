@@ -193,7 +193,6 @@ func (f *FuncGroup) Start(cancel context.CancelFunc, mainRequestHandlerIndex int
 		cancel()
 		dbg.Println("FuncGroup: Stop")
 	})
-
 	for i := 0; i < mainN; i++ {
 		wg.Add(1)
 		go func() {
@@ -228,7 +227,6 @@ func (f *FuncGroup) Start(cancel context.CancelFunc, mainRequestHandlerIndex int
 			j++
 		}
 	}
-
 	wg.Wait()
 }
 
@@ -236,10 +234,8 @@ func (dm *DataManager) rateCapture() *time.Ticker {
 	ticker := time.NewTicker(dm.rateCaptureFrequency)
 	oldTotalDownload := dm.totalDownload
 	oldTotalUpload := dm.totalUpload
-	dbg.Printf("firstEnter: %s\n", time.Now().String())
 	go func() {
 		for range ticker.C {
-			dbg.Printf("tickerEnter: %s\n", time.Now().String())
 			newTotalDownload := dm.totalDownload
 			newTotalUpload := dm.totalUpload
 			deltaDownload := newTotalDownload - oldTotalDownload

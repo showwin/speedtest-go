@@ -33,6 +33,14 @@ type UserConfig struct {
 	Source    string
 	Debug     bool
 	ICMP      bool
+
+	SavingMode bool
+
+	CityFlag     string
+	LocationFlag string
+	Location     *Location
+
+	Keyword string
 }
 
 func parseAddr(addr string) (string, string) {
@@ -48,47 +56,63 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 		dbg.Enable()
 	}
 
-	var source net.Addr // If nil, a local address is automatically chosen.
-	var proxy = http.ProxyFromEnvironment
-	var source1 net.Addr
-	s.config = uc
+	if uc.SavingMode {
+		s.SetNThread(1) // Set the number of concurrent connections to 1
+	}
 
+	if len(uc.CityFlag) > 0 {
+		var err error
+		uc.Location, err = GetLocation(uc.CityFlag)
+		if err != nil {
+			dbg.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
+		}
+	}
+	if len(uc.LocationFlag) > 0 {
+		var err error
+		uc.Location, err = ParseLocation(uc.CityFlag, uc.LocationFlag)
+		if err != nil {
+			dbg.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
+		}
+	}
+
+	var tcpSource net.Addr // If nil, a local address is automatically chosen.
+	var icmpSource net.Addr
+	var proxy = http.ProxyFromEnvironment
+	s.config = uc
 	if len(uc.Source) > 0 {
 		_, address := parseAddr(uc.Source)
-		addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("[%s]:0", address)) // dynamic tcp port
+		addr0, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("[%s]:0", address)) // dynamic tcp port
 		if err == nil {
-			source = addr
+			tcpSource = addr0
 		} else {
-			fmt.Printf("Skip: can not parse the source address. err: %s\n", err.Error())
+			dbg.Printf("Warning: skipping parse the source address. err: %s\n", err.Error())
 		}
-
 		addr1, err := net.ResolveIPAddr("ip", address) // dynamic tcp port
 		if err == nil {
-			source1 = addr1
+			icmpSource = addr1
 		} else {
-			fmt.Printf("Skip: can not parse the source address. err: %s\n", err.Error())
+			dbg.Printf("Warning: skipping parse the source address. err: %s\n", err.Error())
 		}
 	}
 
 	if len(uc.Proxy) > 0 {
 		if parse, err := url.Parse(uc.Proxy); err != nil {
-			fmt.Printf("Skip: can not parse the proxy host. err: %s\n", err.Error())
+			dbg.Printf("Warning: skipping parse the proxy host. err: %s\n", err.Error())
 		} else {
 			proxy = func(_ *http.Request) (*url.URL, error) {
-				//return url.Parse(uc.Proxy)
 				return parse, err
 			}
 		}
 	}
 
 	s.tcpDialer = &net.Dialer{
-		LocalAddr: source,
+		LocalAddr: tcpSource,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
 
 	s.ipDialer = &net.Dialer{
-		LocalAddr: source1,
+		LocalAddr: icmpSource,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
@@ -130,6 +154,8 @@ func WithUserConfig(userConfig *UserConfig) Option {
 		s.NewUserConfig(userConfig)
 		dbg.Printf("Source: %s\n", s.config.Source)
 		dbg.Printf("Proxy: %s\n", s.config.Proxy)
+		dbg.Printf("SavingMode: %v\n", s.config.SavingMode)
+		dbg.Printf("Keyword: %v\n", s.config.Keyword)
 		dbg.Printf("ICMP: %v\n", s.config.ICMP)
 		dbg.Printf("OS: %s, ARCH: %s, NumCPU: %d\n", runtime.GOOS, runtime.GOARCH, runtime.NumCPU())
 	}
