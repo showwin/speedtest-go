@@ -29,6 +29,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers, 
 	}
 	mainIDIndex := 0
 	var fp *FuncGroup
+	_context, cancel := context.WithCancel(ctx)
 	for i, server := range *ss {
 		if server.ID == s.ID {
 			mainIDIndex = i
@@ -36,10 +37,10 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers, 
 		sp := server
 		dbg.Printf("Register Download Handler: %s\n", sp.URL)
 		fp = server.Context.RegisterDownloadHandler(func() {
-			_ = downloadRequest(ctx, sp, 3)
+			_ = downloadRequest(_context, sp, 3)
 		})
 	}
-	fp.Start(mainIDIndex) // block here
+	fp.Start(cancel, mainIDIndex) // block here
 	s.DLSpeed = fp.manager.GetAvgDownloadRate()
 	return nil
 }
@@ -51,6 +52,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers, sa
 	}
 	mainIDIndex := 0
 	var fp *FuncGroup
+	_context, cancel := context.WithCancel(ctx)
 	for i, server := range *ss {
 		if server.ID == s.ID {
 			mainIDIndex = i
@@ -58,10 +60,10 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers, sa
 		sp := server
 		dbg.Printf("Register Upload Handler: %s\n", sp.URL)
 		fp = server.Context.RegisterUploadHandler(func() {
-			_ = uploadRequest(ctx, sp, 3)
+			_ = uploadRequest(_context, sp, 3)
 		})
 	}
-	fp.Start(mainIDIndex) // block here
+	fp.Start(cancel, mainIDIndex) // block here
 	s.ULSpeed = fp.manager.GetAvgUploadRate()
 	return nil
 }
@@ -77,9 +79,10 @@ func (s *Server) DownloadTestContext(ctx context.Context) error {
 }
 
 func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downloadFunc) error {
+	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterDownloadHandler(func() {
-		_ = downloadRequest(ctx, s, 3)
-	}).Start(0)
+		_ = downloadRequest(_context, s, 3)
+	}).Start(cancel, 0)
 	s.DLSpeed = s.Context.GetAvgDownloadRate()
 	return nil
 }
@@ -95,9 +98,10 @@ func (s *Server) UploadTestContext(ctx context.Context, savingMode bool) error {
 }
 
 func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc) error {
+	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterUploadHandler(func() {
-		_ = uploadRequest(ctx, s, 4)
-	}).Start(0)
+		_ = uploadRequest(_context, s, 4)
+	}).Start(cancel, 0)
 	s.ULSpeed = s.Context.GetAvgUploadRate()
 	return nil
 }

@@ -2,6 +2,7 @@ package speedtest
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"math"
@@ -162,7 +163,7 @@ func (dm *DataManager) RegisterDownloadHandler(fn func()) *FuncGroup {
 	return dm.dFn
 }
 
-func (f *FuncGroup) Start(mainRequestHandlerIndex int) {
+func (f *FuncGroup) Start(cancel context.CancelFunc, mainRequestHandlerIndex int) {
 	if len(f.fns) == 0 {
 		panic("empty task stack")
 	}
@@ -189,6 +190,7 @@ func (f *FuncGroup) Start(mainRequestHandlerIndex int) {
 	time.AfterFunc(f.manager.captureTime, func() {
 		ticker.Stop()
 		f.manager.running = false
+		cancel()
 		dbg.Println("FuncGroup: Stop")
 	})
 

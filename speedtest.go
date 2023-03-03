@@ -26,7 +26,7 @@ var (
 	source       = kingpin.Flag("source", "Bind a source interface for the speedtest.").String()
 	multi        = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
 	thread       = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
-	debug        = kingpin.Flag("debug", "Start debug mode").Short('d').Bool()
+	debug        = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 )
 
 type fullOutput struct {

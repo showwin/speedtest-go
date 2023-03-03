@@ -47,6 +47,7 @@ Flags:
                                eg: --source=10.20.0.101
   -m  --multi                  Enable multi-server mode.
   -t  --thread=THREAD          Set the number of concurrent connections.
+  -d  --debug                  Enable debug mode.
       --version                Show application version.
 ```
 
