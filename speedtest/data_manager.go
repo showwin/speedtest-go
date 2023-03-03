@@ -426,7 +426,7 @@ func (dc *DataChunk) Read(b []byte) (n int, err error) {
 }
 
 // calcMAFilter Median-Averaging Filter
-func calcMAFilter(list []int64) float64 {
+func _(list []int64) float64 {
 	if len(list) == 0 {
 		return 0
 	}
