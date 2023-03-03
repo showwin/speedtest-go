@@ -41,11 +41,11 @@ func TestDataManager_AddTotalDownload(t *testing.T) {
 }
 
 func TestDataManager_GetAvgDownloadRate(t *testing.T) {
-	GlobalDataManager.totalDownload = 377642000
+	GlobalDataManager.totalDownload = 3000000
 	GlobalDataManager.captureTime = time.Second * 10
 
 	result := GlobalDataManager.GetAvgDownloadRate()
-	if result != 302.1 {
+	if result != 2.4 {
 		t.Fatal()
 	}
 }
