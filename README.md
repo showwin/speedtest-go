@@ -35,18 +35,19 @@ Flags:
   -l, --list                   Show available speedtest.net servers.
   -s, --server=SERVER ...      Select server id to speedtest.
       --custom-url=CUSTOM-URL  Specify the url of the server instead of getting a list from Speedtest.net
-      --saving-mode            Using less memory (≒10MB), though low accuracy (especially > 30Mbps).
+      --saving-mode            Test with few computing resources, though low accuracy (especially > 30Mbps).
       --json                   Output results in json format
       --location=LOCATION      Change the location with a precise coordinate.
       --city=CITY              Change the location with a predefined city label.
       --city-list              List all predefined city labels.
-      --proxyproxy=PROXY       Set a proxy(http(s) or socks) for the speedtest.
+      --proxyproxy=PROXY       Set a proxy(http[s] or socks) for the speedtest.
                                eg: --proxy=socks://10.20.0.101:7890
                                eg: --proxy=http://10.20.0.101:7890
       --source=SOURCE          Bind a source interface for the speedtest.
                                eg: --source=10.20.0.101
   -m  --multi                  Enable multi-server mode.
   -t  --thread=THREAD          Set the number of concurrent connections.
+      --search=SEARCH          Fuzzy search servers by a keyword.
   -d  --debug                  Enable debug mode.
       --version                Show application version.
 ```

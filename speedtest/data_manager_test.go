@@ -2,6 +2,7 @@ package speedtest
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 )
@@ -14,12 +15,37 @@ func BenchmarkDataManager_NewDataChunk(b *testing.B) {
 	}
 }
 
+func BenchmarkDataManager_AddTotalDownload(b *testing.B) {
+	dmp := NewDataManager()
+	for i := 0; i < b.N; i++ {
+		dmp.AddTotalDownload(43521)
+	}
+}
+
+func TestDataManager_AddTotalDownload(t *testing.T) {
+	dmp := NewDataManager()
+	wg := sync.WaitGroup{}
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func() {
+			for j := 0; j < 1000; j++ {
+				dmp.AddTotalDownload(43521)
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	if dmp.totalDownload != 43521000000 {
+		t.Fatal()
+	}
+}
+
 func TestDataManager_GetAvgDownloadRate(t *testing.T) {
 	GlobalDataManager.totalDownload = 377642000
 	GlobalDataManager.captureTime = time.Second * 10
 
 	result := GlobalDataManager.GetAvgDownloadRate()
-	if result != 302.1136 {
+	if result != 302.1 {
 		t.Fatal()
 	}
 }

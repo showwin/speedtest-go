@@ -17,15 +17,16 @@ var (
 	showList     = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
 	serverIds    = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
 	customURL    = kingpin.Flag("custom-url", "Specify the url of the server instead of getting a list from Speedtest.net.").String()
-	savingMode   = kingpin.Flag("saving-mode", "Using less memory (≒10MB), though low accuracy (especially > 30Mbps).").Bool()
+	savingMode   = kingpin.Flag("saving-mode", "Test with few computing resources, though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput   = kingpin.Flag("json", "Output results in json format").Bool()
 	location     = kingpin.Flag("location", "Change the location with a precise coordinate. Format: lat,lon").String()
 	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
 	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
-	proxy        = kingpin.Flag("proxy", "Set a proxy(http(s) or socks) for the speedtest.").String()
+	proxy        = kingpin.Flag("proxy", "Set a proxy(http[s] or socks) for the speedtest.").String()
 	source       = kingpin.Flag("source", "Bind a source interface for the speedtest.").String()
 	multi        = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
 	thread       = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
+	search       = kingpin.Flag("search", "Fuzzy search servers by a keyword.").String()
 	debug        = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 )
 
@@ -44,37 +45,27 @@ func main() {
 	var speedtestClient = speedtest.New()
 	speedtestClient.SetNThread(*thread)
 	config := &speedtest.UserConfig{
-		UserAgent: speedtest.DefaultUserAgent,
-		Proxy:     *proxy,
-		Source:    *source,
-		Debug:     *debug,
-		ICMP:      os.Geteuid() == 0 || runtime.GOOS == "windows",
+		UserAgent:    speedtest.DefaultUserAgent,
+		Proxy:        *proxy,
+		Source:       *source,
+		Debug:        *debug,
+		ICMP:         os.Geteuid() == 0 || runtime.GOOS == "windows",
+		SavingMode:   *savingMode,
+		CityFlag:     *city,
+		LocationFlag: *location,
+		Keyword:      *search,
 	}
 	speedtest.WithUserConfig(config)(speedtestClient)
-
-	user, err := speedtestClient.FetchUserInfo()
-	if err != nil {
-		fmt.Printf("Warning: can not fetch user information. err: %v\n", err.Error())
-		return
-	}
 
 	if *showCityList {
 		speedtest.PrintCityList()
 		return
 	}
 
-	if len(*city) > 0 {
-		err = user.SetLocationByCity(*city)
-		if err != nil {
-			fmt.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
-		}
-	}
-
-	if len(*location) > 0 {
-		err = user.ParseAndSetLocation(*location)
-		if err != nil {
-			fmt.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
-		}
+	user, err := speedtestClient.FetchUserInfo()
+	if err != nil {
+		fmt.Printf("Fatal: can not fetch user information. err: %v\n", err.Error())
+		return
 	}
 
 	if !*jsonOutput {
@@ -102,7 +93,7 @@ func main() {
 	if *multi {
 		startMultiTest(targets[0], servers, *savingMode, *jsonOutput)
 	} else {
-		startTest(targets, *savingMode, *jsonOutput, *multi)
+		startTest(targets, *savingMode, *jsonOutput)
 	}
 
 	if *jsonOutput {
@@ -149,7 +140,7 @@ func startMultiTest(s *speedtest.Server, servers speedtest.Servers, savingMode b
 	showServerResult(s)
 }
 
-func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool, multi bool) {
+func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 	for _, s := range servers {
 		// Reset DataManager counters, avoid measurement of multiple server result mixing.
 		s.Context.Reset()
