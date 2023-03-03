@@ -16,9 +16,9 @@ import (
 var (
 	showList     = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
 	serverIds    = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
-	customURL    = kingpin.Flag("custom-url", "Specify the url of the server instead of getting a list from Speedtest.net.").String()
+	customURL    = kingpin.Flag("custom-url", "Specify the url of the server instead of getting a list from speedtest.net.").String()
 	savingMode   = kingpin.Flag("saving-mode", "Test with few computing resources, though low accuracy (especially > 30Mbps).").Bool()
-	jsonOutput   = kingpin.Flag("json", "Output results in json format").Bool()
+	jsonOutput   = kingpin.Flag("json", "Output results in json format.").Bool()
 	location     = kingpin.Flag("location", "Change the location with a precise coordinate. Format: lat,lon").String()
 	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
 	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
@@ -27,8 +27,8 @@ var (
 	multi        = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
 	thread       = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
 	search       = kingpin.Flag("search", "Fuzzy search servers by a keyword.").String()
-	noDownload   = kingpin.Flag("no-download", "Disable download test").Bool()
-	noUpload     = kingpin.Flag("no-upload", "Disable upload test").Bool()
+	noDownload   = kingpin.Flag("no-download", "Disable download test.").Bool()
+	noUpload     = kingpin.Flag("no-upload", "Disable upload test.").Bool()
 	debug        = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 )
 
