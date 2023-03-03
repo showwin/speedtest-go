@@ -23,6 +23,10 @@ var (
 )
 
 func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers, savingMode bool) error {
+	if s.Context.config.NoDownload {
+		dbg.Println("Download test disabled")
+		return nil
+	}
 	ss := servers.Available()
 	if ss.Len() == 0 {
 		return errors.New("not found available servers")
@@ -46,6 +50,10 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers, 
 }
 
 func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers, savingMode bool) error {
+	if s.Context.config.NoUpload {
+		dbg.Println("Upload test disabled")
+		return nil
+	}
 	ss := servers.Available()
 	if ss.Len() == 0 {
 		return errors.New("not found available servers")
@@ -79,6 +87,10 @@ func (s *Server) DownloadTestContext(ctx context.Context) error {
 }
 
 func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downloadFunc) error {
+	if s.Context.config.NoDownload {
+		dbg.Println("Download test disabled")
+		return nil
+	}
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterDownloadHandler(func() {
 		_ = downloadRequest(_context, s, 3)
@@ -98,6 +110,10 @@ func (s *Server) UploadTestContext(ctx context.Context, savingMode bool) error {
 }
 
 func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc) error {
+	if s.Context.config.NoUpload {
+		dbg.Println("Upload test disabled")
+		return nil
+	}
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterUploadHandler(func() {
 		_ = uploadRequest(_context, s, 4)
