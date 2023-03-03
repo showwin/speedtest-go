@@ -54,10 +54,10 @@ Flags:
 
 #### Test Internet Speed
 
-Simply use `speedtest` command. The closest server is selected by default. Use the `-m` flag to enable multi measurement mode
+Simply use `speedtest` command. The closest server is selected by default. Use the `-m` flag to enable multi measurement mode (recommended)
 
 ```bash
-$ speedtest 
+$ speedtest
 Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 
 Target Server: [6691]     9.03km Shizuoka (Japan) by sudosan
@@ -142,7 +142,7 @@ To get more accurate results, run multiple times and average.
 
 For more details, please see [saving mode experimental result](https://github.com/showwin/speedtest-go/blob/master/docs/saving_mode_experimental_result.md).
 
-⚠️This feature has been deprecated > v1.4.0, because speedtest-go can always run with less than 10MByte of memory now.
+⚠️This feature has been deprecated > v1.4.0, because speedtest-go can always run with less than 10MByte of memory now. Even so, `--saving-mode` is still a good way to save computer performance.
 
 ## Go API
 
@@ -233,7 +233,11 @@ distance = distance to testing server
 
 ## Contributors
 
-https://github.com/showwin/speedtest-go/graphs/contributors
+See [Contributors](https://github.com/showwin/speedtest-go/graphs/contributors), PRs are welcome!
+
+## Issues
+
+You can find or report issues in the [Issue Tracker](https://github.com/showwin/speedtest-go/issues).
 
 ## LICENSE
 
