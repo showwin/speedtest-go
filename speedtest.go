@@ -27,6 +27,8 @@ var (
 	multi        = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
 	thread       = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
 	search       = kingpin.Flag("search", "Fuzzy search servers by a keyword.").String()
+	noDownload   = kingpin.Flag("no-download", "Disable download test").Bool()
+	noUpload     = kingpin.Flag("no-upload", "Disable upload test").Bool()
 	debug        = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 )
 
@@ -54,6 +56,8 @@ func main() {
 		CityFlag:     *city,
 		LocationFlag: *location,
 		Keyword:      *search,
+		NoDownload:   *noDownload,
+		NoUpload:     *noUpload,
 	}
 	speedtest.WithUserConfig(config)(speedtestClient)
 
