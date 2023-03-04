@@ -22,7 +22,7 @@ var (
 	ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} // kB
 )
 
-func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers, savingMode bool) error {
+func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) error {
 	if s.Context.config.NoDownload {
 		dbg.Println("Download test disabled")
 		return nil
@@ -49,7 +49,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers, 
 	return nil
 }
 
-func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers, savingMode bool) error {
+func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) error {
 	if s.Context.config.NoUpload {
 		dbg.Println("Upload test disabled")
 		return nil
@@ -77,7 +77,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers, sa
 }
 
 // DownloadTest executes the test to measure download speed
-func (s *Server) DownloadTest(savingMode bool) error {
+func (s *Server) DownloadTest() error {
 	return s.downloadTestContext(context.Background(), downloadRequest)
 }
 
@@ -100,12 +100,12 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 }
 
 // UploadTest executes the test to measure upload speed
-func (s *Server) UploadTest(savingMode bool) error {
+func (s *Server) UploadTest() error {
 	return s.uploadTestContext(context.Background(), uploadRequest)
 }
 
 // UploadTestContext executes the test to measure upload speed, observing the given context.
-func (s *Server) UploadTestContext(ctx context.Context, savingMode bool) error {
+func (s *Server) UploadTestContext(ctx context.Context) error {
 	return s.uploadTestContext(ctx, uploadRequest)
 }
 

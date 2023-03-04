@@ -17,7 +17,7 @@ var (
 	showList     = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
 	serverIds    = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
 	customURL    = kingpin.Flag("custom-url", "Specify the url of the server instead of getting a list from speedtest.net.").String()
-	savingMode   = kingpin.Flag("saving-mode", "Test with few computing resources, though low accuracy (especially > 30Mbps).").Bool()
+	savingMode   = kingpin.Flag("saving-mode", "Test with few resources, though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput   = kingpin.Flag("json", "Output results in json format.").Bool()
 	location     = kingpin.Flag("location", "Change the location with a precise coordinate. Format: lat,lon").String()
 	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
@@ -125,21 +125,21 @@ func startMultiTest(s *speedtest.Server, servers speedtest.Servers, savingMode b
 	checkError(err)
 
 	if jsonOutput {
-		err = s.MultiDownloadTestContext(context.Background(), servers, savingMode)
+		err = s.MultiDownloadTestContext(context.Background(), servers)
 		checkError(err)
 		s.Context.Wait()
-		err = s.MultiUploadTestContext(context.Background(), servers, savingMode)
+		err = s.MultiUploadTestContext(context.Background(), servers)
 		checkError(err)
 		return
 	}
 
 	showLatencyResult(s)
-	err = testDownloadM(s, servers, savingMode)
+	err = testDownloadM(s, servers)
 	checkError(err)
 	// It is necessary to wait for the release of the last test resource,
 	// otherwise the overload will cause excessive data deviation
 	s.Context.Wait()
-	err = testUploadM(s, servers, savingMode)
+	err = testUploadM(s, servers)
 	checkError(err)
 	showServerResult(s)
 }
@@ -156,22 +156,22 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 		checkError(err)
 
 		if jsonOutput {
-			err = s.DownloadTest(savingMode)
+			err = s.DownloadTest()
 			checkError(err)
 			s.Context.Wait()
-			err = s.UploadTest(savingMode)
+			err = s.UploadTest()
 			checkError(err)
 			continue
 		}
 
 		showLatencyResult(s)
 
-		err = testDownload(s, savingMode)
+		err = testDownload(s)
 		checkError(err)
 		// It is necessary to wait for the release of the last test resource,
 		// otherwise the overload will cause excessive data deviation
 		s.Context.Wait()
-		err = testUpload(s, savingMode)
+		err = testUpload(s)
 		checkError(err)
 		showServerResult(s)
 	}
@@ -181,11 +181,11 @@ func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
 	}
 }
 
-func testDownloadM(server *speedtest.Server, servers speedtest.Servers, savingMode bool) error {
+func testDownloadM(server *speedtest.Server, servers speedtest.Servers) error {
 	quit := make(chan bool)
 	fmt.Printf("Download Test: ")
 	go dots(quit)
-	err := server.MultiDownloadTestContext(context.Background(), servers, savingMode)
+	err := server.MultiDownloadTestContext(context.Background(), servers)
 	checkError(err)
 	quit <- true
 	if err != nil {
@@ -195,11 +195,11 @@ func testDownloadM(server *speedtest.Server, servers speedtest.Servers, savingMo
 	return err
 }
 
-func testUploadM(server *speedtest.Server, servers speedtest.Servers, savingMode bool) error {
+func testUploadM(server *speedtest.Server, servers speedtest.Servers) error {
 	quit := make(chan bool)
 	fmt.Printf("Upload Test: ")
 	go dots(quit)
-	err := server.MultiUploadTestContext(context.Background(), servers, savingMode)
+	err := server.MultiUploadTestContext(context.Background(), servers)
 	checkError(err)
 	quit <- true
 	if err != nil {
@@ -209,11 +209,11 @@ func testUploadM(server *speedtest.Server, servers speedtest.Servers, savingMode
 	return nil
 }
 
-func testDownload(server *speedtest.Server, savingMode bool) error {
+func testDownload(server *speedtest.Server) error {
 	quit := make(chan bool)
 	fmt.Printf("Download Test: ")
 	go dots(quit)
-	err := server.DownloadTest(savingMode)
+	err := server.DownloadTest()
 	quit <- true
 	if err != nil {
 		return err
@@ -222,11 +222,11 @@ func testDownload(server *speedtest.Server, savingMode bool) error {
 	return err
 }
 
-func testUpload(server *speedtest.Server, savingMode bool) error {
+func testUpload(server *speedtest.Server) error {
 	quit := make(chan bool)
 	fmt.Printf("Upload Test: ")
 	go dots(quit)
-	err := server.UploadTest(savingMode)
+	err := server.UploadTest()
 	quit <- true
 	if err != nil {
 		return err

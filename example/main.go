@@ -23,8 +23,8 @@ func main() {
 		// otherwise you will get an error.
 		// It is recommended to replace a server at this time
 		checkError(s.PingTest())
-		checkError(s.DownloadTest(false))
-		checkError(s.UploadTest(false))
+		checkError(s.DownloadTest())
+		checkError(s.UploadTest())
 
 		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
 		//speedtest.GlobalDataManager.Reset()
