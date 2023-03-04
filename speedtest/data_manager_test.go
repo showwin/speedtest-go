@@ -74,7 +74,7 @@ func TestDynamicRate(t *testing.T) {
 	server, _ := CustomServer("http://shenzhen.cmcc.speedtest.shunshiidc.com:8080/speedtest/upload.php")
 	//server, _ := CustomServer("http://192.168.5.237:8080/speedtest/upload.php")
 
-	err := server.DownloadTest(false)
+	err := server.DownloadTest()
 	if err != nil {
 		fmt.Println("Warning: not found server")
 		//t.Error(err)
@@ -82,7 +82,7 @@ func TestDynamicRate(t *testing.T) {
 
 	GlobalDataManager.Wait()
 
-	err = server.UploadTest(false)
+	err = server.UploadTest()
 	if err != nil {
 		fmt.Println("Warning: not found server")
 		//t.Error(err)
