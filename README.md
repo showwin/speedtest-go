@@ -19,10 +19,10 @@ $ brew update
 $ brew upgrade speedtest
 ```
 
-#### Other Platform (Linux, Windows, etc.)
+#### Other Platforms (Linux, Windows, etc.)
 
-Please download compatible package from [Releases](https://github.com/showwin/speedtest-go/releases).
-If there are no compatible package you want, please let me know on [issue](https://github.com/showwin/speedtest-go/issues).
+Please download the compatible package from [Releases](https://github.com/showwin/speedtest-go/releases).
+If there are no compatible packages you want, please let me know on [Issue Tracker](https://github.com/showwin/speedtest-go/issues).
 
 ### Usage
 
@@ -56,7 +56,7 @@ Flags:
 
 #### Test Internet Speed
 
-Simply use `speedtest` command. The closest server is selected by default. Use the `-m` flag to enable multi measurement mode (recommended)
+Simply use `speedtest` command. The closest server is selected by default. Use the `-m` flag to enable multi-measurement mode (recommended)
 
 ```bash
 $ speedtest
@@ -76,7 +76,7 @@ Upload: 35.26 Mbit/s
 
 #### Test to Other Servers
 
-If you want to select other server to test, you can see available server list.
+If you want to select other servers to test, you can see the available server list.
 
 ```bash
 $ speedtest --list
@@ -116,7 +116,7 @@ Download Avg: 69.03 Mbit/s
 Upload Avg: 28.28 Mbit/s
 ```
 
-#### Test with virtual location
+#### Test with a virtual location
 
 With `--city` or `--location` option, the closest servers of the location will be picked.
 You can measure the speed between your location and the target location.
@@ -136,10 +136,10 @@ $ speedtest --location=60,-110
 
 #### Memory Saving Mode
 
-With `--saving-mode` option, it can be executed even in insufficient memory environment like IoT device.
+With `--saving-mode` option, it can be executed even in an insufficient memory environment like IoT devices.
 The memory usage can be reduced to 1/10, about 10MB of memory is used.
 
-However, please be careful that the accuracy is particularly low especially in an environment of 30 Mbps or higher.
+However, please be careful that the accuracy is particularly low, especially in an environment of 30 Mbps or higher.
 To get more accurate results, run multiple times and average.
 
 For more details, please see [saving mode experimental result](https://github.com/showwin/speedtest-go/blob/master/docs/saving_mode_experimental_result.md).
@@ -195,13 +195,13 @@ func main() {
 
 ## Summary of Experimental Results
 
-Speedtest-go is a great tool because of following 4 reasons:
+Speedtest-go is a great tool because of the following 4 reasons:
 * Cross-platform available.
 * Low memory environment.
 * Testing time is the **SHORTEST** compare to [speedtest.net](http://www.speedtest.net/) and [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli), especially about 2x faster than [speedtest.net](http://www.speedtest.net/).
 * Result is **MORE CLOSE** to [speedtest.net](http://www.speedtest.net/) than [speedtest-cli](https://github.com/sivel/speedtest-cli).
 
-Following data is summarized. If you got interested in, please see [more details](https://github.com/showwin/speedtest-go/blob/master/docs/experimental_result.md).
+The following data is summarized. If you got interested, please see [more details](https://github.com/showwin/speedtest-go/blob/master/docs/experimental_result.md).
 
 ### Download (Mbps)
 
@@ -209,7 +209,7 @@ distance = distance to testing server
 * 0 - 1000(km) ≒ domestic
 * 1000 - 8000(km) ≒ same region
 * 8000 - 20000(km) ≒ really far!
-* 20000km is the half of the circumference of our planet.
+* 20000km is half of the circumference of our planet.
 
 | distance (km) | speedtest.net | speedtest-go | speedtest-cli |
 |:-------------:|:-------------:|:------------:|:-------------:|
