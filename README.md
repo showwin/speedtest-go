@@ -35,7 +35,7 @@ Flags:
   -l, --list                   Show available speedtest.net servers.
   -s, --server=SERVER ...      Select server id to speedtest.
       --custom-url=CUSTOM-URL  Specify the url of the server instead of getting a list from speedtest.net.
-      --saving-mode            Test with few computing resources, though low accuracy (especially > 30Mbps).
+      --saving-mode            Test with few resources, though low accuracy (especially > 30Mbps).
       --json                   Output results in json format.
       --location=LOCATION      Change the location with a precise coordinate.
       --city=CITY              Change the location with a predefined city label.
@@ -185,8 +185,8 @@ func main() {
 		// otherwise you will get an error.
 		// It is recommended to replace a server at this time
 		s.PingTest()
-		s.DownloadTest(false)
-		s.UploadTest(false)
+		s.DownloadTest()
+		s.UploadTest()
 		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
 	}
 }
