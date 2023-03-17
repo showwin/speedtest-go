@@ -125,17 +125,17 @@ func (b ByDistance) Less(i, j int) bool {
 }
 
 // FetchServers retrieves a list of available servers
-func (s *Speedtest) FetchServers(user *User) (Servers, error) {
-	return s.FetchServerListContext(context.Background(), user)
+func (s *Speedtest) FetchServers() (Servers, error) {
+	return s.FetchServerListContext(context.Background())
 }
 
 // FetchServers retrieves a list of available servers
-func FetchServers(user *User) (Servers, error) {
-	return defaultClient.FetchServers(user)
+func FetchServers() (Servers, error) {
+	return defaultClient.FetchServers()
 }
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.
-func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Servers, error) {
+func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error) {
 	u, err := url.Parse(speedTestServersUrl)
 	if err != nil {
 		return Servers{}, err
@@ -210,24 +210,9 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 		server.Context = s
 	}
 
-	// Calculate distance
-	for _, server := range servers {
-		sLat, _ := strconv.ParseFloat(server.Lat, 64)
-		sLon, _ := strconv.ParseFloat(server.Lon, 64)
-		uLat, _ := strconv.ParseFloat(user.Lat, 64)
-		uLon, _ := strconv.ParseFloat(user.Lon, 64)
-		server.Distance = distance(sLat, sLon, uLat, uLon)
-	}
-
-	// Sort by distance
-	sort.Sort(ByDistance{servers})
-
-	if len(servers) <= 0 {
-		return servers, errors.New("unable to retrieve server list")
-	}
-
+	// ping once
 	var wg sync.WaitGroup
-	pCtx, fc := context.WithTimeout(context.Background(), time.Second*5)
+	pCtx, fc := context.WithTimeout(context.Background(), time.Second*4)
 	dbg.Println("Echo each server...")
 	for _, server := range servers {
 		wg.Add(1)
@@ -246,15 +231,33 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context, user *User) (Ser
 			wg.Done()
 		}(server)
 	}
-
 	wg.Wait()
 	fc()
+
+	// Calculate distance
+	if s.User == nil {
+		s.asyncFetchUser.Wait()
+	}
+	for _, server := range servers {
+		sLat, _ := strconv.ParseFloat(server.Lat, 64)
+		sLon, _ := strconv.ParseFloat(server.Lon, 64)
+		uLat, _ := strconv.ParseFloat(s.User.Lat, 64)
+		uLon, _ := strconv.ParseFloat(s.User.Lon, 64)
+		server.Distance = distance(sLat, sLon, uLat, uLon)
+	}
+
+	// Sort by distance
+	sort.Sort(ByDistance{servers})
+
+	if len(servers) <= 0 {
+		return servers, errors.New("unable to retrieve server list")
+	}
 	return servers, nil
 }
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.
-func FetchServerListContext(ctx context.Context, user *User) (Servers, error) {
-	return defaultClient.FetchServerListContext(ctx, user)
+func FetchServerListContext(ctx context.Context) (Servers, error) {
+	return defaultClient.FetchServerListContext(ctx)
 }
 
 func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
@@ -324,7 +327,10 @@ func (servers Servers) String() string {
 
 // String representation of Server
 func (s *Server) String() string {
-	return fmt.Sprintf("[%4s] %8.2fkm \n%s (%s) by %s\n", s.ID, s.Distance, s.Name, s.Country, s.Sponsor)
+	if s.Sponsor == "?" {
+		return fmt.Sprintf("[%4s] %s", s.ID, s.Name)
+	}
+	return fmt.Sprintf("[%4s] %.2fkm %s (%s) by %s", s.ID, s.Distance, s.Name, s.Country, s.Sponsor)
 }
 
 // CheckResultValid checks that results are logical given UL and DL speeds

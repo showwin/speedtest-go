@@ -102,15 +102,10 @@ func NewDataManager() *DataManager {
 
 func (dm *DataManager) CallbackDownloadRate(callback func(downRate float64)) *time.Ticker {
 	ticker := time.NewTicker(dm.rateCaptureFrequency)
-	oldDownTotal := dm.GetTotalDownload()
-	unit := float64(time.Second / dm.rateCaptureFrequency)
-
 	go func() {
+		sTime := time.Now()
 		for range ticker.C {
-			newDownTotal := dm.GetTotalDownload()
-			delta := newDownTotal - oldDownTotal
-			oldDownTotal = newDownTotal
-			callback(float64(delta) * 8 / 1000000 * unit)
+			callback((float64(dm.GetTotalDownload()) * 8 / 1000000) / float64(time.Now().Sub(sTime).Milliseconds()) * 1000)
 		}
 	}()
 	return ticker
@@ -118,15 +113,10 @@ func (dm *DataManager) CallbackDownloadRate(callback func(downRate float64)) *ti
 
 func (dm *DataManager) CallbackUploadRate(callback func(upRate float64)) *time.Ticker {
 	ticker := time.NewTicker(dm.rateCaptureFrequency)
-	oldUpTotal := dm.GetTotalUpload()
-	unit := float64(time.Second / dm.rateCaptureFrequency)
-
 	go func() {
+		sTime := time.Now()
 		for range ticker.C {
-			newUpTotal := dm.GetTotalUpload()
-			delta := newUpTotal - oldUpTotal
-			oldUpTotal = newUpTotal
-			callback(float64(delta) * 8 / 1000000 * unit)
+			callback((float64(dm.GetTotalUpload()) * 8 / 1000000) / float64(time.Now().Sub(sTime).Milliseconds()) * 1000)
 		}
 	}()
 	return ticker

@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/showwin/speedtest-go/speedtest"
@@ -32,224 +29,125 @@ var (
 	debug        = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 )
 
-type fullOutput struct {
-	Timestamp outputTime        `json:"timestamp"`
-	UserInfo  *speedtest.User   `json:"user_info"`
-	Servers   speedtest.Servers `json:"servers"`
-}
-
-type outputTime time.Time
-
 func main() {
+
 	kingpin.Version(speedtest.Version())
 	kingpin.Parse()
+	AppInfo()
 
-	var speedtestClient = speedtest.New()
+	// 0. speed test setting
+	var speedtestClient = speedtest.New(speedtest.WithUserConfig(
+		&speedtest.UserConfig{
+			UserAgent:    speedtest.DefaultUserAgent,
+			Proxy:        *proxy,
+			Source:       *source,
+			Debug:        *debug,
+			ICMP:         (os.Geteuid() == 0 || os.Geteuid() == -1) && len(*proxy) == 0, // proxy may not support ICMP
+			SavingMode:   *savingMode,
+			CityFlag:     *city,
+			LocationFlag: *location,
+			Keyword:      *search,
+			NoDownload:   *noDownload,
+			NoUpload:     *noUpload,
+		}))
 	speedtestClient.SetNThread(*thread)
-	config := &speedtest.UserConfig{
-		UserAgent:    speedtest.DefaultUserAgent,
-		Proxy:        *proxy,
-		Source:       *source,
-		Debug:        *debug,
-		ICMP:         os.Geteuid() == 0 || runtime.GOOS == "windows",
-		SavingMode:   *savingMode,
-		CityFlag:     *city,
-		LocationFlag: *location,
-		Keyword:      *search,
-		NoDownload:   *noDownload,
-		NoUpload:     *noUpload,
-	}
-	speedtest.WithUserConfig(config)(speedtestClient)
 
 	if *showCityList {
 		speedtest.PrintCityList()
 		return
 	}
 
-	user, err := speedtestClient.FetchUserInfo()
-	if err != nil {
-		fmt.Printf("Fatal: can not fetch user information. err: %v\n", err.Error())
-		return
-	}
+	// 1. retrieving user information
+	taskManager := InitTaskManager(!*jsonOutput)
+	taskManager.AsyncRun("Retrieving User Information", func(task *Task) {
+		u, err := speedtestClient.FetchUserInfo()
+		task.CheckError(err)
+		task.Printf("ISP: %s", u.String())
+		task.Complete()
+	})
 
-	if !*jsonOutput {
-		showUser(user)
-	}
-
-	servers, err := speedtestClient.FetchServers(user)
-	checkError(err)
+	// 2. retrieving servers
+	var err error
+	var servers speedtest.Servers
 	var targets speedtest.Servers
-	if *customURL == "" {
-		if *showList {
-			showServerList(servers)
-			return
+	taskManager.Run("Retrieving Servers", func(task *Task) {
+		if len(*customURL) > 0 {
+			var target *speedtest.Server
+			target, err = speedtestClient.CustomServer(*customURL)
+			task.CheckError(err)
+			targets = []*speedtest.Server{target}
+			task.Println("Skip: Using Custom Server")
+		} else {
+			servers, err = speedtestClient.FetchServers()
+			task.CheckError(err)
+			task.Printf("Found %d Public Servers", len(servers))
+			if *showList {
+				task.Complete()
+				task.manager.Reset()
+				showServerList(servers)
+				os.Exit(1)
+			}
+			targets, err = servers.FindServer(*serverIds)
+			task.CheckError(err)
 		}
+		task.Complete()
+	})
+	taskManager.Reset()
 
-		targets, err = servers.FindServer(*serverIds)
-		checkError(err)
+	// 3. test each selected server with ping, download and upload.
+	for _, server := range targets {
+		if !*jsonOutput {
+			fmt.Println()
+		}
+		taskManager.Println("Test Server: " + server.String())
+		taskManager.Run("Latency: ", func(task *Task) {
+			server.PingTest(func(latency time.Duration) {
+				task.Printf("Latency: %v", latency)
+			})
+			task.Printf("Latency: %v Jitter: %v Min: %v Max: %v", server.Latency, server.Jitter, server.MinLatency, server.MaxLatency)
+			task.Complete()
+		})
 
-	} else {
-		target, err := speedtestClient.CustomServer(*customURL)
-		checkError(err)
-		targets = []*speedtest.Server{target}
+		taskManager.Run("Download", func(task *Task) {
+			ticker := speedtestClient.CallbackDownloadRate(func(downRate float64) {
+				task.Printf("Download: %.2fMbps", downRate)
+			})
+			if *multi {
+				task.CheckError(server.MultiDownloadTestContext(context.Background(), servers))
+			} else {
+				task.CheckError(server.DownloadTest())
+			}
+			ticker.Stop()
+			task.Printf("Download: %.2fMbps (used: %.2fMB)", server.DLSpeed, float64(server.Context.Manager.GetTotalDownload())/1024/1024)
+			task.Complete()
+		})
+
+		taskManager.Run("Upload", func(task *Task) {
+			ticker := speedtestClient.CallbackUploadRate(func(upRate float64) {
+				task.Printf("Upload: %.2fMbps", upRate)
+			})
+			if *multi {
+				task.CheckError(server.MultiUploadTestContext(context.Background(), servers))
+			} else {
+				task.CheckError(server.UploadTest())
+			}
+			ticker.Stop()
+			task.Printf("Upload: %.2fMbps (used: %.2fMB)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1024/1024)
+			task.Complete()
+		})
+		taskManager.Reset()
+		speedtestClient.Manager.Reset()
 	}
 
-	if *multi {
-		startMultiTest(targets[0], servers, *savingMode, *jsonOutput)
-	} else {
-		startTest(targets, *savingMode, *jsonOutput)
-	}
+	taskManager.Stop()
 
 	if *jsonOutput {
-		jsonBytes, err := json.Marshal(
-			fullOutput{
-				Timestamp: outputTime(time.Now()),
-				UserInfo:  user,
-				Servers:   targets,
-			},
-		)
-		checkError(err)
-
-		fmt.Println(string(jsonBytes))
-	}
-}
-
-func startMultiTest(s *speedtest.Server, servers speedtest.Servers, savingMode bool, jsonOutput bool) {
-	// Reset DataManager counters, avoid measurement of multiple server result mixing.
-	s.Context.Reset()
-	if !jsonOutput {
-		showServer(s)
-	}
-
-	err := s.PingTest()
-	checkError(err)
-
-	if jsonOutput {
-		err = s.MultiDownloadTestContext(context.Background(), servers)
-		checkError(err)
-		s.Context.Wait()
-		err = s.MultiUploadTestContext(context.Background(), servers)
-		checkError(err)
-		return
-	}
-
-	showLatencyResult(s)
-	err = testDownloadM(s, servers)
-	checkError(err)
-	// It is necessary to wait for the release of the last test resource,
-	// otherwise the overload will cause excessive data deviation
-	s.Context.Wait()
-	err = testUploadM(s, servers)
-	checkError(err)
-	showServerResult(s)
-}
-
-func startTest(servers speedtest.Servers, savingMode bool, jsonOutput bool) {
-	for _, s := range servers {
-		// Reset DataManager counters, avoid measurement of multiple server result mixing.
-		s.Context.Reset()
-		if !jsonOutput {
-			showServer(s)
-		}
-
-		err := s.PingTest()
-		checkError(err)
-
-		if jsonOutput {
-			err = s.DownloadTest()
-			checkError(err)
-			s.Context.Wait()
-			err = s.UploadTest()
-			checkError(err)
-			continue
-		}
-
-		showLatencyResult(s)
-
-		err = testDownload(s)
-		checkError(err)
-		// It is necessary to wait for the release of the last test resource,
-		// otherwise the overload will cause excessive data deviation
-		s.Context.Wait()
-		err = testUpload(s)
-		checkError(err)
-		showServerResult(s)
-	}
-
-	if !jsonOutput && len(servers) > 1 {
-		showAverageServerResult(servers)
-	}
-}
-
-func testDownloadM(server *speedtest.Server, servers speedtest.Servers) error {
-	quit := make(chan bool)
-	fmt.Printf("Download Test: ")
-	go dots(quit)
-	err := server.MultiDownloadTestContext(context.Background(), servers)
-	checkError(err)
-	quit <- true
-	if err != nil {
-		return err
-	}
-	fmt.Println()
-	return err
-}
-
-func testUploadM(server *speedtest.Server, servers speedtest.Servers) error {
-	quit := make(chan bool)
-	fmt.Printf("Upload Test: ")
-	go dots(quit)
-	err := server.MultiUploadTestContext(context.Background(), servers)
-	checkError(err)
-	quit <- true
-	if err != nil {
-		return err
-	}
-	fmt.Println()
-	return nil
-}
-
-func testDownload(server *speedtest.Server) error {
-	quit := make(chan bool)
-	fmt.Printf("Download Test: ")
-	go dots(quit)
-	err := server.DownloadTest()
-	quit <- true
-	if err != nil {
-		return err
-	}
-	fmt.Println()
-	return err
-}
-
-func testUpload(server *speedtest.Server) error {
-	quit := make(chan bool)
-	fmt.Printf("Upload Test: ")
-	go dots(quit)
-	err := server.UploadTest()
-	quit <- true
-	if err != nil {
-		return err
-	}
-	fmt.Println()
-	return nil
-}
-
-func dots(quit chan bool) {
-	for {
-		select {
-		case <-quit:
+		json, errMarshal := speedtestClient.JSON(targets)
+		if errMarshal != nil {
+			fmt.Printf(errMarshal.Error())
 			return
-		default:
-			time.Sleep(time.Second)
-			fmt.Print(".")
 		}
-	}
-}
-
-func showUser(user *speedtest.User) {
-	if user.IP != "" {
-		fmt.Printf("Testing From IP: %s\n", user.String())
+		fmt.Printf(string(json))
 	}
 }
 
@@ -266,50 +164,10 @@ func showServerList(servers speedtest.Servers) {
 	}
 }
 
-func showServer(s *speedtest.Server) {
-	fmt.Println()
-	fmt.Printf("Target Server: [%4s] %8.2fkm %s", s.ID, s.Distance, s.Name)
-	if s.ID == "Custom" {
+func AppInfo() {
+	if !*jsonOutput {
 		fmt.Println()
-		return
+		fmt.Printf("    😊 speedtest-go v%s @showwin 😊\n", speedtest.Version())
+		fmt.Println()
 	}
-	fmt.Printf(" (" + s.Country + ") by " + s.Sponsor + "\n")
-}
-
-func showLatencyResult(server *speedtest.Server) {
-	fmt.Printf("Latency: %v\nJitter: %v\nMin: %v\nMax: %v\n", server.Latency, server.Jitter, server.MinLatency, server.MaxLatency)
-}
-
-// ShowResult : show testing result
-func showServerResult(server *speedtest.Server) {
-	fmt.Printf(" \n")
-
-	fmt.Printf("Download: %5.2f Mbit/s\n", server.DLSpeed)
-	fmt.Printf("Upload: %5.2f Mbit/s\n\n", server.ULSpeed)
-	valid := server.CheckResultValid()
-	if !valid {
-		fmt.Println("Warning: Result seems to be wrong. Please speedtest again.")
-	}
-}
-
-func showAverageServerResult(servers speedtest.Servers) {
-	avgDL := 0.0
-	avgUL := 0.0
-	for _, s := range servers {
-		avgDL = avgDL + s.DLSpeed
-		avgUL = avgUL + s.ULSpeed
-	}
-	fmt.Printf("Download Avg: %5.2f Mbit/s\n", avgDL/float64(len(servers)))
-	fmt.Printf("Upload Avg: %5.2f Mbit/s\n", avgUL/float64(len(servers)))
-}
-
-func checkError(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (t outputTime) MarshalJSON() ([]byte, error) {
-	stamp := fmt.Sprintf("\"%s\"", time.Time(t).Format("2006-01-02 15:04:05.000"))
-	return []byte(stamp), nil
 }

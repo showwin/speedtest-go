@@ -159,15 +159,15 @@ func uploadRequest(ctx context.Context, s *Server, w int) error {
 }
 
 // PingTest executes test to measure latency
-func (s *Server) PingTest() error {
-	return s.PingTestContext(context.Background())
+func (s *Server) PingTest(callback func(latency time.Duration)) error {
+	return s.PingTestContext(context.Background(), callback)
 }
 
 // PingTestContext executes test to measure latency, observing the given context.
-func (s *Server) PingTestContext(ctx context.Context) (err error) {
+func (s *Server) PingTestContext(ctx context.Context, callback func(latency time.Duration)) (err error) {
 	var vectorPingResult []int64
 	if s.Context.config.ICMP {
-		vectorPingResult, err = s.ICMPPing(ctx, time.Second*4, 10, time.Millisecond*200, nil)
+		vectorPingResult, err = s.ICMPPing(ctx, time.Second*4, 10, time.Millisecond*200, callback)
 	} else {
 		vectorPingResult, err = s.HTTPPing(ctx, 10, time.Millisecond*200, nil)
 	}
