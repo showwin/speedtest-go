@@ -3,16 +3,14 @@ package speedtest
 import "testing"
 
 func TestFetchServerList(t *testing.T) {
-	user := User{
+	client := New()
+	client.User = &User{
 		IP:  "111.111.111.111",
 		Lat: "35.22",
 		Lon: "138.44",
 		Isp: "Hello",
 	}
-
-	client := New()
-
-	servers, err := client.FetchServers(&user)
+	servers, err := client.FetchServers()
 	if err != nil {
 		t.Errorf(err.Error())
 	}
