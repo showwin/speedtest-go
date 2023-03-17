@@ -105,7 +105,7 @@ func (dm *DataManager) CallbackDownloadRate(callback func(downRate float64)) *ti
 	go func() {
 		sTime := time.Now()
 		for range ticker.C {
-			callback((float64(dm.GetTotalDownload()) * 8 / 1000000) / float64(time.Now().Sub(sTime).Milliseconds()) * 1000)
+			callback((float64(dm.GetTotalDownload()) * 8 / 1000000) / float64(time.Since(sTime).Milliseconds()) * 1000)
 		}
 	}()
 	return ticker
@@ -116,7 +116,7 @@ func (dm *DataManager) CallbackUploadRate(callback func(upRate float64)) *time.T
 	go func() {
 		sTime := time.Now()
 		for range ticker.C {
-			callback((float64(dm.GetTotalUpload()) * 8 / 1000000) / float64(time.Now().Sub(sTime).Milliseconds()) * 1000)
+			callback((float64(dm.GetTotalUpload()) * 8 / 1000000) / float64(time.Since(sTime).Milliseconds()) * 1000)
 		}
 	}()
 	return ticker
