@@ -101,9 +101,9 @@ func main() {
 		}
 		taskManager.Println("Test Server: " + server.String())
 		taskManager.Run("Latency: ", func(task *Task) {
-			server.PingTest(func(latency time.Duration) {
+			task.CheckError(server.PingTest(func(latency time.Duration) {
 				task.Printf("Latency: %v", latency)
-			})
+			}))
 			task.Printf("Latency: %v Jitter: %v Min: %v Max: %v", server.Latency, server.Jitter, server.MinLatency, server.MaxLatency)
 			task.Complete()
 		})
@@ -144,10 +144,9 @@ func main() {
 	if *jsonOutput {
 		json, errMarshal := speedtestClient.JSON(targets)
 		if errMarshal != nil {
-			fmt.Printf(errMarshal.Error())
 			return
 		}
-		fmt.Printf(string(json))
+		fmt.Print(string(json))
 	}
 }
 
