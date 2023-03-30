@@ -350,6 +350,7 @@ func (dc *DataChunk) DownloadHandler(r io.Reader) error {
 		dc.endTime = time.Now()
 	}()
 	bufP := blackHolePool.Get().(*[]byte)
+	defer blackHolePool.Put(bufP)
 	readSize := 0
 	for {
 		if !dc.manager.running {
@@ -361,7 +362,6 @@ func (dc *DataChunk) DownloadHandler(r io.Reader) error {
 		dc.remainOrDiscardSize += rs
 		atomic.AddInt64(&dc.manager.totalDownload, rs)
 		if dc.err != nil {
-			blackHolePool.Put(bufP)
 			if dc.err == io.EOF {
 				return nil
 			}
