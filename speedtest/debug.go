@@ -15,7 +15,6 @@ func NewDebug() *Debug {
 }
 
 func (d *Debug) Enable() {
-	log.SetOutput(os.Stdout)
 	d.flag = true
 }
 

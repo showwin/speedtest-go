@@ -2,8 +2,6 @@ package speedtest
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -14,7 +12,7 @@ import (
 )
 
 var (
-	version          = "1.6.0"
+	version          = "1.6.1"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
 )
 
@@ -171,7 +169,6 @@ func WithUserConfig(userConfig *UserConfig) Option {
 
 // New creates a new speedtest client.
 func New(opts ...Option) *Speedtest {
-	log.SetOutput(io.Discard)
 	s := &Speedtest{
 		doer:           http.DefaultClient,
 		asyncFetchUser: &sync.WaitGroup{},
