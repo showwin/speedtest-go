@@ -7,12 +7,11 @@ import (
 	"net/url"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 )
 
 var (
-	version          = "1.6.1"
+	version          = "1.6.2"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
 )
 
@@ -25,8 +24,6 @@ type Speedtest struct {
 	config    *UserConfig
 	tcpDialer *net.Dialer
 	ipDialer  *net.Dialer
-
-	asyncFetchUser *sync.WaitGroup
 }
 
 type UserConfig struct {
@@ -43,7 +40,7 @@ type UserConfig struct {
 	LocationFlag string
 	Location     *Location
 
-	Keyword string
+	Keyword string // Fuzzy search
 
 	NoDownload bool
 	NoUpload   bool
@@ -170,9 +167,8 @@ func WithUserConfig(userConfig *UserConfig) Option {
 // New creates a new speedtest client.
 func New(opts ...Option) *Speedtest {
 	s := &Speedtest{
-		doer:           http.DefaultClient,
-		asyncFetchUser: &sync.WaitGroup{},
-		Manager:        GlobalDataManager,
+		doer:    http.DefaultClient,
+		Manager: GlobalDataManager,
 	}
 	// load default config
 	s.NewUserConfig(&UserConfig{UserAgent: DefaultUserAgent})
