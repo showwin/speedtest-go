@@ -19,6 +19,7 @@ import (
 const (
 	speedTestServersUrl            = "https://www.speedtest.net/api/js/servers"
 	speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
+	speedTestServersAdvanced       = "https://www.speedtest.net/api/ios-config.php"
 )
 
 type PayloadType int
@@ -122,6 +123,49 @@ func (servers Servers) Swap(i, j int) {
 // Less compares the distance. For sorting servers.
 func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
+}
+
+// FetchServerByID retrieves a server by given id.
+func (s *Speedtest) FetchServerByID(id string) (*Server, error) {
+	return s.FetchServerByIDContext(context.Background(), id)
+}
+
+// FetchServerByID retrieves a server by given id.
+func FetchServerByID(id string) (*Server, error) {
+	return defaultClient.FetchServerByID(id)
+}
+
+// FetchServerByIDContext retrieves a server by given id, observing the given context.
+func (s *Speedtest) FetchServerByIDContext(ctx context.Context, id string) (*Server, error) {
+	u, err := url.Parse(speedTestServersAdvanced)
+	if err != nil {
+		return nil, err
+	}
+	query := u.Query()
+	query.Set(strings.ToLower("serverID"), id)
+	u.RawQuery = query.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := s.doer.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var list ServerList
+	decoder := xml.NewDecoder(resp.Body)
+	if err = decoder.Decode(&list); err != nil {
+		return nil, err
+	}
+
+	for i := range list.Servers {
+		if list.Servers[i].ID == id {
+			list.Servers[i].Context = s
+			return list.Servers[i], err
+		}
+	}
+	return nil, fmt.Errorf("can not found the server by %s", id)
 }
 
 // FetchServers retrieves a list of available servers
