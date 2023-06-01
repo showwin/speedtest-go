@@ -21,10 +21,10 @@ const (
 	speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
 )
 
-type PayloadType int
+type payloadType int
 
 const (
-	typeJSONPayload PayloadType = iota
+	typeJSONPayload payloadType = iota
 	typeXMLPayload
 )
 
