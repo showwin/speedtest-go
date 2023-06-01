@@ -24,8 +24,8 @@ const (
 type PayloadType int
 
 const (
-	JSONPayload PayloadType = iota
-	XMLPayload
+	typeJSONPayload PayloadType = iota
+	typeXMLPayload
 )
 
 // Server information
@@ -160,7 +160,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		return Servers{}, err
 	}
 
-	payloadType := JSONPayload
+	payloadType := typeJSONPayload
 
 	if resp.ContentLength == 0 {
 		resp.Body.Close()
@@ -175,7 +175,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 			return Servers{}, err
 		}
 
-		payloadType = XMLPayload
+		payloadType = typeXMLPayload
 	}
 
 	defer resp.Body.Close()
@@ -183,14 +183,14 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 	var servers Servers
 
 	switch payloadType {
-	case JSONPayload:
+	case typeJSONPayload:
 		// Decode xml
 		decoder := json.NewDecoder(resp.Body)
 
 		if err = decoder.Decode(&servers); err != nil {
 			return servers, err
 		}
-	case XMLPayload:
+	case typeXMLPayload:
 		var list ServerList
 		// Decode xml
 		decoder := xml.NewDecoder(resp.Body)
