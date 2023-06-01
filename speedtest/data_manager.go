@@ -29,8 +29,8 @@ type Manager interface {
 	CallbackDownloadRate(callback func(downRate float64)) *time.Ticker
 	CallbackUploadRate(callback func(upRate float64)) *time.Ticker
 
-	RegisterDownloadHandler(fn func()) *FuncGroup
-	RegisterUploadHandler(fn func()) *FuncGroup
+	RegisterDownloadHandler(fn func()) *funcGroup
+	RegisterUploadHandler(fn func()) *funcGroup
 
 	// Wait for the upload or download task to end to avoid errors caused by core occupation
 	Wait()
@@ -58,12 +58,12 @@ const typeEmptyChunk = 0
 const typeDownload = 1
 const typeUpload = 2
 
-type FuncGroup struct {
+type funcGroup struct {
 	fns     []func()
 	manager *DataManager
 }
 
-func (f *FuncGroup) Add(fn func()) {
+func (f *funcGroup) Add(fn func()) {
 	f.fns = append(f.fns, fn)
 }
 
@@ -85,8 +85,8 @@ type DataManager struct {
 
 	running bool
 
-	dFn *FuncGroup
-	uFn *FuncGroup
+	dFn *funcGroup
+	uFn *funcGroup
 }
 
 func NewDataManager() *DataManager {
@@ -95,8 +95,8 @@ func NewDataManager() *DataManager {
 		captureTime:          time.Second * 10,
 		rateCaptureFrequency: time.Millisecond * 100,
 	}
-	ret.dFn = &FuncGroup{manager: ret}
-	ret.uFn = &FuncGroup{manager: ret}
+	ret.dFn = &funcGroup{manager: ret}
+	ret.uFn = &funcGroup{manager: ret}
 	return ret
 }
 
@@ -139,21 +139,21 @@ func (dm *DataManager) Wait() {
 	}
 }
 
-func (dm *DataManager) RegisterUploadHandler(fn func()) *FuncGroup {
+func (dm *DataManager) RegisterUploadHandler(fn func()) *funcGroup {
 	if len(dm.uFn.fns) < dm.nThread {
 		dm.uFn.Add(fn)
 	}
 	return dm.uFn
 }
 
-func (dm *DataManager) RegisterDownloadHandler(fn func()) *FuncGroup {
+func (dm *DataManager) RegisterDownloadHandler(fn func()) *funcGroup {
 	if len(dm.dFn.fns) < dm.nThread {
 		dm.dFn.Add(fn)
 	}
 	return dm.dFn
 }
 
-func (f *FuncGroup) Start(cancel context.CancelFunc, mainRequestHandlerIndex int) {
+func (f *funcGroup) Start(cancel context.CancelFunc, mainRequestHandlerIndex int) {
 	if len(f.fns) == 0 {
 		panic("empty task stack")
 	}
