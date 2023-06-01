@@ -54,9 +54,9 @@ const readChunkSize = 1024 * 32 // 32 KBytes
 
 type DataType int32
 
-const TypeEmptyChunk = 0
-const TypeDownload = 1
-const TypeUpload = 2
+const typeEmptyChunk = 0
+const typeDownload = 1
+const typeUpload = 2
 
 type FuncGroup struct {
 	fns     []func()
@@ -329,9 +329,9 @@ func (dc *DataChunk) GetDuration() time.Duration {
 }
 
 func (dc *DataChunk) GetRate() float64 {
-	if dc.dateType == TypeDownload {
+	if dc.dateType == typeDownload {
 		return float64(dc.remainOrDiscardSize) / dc.GetDuration().Seconds()
-	} else if dc.dateType == TypeUpload {
+	} else if dc.dateType == typeUpload {
 		return float64(dc.ContentLength-dc.remainOrDiscardSize) * 8 / 1000 / 1000 / dc.GetDuration().Seconds()
 	}
 	return 0
@@ -340,11 +340,11 @@ func (dc *DataChunk) GetRate() float64 {
 // DownloadHandler No value will be returned here, because the error will interrupt the test.
 // The error chunk is generally caused by the remote server actively closing the connection.
 func (dc *DataChunk) DownloadHandler(r io.Reader) error {
-	if dc.dateType != TypeEmptyChunk {
+	if dc.dateType != typeEmptyChunk {
 		dc.err = errors.New("multiple calls to the same chunk handler are not allowed")
 		return dc.err
 	}
-	dc.dateType = TypeDownload
+	dc.dateType = typeDownload
 	dc.startTime = time.Now()
 	defer func() {
 		dc.endTime = time.Now()
@@ -371,7 +371,7 @@ func (dc *DataChunk) DownloadHandler(r io.Reader) error {
 }
 
 func (dc *DataChunk) UploadHandler(size int64) Chunk {
-	if dc.dateType != TypeEmptyChunk {
+	if dc.dateType != typeEmptyChunk {
 		dc.err = errors.New("multiple calls to the same chunk handler are not allowed")
 	}
 
@@ -381,7 +381,7 @@ func (dc *DataChunk) UploadHandler(size int64) Chunk {
 
 	dc.ContentLength = size
 	dc.remainOrDiscardSize = size
-	dc.dateType = TypeUpload
+	dc.dateType = typeUpload
 
 	if dc.manager.repeatByte == nil {
 		r := bytes.Repeat([]byte{0xAA}, readChunkSize) // uniformly distributed sequence of bits
