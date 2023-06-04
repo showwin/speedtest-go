@@ -32,7 +32,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 		return errors.New("not found available servers")
 	}
 	mainIDIndex := 0
-	var fp *FuncGroup
+	var fp *funcGroup
 	_context, cancel := context.WithCancel(ctx)
 	for i, server := range *ss {
 		if server.ID == s.ID {
@@ -59,7 +59,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		return errors.New("not found available servers")
 	}
 	mainIDIndex := 0
-	var fp *FuncGroup
+	var fp *funcGroup
 	_context, cancel := context.WithCancel(ctx)
 	for i, server := range *ss {
 		if server.ID == s.ID {
