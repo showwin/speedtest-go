@@ -1,6 +1,6 @@
 module github.com/showwin/speedtest-go
 
-go 1.18
+go 1.19
 
 require (
 	github.com/chelnak/ysmrr v0.2.1
