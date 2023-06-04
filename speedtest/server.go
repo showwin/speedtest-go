@@ -30,7 +30,7 @@ const (
 )
 
 var (
-	ErrEmptyServers = errors.New("no server available")
+	ErrServerNotFound = errors.New("no server available or found")
 )
 
 // Server information
@@ -177,7 +177,7 @@ func (s *Speedtest) FetchServerByIDContext(ctx context.Context, serverID string)
 			return list.Servers[i], err
 		}
 	}
-	return nil, ErrEmptyServers
+	return nil, ErrServerNotFound
 }
 
 // FetchServers retrieves a list of available servers
@@ -308,7 +308,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 	sort.Sort(ByDistance{servers})
 
 	if len(servers) <= 0 {
-		return servers, ErrEmptyServers
+		return servers, ErrServerNotFound
 	}
 	return servers, nil
 }
@@ -336,7 +336,7 @@ func (servers Servers) FindServer(serverID []int) (Servers, error) {
 	retServer := Servers{}
 
 	if len(servers) <= 0 {
-		return retServer, ErrEmptyServers
+		return retServer, ErrServerNotFound
 	}
 
 	for _, sid := range serverID {

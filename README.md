@@ -173,11 +173,18 @@ func main() {
 	// Select a network card as the data interface.
 	// speedtest.WithUserConfig(&speedtest.UserConfig{Source: "192.168.1.101"})(speedtestClient)
 	
+	// Get user's network information
 	// user, _ := speedtestClient.FetchUserInfo()
+	
 	// Get a list of servers near a specified location
 	// user.SetLocationByCity("Tokyo")
 	// user.SetLocation("Osaka", 34.6952, 135.5006)
-
+    
+	// Search server using serverID.
+	// eg: fetch server with ID 28910.
+	// speedtest.ErrEmptyServers will be returned if the server cannot be found.
+	// server, err := speedtest.FetchServerByID("28910")
+	
 	serverList, _ := speedtestClient.FetchServers()
 	targets, _ := serverList.FindServer([]int{})
 
