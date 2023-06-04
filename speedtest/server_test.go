@@ -140,6 +140,6 @@ func TestTotalDurationCount(t *testing.T) {
 	server.TestDuration.Ping = &pingTime
 	server.testDurationTotalCount()
 	if server.TestDuration.Total.Nanoseconds() != 22184365875 {
-		t.Error("addition in testDurationTotalCount do not works")
+		t.Error("addition in testDurationTotalCount didn't work")
 	}
 }
