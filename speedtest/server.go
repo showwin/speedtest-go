@@ -53,7 +53,7 @@ type Server struct {
 	ULSpeed      float64       `json:"ul_speed"`
 	TestDuration TestDuration  `json:"test_duration"`
 
-	Context *Speedtest
+	Context *Speedtest `json:"-"`
 }
 
 type TestDuration struct {
