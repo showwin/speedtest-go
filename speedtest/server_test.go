@@ -126,7 +126,7 @@ func TestTotalDurationCount(t *testing.T) {
 	server.TestDuration.Upload = &uploadTime
 	server.testDurationTotalCount()
 	if server.TestDuration.Total.Nanoseconds() != 10000805542 {
-		t.Error("addition in testDurationTotalCount do not works")
+		t.Error("addition in testDurationTotalCount didn't work")
 	}
 
 	downloadTime := time.Duration(10000403875)
