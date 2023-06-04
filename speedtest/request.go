@@ -205,12 +205,7 @@ func (s *Server) TestAll() error {
 	if err != nil {
 		return err
 	}
-	err = s.UploadTest()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.UploadTest()
 }
 
 func (s *Server) HTTPPing(
