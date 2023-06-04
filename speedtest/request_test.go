@@ -32,7 +32,7 @@ func TestDownloadTestContext(t *testing.T) {
 		t.Errorf("got unexpected server.DLSpeed '%v', expected between %v and %v", server.DLSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
 	if server.TestDuration.Download == nil || *server.TestDuration.Download != *server.TestDuration.Total {
-		t.Errorf("cant count test duration, server.TestDuration.Download=%v, server.TestDuration.Total=%v", server.TestDuration.Download, server.TestDuration.Total)
+		t.Errorf("can't count test duration, server.TestDuration.Download=%v, server.TestDuration.Total=%v", server.TestDuration.Download, server.TestDuration.Total)
 	}
 }
 
