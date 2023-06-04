@@ -32,7 +32,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 		return errors.New("not found available servers")
 	}
 	mainIDIndex := 0
-	var fp *FuncGroup
+	var fp *funcGroup
 	_context, cancel := context.WithCancel(ctx)
 	for i, server := range *ss {
 		if server.ID == s.ID {
@@ -59,7 +59,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		return errors.New("not found available servers")
 	}
 	mainIDIndex := 0
-	var fp *FuncGroup
+	var fp *funcGroup
 	_context, cancel := context.WithCancel(ctx)
 	for i, server := range *ss {
 		if server.ID == s.ID {
@@ -91,11 +91,15 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 		dbg.Println("Download test disabled")
 		return nil
 	}
+	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterDownloadHandler(func() {
 		_ = downloadRequest(_context, s, 3)
 	}).Start(cancel, 0)
+	duration := time.Since(start)
 	s.DLSpeed = s.Context.GetAvgDownloadRate()
+	s.TestDuration.Download = &duration
+	s.testDurationTotalCount()
 	return nil
 }
 
@@ -114,11 +118,15 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 		dbg.Println("Upload test disabled")
 		return nil
 	}
+	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterUploadHandler(func() {
 		_ = uploadRequest(_context, s, 4)
 	}).Start(cancel, 0)
+	duration := time.Since(start)
 	s.ULSpeed = s.Context.GetAvgUploadRate()
+	s.TestDuration.Upload = &duration
+	s.testDurationTotalCount()
 	return nil
 }
 
@@ -165,6 +173,7 @@ func (s *Server) PingTest(callback func(latency time.Duration)) error {
 
 // PingTestContext executes test to measure latency, observing the given context.
 func (s *Server) PingTestContext(ctx context.Context, callback func(latency time.Duration)) (err error) {
+	start := time.Now()
 	var vectorPingResult []int64
 	if s.Context.config.ICMP {
 		vectorPingResult, err = s.ICMPPing(ctx, time.Second*4, 10, time.Millisecond*200, callback)
@@ -176,11 +185,27 @@ func (s *Server) PingTestContext(ctx context.Context, callback func(latency time
 	}
 	dbg.Printf("Before StandardDeviation: %v\n", vectorPingResult)
 	mean, _, std, min, max := standardDeviation(vectorPingResult)
+	duration := time.Since(start)
 	s.Latency = time.Duration(mean) * time.Nanosecond
 	s.Jitter = time.Duration(std) * time.Nanosecond
 	s.MinLatency = time.Duration(min) * time.Nanosecond
 	s.MaxLatency = time.Duration(max) * time.Nanosecond
+	s.TestDuration.Ping = &duration
+	s.testDurationTotalCount()
 	return nil
+}
+
+// TestAll executes ping, download and upload tests one by one
+func (s *Server) TestAll() error {
+	err := s.PingTest(nil)
+	if err != nil {
+		return err
+	}
+	err = s.DownloadTest()
+	if err != nil {
+		return err
+	}
+	return s.UploadTest()
 }
 
 func (s *Server) HTTPPing(

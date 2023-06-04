@@ -22,11 +22,11 @@ const (
 	speedTestServersAdvanced       = "https://www.speedtest.net/api/ios-config.php"
 )
 
-type PayloadType int
+type payloadType int
 
 const (
-	JSONPayload PayloadType = iota
-	XMLPayload
+	typeJSONPayload payloadType = iota
+	typeXMLPayload
 )
 
 var (
@@ -35,24 +35,32 @@ var (
 
 // Server information
 type Server struct {
-	URL        string        `xml:"url,attr" json:"url"`
-	Lat        string        `xml:"lat,attr" json:"lat"`
-	Lon        string        `xml:"lon,attr" json:"lon"`
-	Name       string        `xml:"name,attr" json:"name"`
-	Country    string        `xml:"country,attr" json:"country"`
-	Sponsor    string        `xml:"sponsor,attr" json:"sponsor"`
-	ID         string        `xml:"id,attr" json:"id"`
-	URL2       string        `xml:"url2,attr" json:"url_2"`
-	Host       string        `xml:"host,attr" json:"host"`
-	Distance   float64       `json:"distance"`
-	Latency    time.Duration `json:"latency"`
-	MaxLatency time.Duration `json:"max_latency"`
-	MinLatency time.Duration `json:"min_latency"`
-	Jitter     time.Duration `json:"jitter"`
-	DLSpeed    float64       `json:"dl_speed"`
-	ULSpeed    float64       `json:"ul_speed"`
+	URL          string        `xml:"url,attr" json:"url"`
+	Lat          string        `xml:"lat,attr" json:"lat"`
+	Lon          string        `xml:"lon,attr" json:"lon"`
+	Name         string        `xml:"name,attr" json:"name"`
+	Country      string        `xml:"country,attr" json:"country"`
+	Sponsor      string        `xml:"sponsor,attr" json:"sponsor"`
+	ID           string        `xml:"id,attr" json:"id"`
+	URL2         string        `xml:"url2,attr" json:"url_2"`
+	Host         string        `xml:"host,attr" json:"host"`
+	Distance     float64       `json:"distance"`
+	Latency      time.Duration `json:"latency"`
+	MaxLatency   time.Duration `json:"max_latency"`
+	MinLatency   time.Duration `json:"min_latency"`
+	Jitter       time.Duration `json:"jitter"`
+	DLSpeed      float64       `json:"dl_speed"`
+	ULSpeed      float64       `json:"ul_speed"`
+	TestDuration TestDuration  `json:"test_duration"`
 
 	Context *Speedtest
+}
+
+type TestDuration struct {
+	Ping     *time.Duration `json:"ping"`
+	Download *time.Duration `json:"download"`
+	Upload   *time.Duration `json:"upload"`
+	Total    *time.Duration `json:"total"`
 }
 
 // CustomServer use defaultClient, given a URL string, return a new Server object, with as much
@@ -208,7 +216,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		return Servers{}, err
 	}
 
-	payloadType := JSONPayload
+	payloadType := typeJSONPayload
 
 	if resp.ContentLength == 0 {
 		_ = resp.Body.Close()
@@ -223,7 +231,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 			return Servers{}, err
 		}
 
-		payloadType = XMLPayload
+		payloadType = typeXMLPayload
 	}
 
 	defer resp.Body.Close()
@@ -231,14 +239,14 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 	var servers Servers
 
 	switch payloadType {
-	case JSONPayload:
+	case typeJSONPayload:
 		// Decode xml
 		decoder := json.NewDecoder(resp.Body)
 
 		if err = decoder.Decode(&servers); err != nil {
 			return servers, err
 		}
-	case XMLPayload:
+	case typeXMLPayload:
 		var list ServerList
 		// Decode xml
 		decoder := xml.NewDecoder(resp.Body)
@@ -387,4 +395,19 @@ func (s *Server) String() string {
 // CheckResultValid checks that results are logical given UL and DL speeds
 func (s *Server) CheckResultValid() bool {
 	return !(s.DLSpeed*100 < s.ULSpeed) || !(s.DLSpeed > s.ULSpeed*100)
+}
+
+func (s *Server) testDurationTotalCount() {
+	total := s.getNotNullValue(s.TestDuration.Ping) +
+		s.getNotNullValue(s.TestDuration.Download) +
+		s.getNotNullValue(s.TestDuration.Upload)
+
+	s.TestDuration.Total = &total
+}
+
+func (s *Server) getNotNullValue(time *time.Duration) time.Duration {
+	if time == nil {
+		return 0
+	}
+	return *time
 }

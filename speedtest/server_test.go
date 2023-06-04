@@ -1,6 +1,9 @@
 package speedtest
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestFetchServerList(t *testing.T) {
 	client := New()
@@ -135,5 +138,30 @@ func TestFetchServerByID(t *testing.T) {
 		if server != nil && (server.ID == id) != b {
 			t.Errorf("id %s == %s is not %v", id, server.ID, b)
 		}
+  }
+}
+
+func TestTotalDurationCount(t *testing.T) {
+	server, _ := CustomServer("https://example.com/upload.php")
+
+	uploadTime := time.Duration(10000805542)
+	server.TestDuration.Upload = &uploadTime
+	server.testDurationTotalCount()
+	if server.TestDuration.Total.Nanoseconds() != 10000805542 {
+		t.Error("addition in testDurationTotalCount didn't work")
+	}
+
+	downloadTime := time.Duration(10000403875)
+	server.TestDuration.Download = &downloadTime
+	server.testDurationTotalCount()
+	if server.TestDuration.Total.Nanoseconds() != 20001209417 {
+		t.Error("addition in testDurationTotalCount do didn't work")
+	}
+
+	pingTime := time.Duration(2183156458)
+	server.TestDuration.Ping = &pingTime
+	server.testDurationTotalCount()
+	if server.TestDuration.Total.Nanoseconds() != 22184365875 {
+		t.Error("addition in testDurationTotalCount didn't work")
 	}
 }

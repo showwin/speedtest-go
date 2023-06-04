@@ -28,9 +28,11 @@ func TestDownloadTestContext(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	fmt.Println(GlobalDataManager.DownloadRateSequence)
 	if server.DLSpeed < idealSpeed*(1-delta) || idealSpeed*(1+delta) < server.DLSpeed {
 		t.Errorf("got unexpected server.DLSpeed '%v', expected between %v and %v", server.DLSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
+	}
+	if server.TestDuration.Download == nil || *server.TestDuration.Download != *server.TestDuration.Total {
+		t.Errorf("can't count test duration, server.TestDuration.Download=%v, server.TestDuration.Total=%v", server.TestDuration.Download, server.TestDuration.Total)
 	}
 }
 
@@ -58,6 +60,9 @@ func TestUploadTestContext(t *testing.T) {
 	}
 	if server.ULSpeed < idealSpeed*(1-delta) || idealSpeed*(1+delta) < server.ULSpeed {
 		t.Errorf("got unexpected server.ULSpeed '%v', expected between %v and %v", server.ULSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
+	}
+	if server.TestDuration.Upload == nil || *server.TestDuration.Upload != *server.TestDuration.Total {
+		t.Errorf("can't count test duration, server.TestDuration.Upload=%v, server.TestDuration.Total=%v", server.TestDuration.Upload, server.TestDuration.Total)
 	}
 }
 
