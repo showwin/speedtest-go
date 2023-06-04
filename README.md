@@ -50,6 +50,7 @@ Flags:
       --search=SEARCH          Fuzzy search servers by a keyword.
       --no-download            Disable download test.
       --no-upload              Disable upload test.
+      --force-http-ping        Force ping using http.
   -d  --debug                  Enable debug mode.
       --version                Show application version.
 ```
@@ -172,19 +173,19 @@ func main() {
 	// Select a network card as the data interface.
 	// speedtest.WithUserConfig(&speedtest.UserConfig{Source: "192.168.1.101"})(speedtestClient)
 	
-	user, _ := speedtestClient.FetchUserInfo()
+	// user, _ := speedtestClient.FetchUserInfo()
 	// Get a list of servers near a specified location
 	// user.SetLocationByCity("Tokyo")
 	// user.SetLocation("Osaka", 34.6952, 135.5006)
 
-	serverList, _ := speedtestClient.FetchServers(user)
+	serverList, _ := speedtestClient.FetchServers()
 	targets, _ := serverList.FindServer([]int{})
 
 	for _, s := range targets {
 		// Please make sure your host can access this test server,
 		// otherwise you will get an error.
 		// It is recommended to replace a server at this time
-		s.PingTest()
+		s.PingTest(nil)
 		s.DownloadTest()
 		s.UploadTest()
 		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
