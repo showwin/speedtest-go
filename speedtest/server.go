@@ -19,6 +19,7 @@ import (
 const (
 	speedTestServersUrl            = "https://www.speedtest.net/api/js/servers"
 	speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
+	speedTestServersAdvanced       = "https://www.speedtest.net/api/ios-config.php"
 )
 
 type payloadType int
@@ -26,6 +27,10 @@ type payloadType int
 const (
 	typeJSONPayload payloadType = iota
 	typeXMLPayload
+)
+
+var (
+	ErrEmptyServers = errors.New("no server available")
 )
 
 // Server information
@@ -132,6 +137,49 @@ func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
 }
 
+// FetchServerByID retrieves a server by given serverID.
+func (s *Speedtest) FetchServerByID(serverID string) (*Server, error) {
+	return s.FetchServerByIDContext(context.Background(), serverID)
+}
+
+// FetchServerByID retrieves a server by given serverID.
+func FetchServerByID(serverID string) (*Server, error) {
+	return defaultClient.FetchServerByID(serverID)
+}
+
+// FetchServerByIDContext retrieves a server by given serverID, observing the given context.
+func (s *Speedtest) FetchServerByIDContext(ctx context.Context, serverID string) (*Server, error) {
+	u, err := url.Parse(speedTestServersAdvanced)
+	if err != nil {
+		return nil, err
+	}
+	query := u.Query()
+	query.Set(strings.ToLower("serverID"), serverID)
+	u.RawQuery = query.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := s.doer.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var list ServerList
+	decoder := xml.NewDecoder(resp.Body)
+	if err = decoder.Decode(&list); err != nil {
+		return nil, err
+	}
+
+	for i := range list.Servers {
+		if list.Servers[i].ID == serverID {
+			list.Servers[i].Context = s
+			return list.Servers[i], err
+		}
+	}
+	return nil, ErrEmptyServers
+}
+
 // FetchServers retrieves a list of available servers
 func (s *Speedtest) FetchServers() (Servers, error) {
 	return s.FetchServerListContext(context.Background())
@@ -171,7 +219,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 	payloadType := typeJSONPayload
 
 	if resp.ContentLength == 0 {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		req, err = http.NewRequestWithContext(ctx, http.MethodGet, speedTestServersAlternativeUrl, nil)
 		if err != nil {
@@ -209,7 +257,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 
 		servers = list.Servers
 	default:
-		return servers, fmt.Errorf("response payload decoding not implemented")
+		return servers, errors.New("response payload decoding not implemented")
 	}
 
 	dbg.Printf("Servers Num: %d\n", len(servers))
@@ -260,7 +308,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 	sort.Sort(ByDistance{servers})
 
 	if len(servers) <= 0 {
-		return servers, errors.New("unable to retrieve server list")
+		return servers, ErrEmptyServers
 	}
 	return servers, nil
 }
@@ -282,12 +330,13 @@ func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 	return radius * math.Acos(x)
 }
 
-// FindServer finds server by serverID
+// FindServer finds server by serverID in given server list.
+// If the id is not found in the given list, return the server with the lowest latency.
 func (servers Servers) FindServer(serverID []int) (Servers, error) {
 	retServer := Servers{}
 
 	if len(servers) <= 0 {
-		return retServer, errors.New("no servers available")
+		return retServer, ErrEmptyServers
 	}
 
 	for _, sid := range serverID {

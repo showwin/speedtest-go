@@ -119,6 +119,28 @@ func TestCustomServer(t *testing.T) {
 	}
 }
 
+func TestFetchServerByID(t *testing.T) {
+	testData := map[string]bool{
+		"45170":     true,
+		"-99999999": false,
+		"14656":     true,
+		"28910":     true,
+		"どうも":       false,
+		"hello":     false,
+		"你好":        false,
+	}
+
+	for id, b := range testData {
+		server, err := FetchServerByID(id)
+		if err != nil && b {
+			t.Error(err)
+		}
+		if server != nil && (server.ID == id) != b {
+			t.Errorf("id %s == %s is not %v", id, server.ID, b)
+		}
+  }
+}
+
 func TestTotalDurationCount(t *testing.T) {
 	server, _ := CustomServer("https://example.com/upload.php")
 
