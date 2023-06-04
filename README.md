@@ -182,7 +182,7 @@ func main() {
     
 	// Search server using serverID.
 	// eg: fetch server with ID 28910.
-	// speedtest.ErrEmptyServers will be returned if the server cannot be found.
+	// speedtest.ErrServerNotFound will be returned if the server cannot be found.
 	// server, err := speedtest.FetchServerByID("28910")
 	
 	serverList, _ := speedtestClient.FetchServers()
