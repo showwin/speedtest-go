@@ -225,18 +225,26 @@ func (dm *DataManager) rateCapture() *time.Ticker {
 	oldTotalDownload := dm.totalDownload
 	oldTotalUpload := dm.totalUpload
 	go func() {
-		for range ticker.C {
-			newTotalDownload := dm.totalDownload
-			newTotalUpload := dm.totalUpload
-			deltaDownload := newTotalDownload - oldTotalDownload
-			deltaUpload := newTotalUpload - oldTotalUpload
-			oldTotalDownload = newTotalDownload
-			oldTotalUpload = newTotalUpload
-			if deltaDownload != 0 {
-				dm.DownloadRateSequence = append(dm.DownloadRateSequence, deltaDownload)
-			}
-			if deltaUpload != 0 {
-				dm.UploadRateSequence = append(dm.UploadRateSequence, deltaUpload)
+	loop:
+		for {
+			select {
+			case <-ticker.C:
+				newTotalDownload := dm.totalDownload
+				newTotalUpload := dm.totalUpload
+				deltaDownload := newTotalDownload - oldTotalDownload
+				deltaUpload := newTotalUpload - oldTotalUpload
+				oldTotalDownload = newTotalDownload
+				oldTotalUpload = newTotalUpload
+				if deltaDownload != 0 {
+					dm.DownloadRateSequence = append(dm.DownloadRateSequence, deltaDownload)
+				}
+				if deltaUpload != 0 {
+					dm.UploadRateSequence = append(dm.UploadRateSequence, deltaUpload)
+				}
+			default:
+				if !dm.running {
+					break loop
+				}
 			}
 		}
 	}()
