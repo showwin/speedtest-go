@@ -36,13 +36,9 @@ builds:
       - hardfloat
       - softfloat
 archives:
-  - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      openbsd: OpenBSD
-      386: i386
-      amd64: x86_64
+  - name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ if eq .Os "openbsd" }}OpenBSD{{ else }}{{ title .Os }}{{ end }}_{{ if eq .Arch "386" }}i386{{ else if eq .Arch "amd64" }}x86_64{{ else }}{{ .Arch }}{{ end }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}
+
 checksum:
   name_template: 'checksums.txt'
 snapshot:
