@@ -344,6 +344,7 @@ func (servers Servers) FindServer(serverID []int) (Servers, error) {
 			id, _ := strconv.Atoi(s.ID)
 			if sid == id {
 				retServer = append(retServer, s)
+				break
 			}
 		}
 	}
