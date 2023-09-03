@@ -1,10 +1,8 @@
 # speedtest-go
-**Command Line Interface and pure Go API to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)**.
+**Command Line Interface and pure [Go API](#go-api) to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)**.
 
 You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/) with almost the same result. [See the experimental results](https://github.com/showwin/speedtest-go#summary-of-experimental-results).
 Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
-
-Go API Installation below.
 
 ## CLI
 ### Installation
@@ -17,6 +15,12 @@ $ brew install speedtest
 ### How to Update ###
 $ brew update
 $ brew upgrade speedtest
+```
+
+#### [Nix](https://nixos.org) (package manager)
+```bash
+# Enter the latest speedtest-go environment
+$ nix-shell -p speedtest-go
 ```
 
 #### Other Platforms (Linux, Windows, etc.)
@@ -61,21 +65,19 @@ Simply use `speedtest` command. The closest server is selected by default. Use t
 
 ```bash
 $ speedtest
-Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 
-Target Server: [6691]     9.03km Shizuoka (Japan) by sudosan
-Latency: 24.15396ms
-Jitter: 777.465µs
-Min: 22.8926ms
-Max: 25.5387ms
-Download Test: ................
-Upload Test: ................
+    speedtest-go v1.6.5 @showwin
 
-Download: 73.30 Mbit/s
-Upload: 35.26 Mbit/s
+✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
+✓ Found 20 Public Servers
+
+✓ Test Server: [6691] 9.03km Shizuoka (Japan) by sudosan
+✓ Latency: 24.15396ms Jitter: 777.465µs Min: 22.8926ms Max: 25.5387ms
+✓ Download: 73.30Mbps (used: 101.48MB)
+✓ Upload: 35.26Mbps (used: 47.33MB)
 ```
 
-#### Test to Other Servers
+#### Test with Other Servers
 
 If you want to select other servers to test, you can see the available server list.
 
@@ -93,26 +95,22 @@ and select them by id.
 
 ```bash
 $ speedtest --server 6691 --server 6087
-Testing From IP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 
-Target Server: [6691]     9.03km Shizuoka (Japan) by sudosan
-Latency: 21.424ms
-Jitter: 1.644ms
-Min: 19.142ms
-Max: 23.926ms
-Download Test: ................
-Upload Test: ........
+    speedtest-go v1.6.5 @showwin
 
-Target Server: [6087]   120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
-Latency: 38.694699ms
-Jitter: 2.724ms
-Min: 36.443ms
-Max: 39.953ms
-Download Test: ................
-Upload Test: ................
+✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
+✓ Found 20 Public Servers
 
-[6691] Download: 65.82 Mbit/s, Upload: 27.00 Mbit/s
-[6087] Download: 72.24 Mbit/s, Upload: 29.56 Mbit/s
+✓ Test Server: [6691] 9.03km Shizuoka (Japan) by sudosan
+✓ Latency: 21.424ms Jitter: 1.644ms Min: 19.142ms Max: 23.926ms
+✓ Download: 65.82Mbps (used: 75.48MB)
+✓ Upload: 27.00Mbps (used: 36.33MB)
+
+✓ Test Server: [6087] 120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
+✓ Latency: 38.694699ms Jitter: 2.724ms Min: 36.443ms Max: 39.953ms
+✓ Download: 72.24Mbps (used: 83.72MB)
+✓ Upload: 29.56Mbps (used: 47.64MB)
+
 Download Avg: 69.03 Mbit/s
 Upload Avg: 28.28 Mbit/s
 ```
@@ -145,11 +143,11 @@ To get more accurate results, run multiple times and average.
 
 For more details, please see [saving mode experimental result](https://github.com/showwin/speedtest-go/blob/master/docs/saving_mode_experimental_result.md).
 
-⚠️This feature has been deprecated > v1.4.0, because speedtest-go can always run with less than 10MByte of memory now. Even so, `--saving-mode` is still a good way to save computer performance.
+⚠️This feature has been deprecated > v1.4.0, because speedtest-go can always run with less than 10MBytes of memory now. Even so, `--saving-mode` is still a good way to reduce computation.
 
 ## Go API
 
-```
+```bash
 go get github.com/showwin/speedtest-go
 ```
 
