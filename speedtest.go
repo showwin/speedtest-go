@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/showwin/speedtest-go/speedtest"
@@ -78,6 +79,17 @@ func main() {
 			task.CheckError(err)
 			targets = []*speedtest.Server{target}
 			task.Println("Skip: Using Custom Server")
+		} else if len(*serverIds) > 0 {
+			// TODO: need async fetch to speedup
+			for _, id := range *serverIds {
+				serverPtr, errFetch := speedtestClient.FetchServerByID(strconv.Itoa(id))
+				if errFetch != nil {
+					continue // Silently Skip all ids that actually don't exist.
+				}
+				targets = append(targets, serverPtr)
+			}
+			task.CheckError(err)
+			task.Printf("Found %d Specified Public Servers", len(targets))
 		} else {
 			servers, err = speedtestClient.FetchServers()
 			task.CheckError(err)
