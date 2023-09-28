@@ -179,7 +179,7 @@ func showServerList(servers speedtest.Servers) {
 func AppInfo() {
 	if !*jsonOutput {
 		fmt.Println()
-		fmt.Printf("    😊 speedtest-go v%s @showwin 😊\n", speedtest.Version())
+		fmt.Printf("    speedtest-go v%s @showwin\n", speedtest.Version())
 		fmt.Println()
 	}
 }
