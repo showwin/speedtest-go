@@ -32,7 +32,7 @@ func main() {
 		checkError(s.UploadTest())
 
 		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
-		//speedtest.GlobalDataManager.Reset()
+		s.Context.Reset()
 	}
 }
 
