@@ -35,6 +35,7 @@ type Manager interface {
 	// Wait for the upload or download task to end to avoid errors caused by core occupation
 	Wait()
 	Reset()
+	Snapshots() *Snapshots
 
 	SetNThread(n int) Manager
 }
@@ -74,7 +75,8 @@ type DataManager struct {
 	DownloadRateSequence []int64
 	UploadRateSequence   []int64
 
-	DataGroup []*DataChunk
+	SnapshotStore *Snapshots
+	Snapshot      *Snapshot
 	sync.Mutex
 
 	repeatByte *[]byte
@@ -94,9 +96,11 @@ func NewDataManager() *DataManager {
 		nThread:              runtime.NumCPU(),
 		captureTime:          time.Second * 10,
 		rateCaptureFrequency: time.Millisecond * 100,
+		Snapshot:             &Snapshot{},
 	}
 	ret.dFn = &funcGroup{manager: ret}
 	ret.uFn = &funcGroup{manager: ret}
+	ret.SnapshotStore = newRecentSnapshots(maxSnapshotSize)
 	return ret
 }
 
@@ -257,7 +261,7 @@ func (dm *DataManager) NewChunk() Chunk {
 	var dc DataChunk
 	dc.manager = dm
 	dm.Lock()
-	dm.DataGroup = append(dm.DataGroup, &dc)
+	*dm.Snapshot = append(*dm.Snapshot, &dc)
 	dm.Unlock()
 	return &dc
 }
@@ -297,10 +301,15 @@ func (dm *DataManager) SetNThread(n int) Manager {
 	return dm
 }
 
+func (dm *DataManager) Snapshots() *Snapshots {
+	return dm.SnapshotStore
+}
+
 func (dm *DataManager) Reset() {
 	dm.totalDownload = 0
 	dm.totalUpload = 0
-	dm.DataGroup = []*DataChunk{}
+	dm.SnapshotStore.push(dm.Snapshot)
+	dm.Snapshot = &Snapshot{}
 	dm.DownloadRateSequence = []int64{}
 	dm.UploadRateSequence = []int64{}
 	dm.dFn.fns = []func(){}
@@ -495,4 +504,40 @@ func sampleVariance(vector []int64) (mean, variance, stdDev, min, max int64) {
 	return
 }
 
-var GlobalDataManager = NewDataManager()
+const maxSnapshotSize = 10
+
+type Snapshot []*DataChunk
+
+type Snapshots struct {
+	sp      []*Snapshot
+	maxSize int
+}
+
+func newRecentSnapshots(size int) *Snapshots {
+	return &Snapshots{
+		sp:      make([]*Snapshot, 0, size),
+		maxSize: size,
+	}
+}
+
+func (rs *Snapshots) push(value *Snapshot) {
+	if len(rs.sp) == rs.maxSize {
+		rs.sp = rs.sp[1:]
+	}
+	rs.sp = append(rs.sp, value)
+}
+
+func (rs *Snapshots) Latest() *Snapshot {
+	if len(rs.sp) > 0 {
+		return rs.sp[len(rs.sp)-1]
+	}
+	return nil
+}
+
+func (rs *Snapshots) All() []*Snapshot {
+	return rs.sp
+}
+
+func (rs *Snapshots) Clean() {
+	rs.sp = make([]*Snapshot, 0, rs.maxSize)
+}

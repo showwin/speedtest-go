@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/showwin/speedtest-go/speedtest"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
