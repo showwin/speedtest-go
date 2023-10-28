@@ -9,7 +9,7 @@ import (
 
 func BenchmarkDataManager_NewDataChunk(b *testing.B) {
 	dmp := NewDataManager()
-	dmp.DataGroup = make([]*DataChunk, 64)
+	dmp.Reset()
 	for i := 0; i < b.N; i++ {
 		dmp.NewChunk()
 	}
@@ -41,10 +41,11 @@ func TestDataManager_AddTotalDownload(t *testing.T) {
 }
 
 func TestDataManager_GetAvgDownloadRate(t *testing.T) {
-	GlobalDataManager.totalDownload = 3000000
-	GlobalDataManager.captureTime = time.Second * 10
+	dm := NewDataManager()
+	dm.totalDownload = 3000000
+	dm.captureTime = time.Second * 10
 
-	result := GlobalDataManager.GetAvgDownloadRate()
+	result := dm.GetAvgDownloadRate()
 	if result != 2.4 {
 		t.Fatal()
 	}
@@ -52,16 +53,19 @@ func TestDataManager_GetAvgDownloadRate(t *testing.T) {
 
 func TestDynamicRate(t *testing.T) {
 
-	oldDownTotal := GlobalDataManager.GetTotalDownload()
-	oldUpTotal := GlobalDataManager.GetTotalUpload()
+	server, _ := CustomServer("http://shenzhen.cmcc.speedtest.shunshiidc.com:8080/speedtest/upload.php")
+	//server, _ := CustomServer("http://192.168.5.237:8080/speedtest/upload.php")
 
-	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 100)
-	GlobalDataManager.SetCaptureTime(time.Second)
+	oldDownTotal := server.Context.Manager.GetTotalDownload()
+	oldUpTotal := server.Context.Manager.GetTotalUpload()
+
+	server.Context.Manager.SetRateCaptureFrequency(time.Millisecond * 100)
+	server.Context.Manager.SetCaptureTime(time.Second)
 	go func() {
 		for i := 0; i < 2; i++ {
 			time.Sleep(time.Second)
-			newDownTotal := GlobalDataManager.GetTotalDownload()
-			newUpTotal := GlobalDataManager.GetTotalUpload()
+			newDownTotal := server.Context.Manager.GetTotalDownload()
+			newUpTotal := server.Context.Manager.GetTotalUpload()
 
 			downRate := float64(newDownTotal-oldDownTotal) * 8 / 1000 / 1000
 			upRate := float64(newUpTotal-oldUpTotal) * 8 / 1000 / 1000
@@ -71,16 +75,13 @@ func TestDynamicRate(t *testing.T) {
 		}
 	}()
 
-	server, _ := CustomServer("http://shenzhen.cmcc.speedtest.shunshiidc.com:8080/speedtest/upload.php")
-	//server, _ := CustomServer("http://192.168.5.237:8080/speedtest/upload.php")
-
 	err := server.DownloadTest()
 	if err != nil {
 		fmt.Println("Warning: not found server")
 		//t.Error(err)
 	}
 
-	GlobalDataManager.Wait()
+	server.Context.Manager.Wait()
 
 	err = server.UploadTest()
 	if err != nil {
