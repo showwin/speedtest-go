@@ -54,7 +54,7 @@ Flags:
       --search=SEARCH          Fuzzy search servers by a keyword.
       --no-download            Disable download test.
       --no-upload              Disable upload test.
-      --force-http-ping        Force ping using http.
+      --ping-mode              Select a method for Ping. (support icmp/tcp/http)
   -d  --debug                  Enable debug mode.
       --version                Show application version.
 ```
@@ -194,6 +194,7 @@ func main() {
 		s.DownloadTest()
 		s.UploadTest()
 		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
+		s.
 	}
 }
 ```
