@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/showwin/speedtest-go/speedtest/tcp"
 	"math"
 	"net/http"
 	"net/url"
@@ -20,6 +21,10 @@ type (
 var (
 	dlSizes = [...]int{350, 500, 750, 1000, 1500, 2000, 2500, 3000, 3500, 4000}
 	ulSizes = [...]int{100, 300, 500, 800, 1000, 1500, 2500, 3000, 3500, 4000} // kB
+)
+
+var (
+	ErrConnectTimeout = errors.New("server connect timeout")
 )
 
 func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) error {
@@ -175,10 +180,12 @@ func (s *Server) PingTest(callback func(latency time.Duration)) error {
 func (s *Server) PingTestContext(ctx context.Context, callback func(latency time.Duration)) (err error) {
 	start := time.Now()
 	var vectorPingResult []int64
-	if s.Context.config.ICMP {
+	if s.Context.config.PingMode == TCP {
+		vectorPingResult, err = s.TCPPing(ctx, 10, time.Millisecond*200, callback)
+	} else if s.Context.config.PingMode == ICMP {
 		vectorPingResult, err = s.ICMPPing(ctx, time.Second*4, 10, time.Millisecond*200, callback)
 	} else {
-		vectorPingResult, err = s.HTTPPing(ctx, 10, time.Millisecond*200, nil)
+		vectorPingResult, err = s.HTTPPing(ctx, 10, time.Millisecond*200, callback)
 	}
 	if err != nil || len(vectorPingResult) == 0 {
 		return err
@@ -206,6 +213,46 @@ func (s *Server) TestAll() error {
 		return err
 	}
 	return s.UploadTest()
+}
+
+func (s *Server) TCPPing(
+	ctx context.Context,
+	echoTimes int,
+	echoFreq time.Duration,
+	callback func(latency time.Duration),
+) (latencies []int64, err error) {
+	var pingDst string
+	if len(s.Host) == 0 {
+		u, err := url.Parse(s.URL)
+		if err != nil || len(u.Host) == 0 {
+			return nil, err
+		}
+		pingDst = u.Host
+	} else {
+		pingDst = s.Host
+	}
+	failTimes := 0
+	client := tcp.NewClient(s.Context.tcpDialer, pingDst)
+	err = client.Connect()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < echoTimes; i++ {
+		latency, err := client.PingContext(ctx)
+		if err != nil {
+			failTimes++
+			continue
+		}
+		latencies = append(latencies, latency)
+		if callback != nil {
+			callback(time.Duration(latency))
+		}
+		time.Sleep(echoFreq)
+	}
+	if failTimes == echoTimes {
+		return nil, ErrConnectTimeout
+	}
+	return
 }
 
 func (s *Server) HTTPPing(
@@ -241,7 +288,7 @@ func (s *Server) HTTPPing(
 		time.Sleep(echoFreq)
 	}
 	if failTimes == echoTimes {
-		return nil, errors.New("server connect timeout")
+		return nil, ErrConnectTimeout
 	}
 	return
 }
@@ -318,7 +365,7 @@ func (s *Server) ICMPPing(
 		time.Sleep(echoFreq)
 	}
 	if failTimes == echoTimes {
-		return nil, errors.New("server connect timeout")
+		return nil, ErrConnectTimeout
 	}
 	return
 }

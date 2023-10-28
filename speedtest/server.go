@@ -95,6 +95,7 @@ func (s *Speedtest) CustomServer(host string) (*Server, error) {
 // ServerList list of Server
 type ServerList struct {
 	Servers []*Server `xml:"servers>server"`
+	Users   []User    `xml:"client"`
 }
 
 // Servers for sorting servers.
@@ -174,6 +175,13 @@ func (s *Speedtest) FetchServerByIDContext(ctx context.Context, serverID string)
 	for i := range list.Servers {
 		if list.Servers[i].ID == serverID {
 			list.Servers[i].Context = s
+			if len(list.Users) > 0 {
+				sLat, _ := strconv.ParseFloat(list.Servers[i].Lat, 64)
+				sLon, _ := strconv.ParseFloat(list.Servers[i].Lon, 64)
+				uLat, _ := strconv.ParseFloat(list.Users[0].Lat, 64)
+				uLon, _ := strconv.ParseFloat(list.Users[0].Lon, 64)
+				list.Servers[i].Distance = distance(sLat, sLon, uLat, uLon)
+			}
 			return list.Servers[i], err
 		}
 	}
@@ -274,7 +282,9 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		wg.Add(1)
 		go func(gs *Server) {
 			var latency []int64
-			if s.config.ICMP {
+			if s.config.PingMode == TCP {
+				latency, err = gs.TCPPing(pCtx, 1, time.Millisecond, nil)
+			} else if s.config.PingMode == ICMP {
 				latency, err = gs.ICMPPing(pCtx, 4*time.Second, 1, time.Millisecond, nil)
 			} else {
 				latency, err = gs.HTTPPing(pCtx, 1, time.Millisecond, nil)
@@ -389,6 +399,9 @@ func (servers Servers) String() string {
 func (s *Server) String() string {
 	if s.Sponsor == "?" {
 		return fmt.Sprintf("[%4s] %s", s.ID, s.Name)
+	}
+	if len(s.Country) == 0 {
+		return fmt.Sprintf("[%4s] %.2fkm %s by %s", s.ID, s.Distance, s.Name, s.Sponsor)
 	}
 	return fmt.Sprintf("[%4s] %.2fkm %s (%s) by %s", s.ID, s.Distance, s.Name, s.Country, s.Sponsor)
 }
