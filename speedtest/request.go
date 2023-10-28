@@ -191,7 +191,7 @@ func (s *Server) PingTestContext(ctx context.Context, callback func(latency time
 		return err
 	}
 	dbg.Printf("Before StandardDeviation: %v\n", vectorPingResult)
-	mean, _, std, min, max := standardDeviation(vectorPingResult)
+	mean, _, std, min, max := StandardDeviation(vectorPingResult)
 	duration := time.Since(start)
 	s.Latency = time.Duration(mean) * time.Nanosecond
 	s.Jitter = time.Duration(std) * time.Nanosecond
@@ -386,7 +386,7 @@ func checkSum(data []byte) uint16 {
 	return uint16(^sum)
 }
 
-func standardDeviation(vector []int64) (mean, variance, stdDev, min, max int64) {
+func StandardDeviation(vector []int64) (mean, variance, stdDev, min, max int64) {
 	var sumNum, accumulate int64
 	min = math.MaxInt64
 	max = math.MinInt64

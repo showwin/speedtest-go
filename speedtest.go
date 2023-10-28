@@ -122,8 +122,28 @@ func main() {
 		})
 
 		taskManager.Run("Download", func(task *Task) {
+			var latencies []int64
+			var lc int64
+			quit := false
+			go func() {
+				for {
+					if quit {
+						return
+					}
+					latency, err1 := server.HTTPPing(context.Background(), 1, time.Millisecond*500, nil)
+					if err1 != nil {
+						continue
+					}
+					lc = latency[0]
+					latencies = append(latencies, latency...)
+				}
+			}()
 			ticker := speedtestClient.CallbackDownloadRate(func(downRate float64) {
-				task.Printf("Download: %.2fMbps", downRate)
+				if lc == 0 {
+					task.Printf("Download: %.2fMbps (latency: --)", downRate)
+				} else {
+					task.Printf("Download: %.2fMbps (latency: %dms)", downRate, lc/1000000)
+				}
 			})
 			if *multi {
 				task.CheckError(server.MultiDownloadTestContext(context.Background(), servers))
@@ -131,13 +151,34 @@ func main() {
 				task.CheckError(server.DownloadTest())
 			}
 			ticker.Stop()
-			task.Printf("Download: %.2fMbps (used: %.2fMB)", server.DLSpeed, float64(server.Context.Manager.GetTotalDownload())/1024/1024)
+			mean, _, std, min, max := speedtest.StandardDeviation(latencies)
+			task.Printf("Download: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.DLSpeed, float64(server.Context.Manager.GetTotalDownload())/1024/1024, mean/1000000, std/1000000, min/1000000, max/1000000)
 			task.Complete()
 		})
 
 		taskManager.Run("Upload", func(task *Task) {
+			var latencies []int64
+			var lc int64
+			quit := false
+			go func() {
+				for {
+					if quit {
+						return
+					}
+					latency, err1 := server.HTTPPing(context.Background(), 1, time.Millisecond*500, nil)
+					if err1 != nil {
+						continue
+					}
+					lc = latency[0]
+					latencies = append(latencies, latency...)
+				}
+			}()
 			ticker := speedtestClient.CallbackUploadRate(func(upRate float64) {
-				task.Printf("Upload: %.2fMbps", upRate)
+				if lc == 0 {
+					task.Printf("Upload: %.2fMbps (latency: --)", upRate)
+				} else {
+					task.Printf("Upload: %.2fMbps (latency: %dms)", upRate, lc/1000000)
+				}
 			})
 			if *multi {
 				task.CheckError(server.MultiUploadTestContext(context.Background(), servers))
@@ -145,7 +186,9 @@ func main() {
 				task.CheckError(server.UploadTest())
 			}
 			ticker.Stop()
-			task.Printf("Upload: %.2fMbps (used: %.2fMB)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1024/1024)
+			quit = true
+			mean, _, std, min, max := speedtest.StandardDeviation(latencies)
+			task.Printf("Upload: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1024/1024, mean/1000000, std/1000000, min/1000000, max/1000000)
 			task.Complete()
 		})
 		taskManager.Reset()
