@@ -194,7 +194,7 @@ func main() {
 		s.DownloadTest()
 		s.UploadTest()
 		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
-		s.
+		s.Context.Reset() // reset counter
 	}
 }
 ```

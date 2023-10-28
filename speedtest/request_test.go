@@ -9,9 +9,6 @@ import (
 )
 
 func TestDownloadTestContext(t *testing.T) {
-	GlobalDataManager.Reset()
-	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond)
-	GlobalDataManager.SetCaptureTime(time.Second)
 	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
 	delta := 0.15
 	latency, _ := time.ParseDuration("5ms")
@@ -20,6 +17,10 @@ func TestDownloadTestContext(t *testing.T) {
 		Latency: latency,
 		Context: defaultClient,
 	}
+
+	server.Context.Manager.Reset()
+	server.Context.SetRateCaptureFrequency(time.Millisecond)
+	server.Context.SetCaptureTime(time.Second)
 
 	err := server.downloadTestContext(
 		context.Background(),
@@ -37,10 +38,6 @@ func TestDownloadTestContext(t *testing.T) {
 }
 
 func TestUploadTestContext(t *testing.T) {
-	GlobalDataManager.Reset()
-	GlobalDataManager.SetRateCaptureFrequency(time.Millisecond * 10)
-	GlobalDataManager.SetCaptureTime(time.Second)
-
 	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
 	delta := 0.15                                                // tolerance scope (-0.05, +0.05)
 
@@ -50,6 +47,10 @@ func TestUploadTestContext(t *testing.T) {
 		Latency: latency,
 		Context: defaultClient,
 	}
+
+	server.Context.Manager.Reset()
+	server.Context.SetRateCaptureFrequency(time.Millisecond)
+	server.Context.SetCaptureTime(time.Second)
 
 	err := server.uploadTestContext(
 		context.Background(),
@@ -68,7 +69,7 @@ func TestUploadTestContext(t *testing.T) {
 
 func mockRequest(ctx context.Context, s *Server, w int) error {
 	fmt.Sprintln(w)
-	dc := GlobalDataManager.NewChunk()
+	dc := s.Context.Manager.NewChunk()
 	// (0.1MegaByte * 8bit * nConn * 10loop) / 0.1s = n*80Megabit
 	// sleep has bad deviation on windows
 	// ref https://github.com/golang/go/issues/44343

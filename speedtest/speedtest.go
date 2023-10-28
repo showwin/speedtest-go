@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	version          = "1.6.6"
+	version          = "1.6.7"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
 )
 
@@ -176,7 +176,7 @@ func WithUserConfig(userConfig *UserConfig) Option {
 func New(opts ...Option) *Speedtest {
 	s := &Speedtest{
 		doer:    http.DefaultClient,
-		Manager: GlobalDataManager,
+		Manager: NewDataManager(),
 	}
 	// load default config
 	s.NewUserConfig(&UserConfig{UserAgent: DefaultUserAgent})
