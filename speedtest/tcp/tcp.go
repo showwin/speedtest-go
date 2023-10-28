@@ -20,7 +20,7 @@ var (
 
 var (
 	ErrEchoData  = errors.New("incorrect echo data")
-	ErrEmptyConn = errors.New("incorrect echo data")
+	ErrEmptyConn = errors.New("empty conn")
 )
 
 func pingFormat(locTime int64) []byte {
