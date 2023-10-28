@@ -19,7 +19,6 @@ type User struct {
 }
 
 // Users for decode xml
-// Users(Client) also exists with @param speedTestServersAdvanced
 type Users struct {
 	Users []User `xml:"client"`
 }

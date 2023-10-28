@@ -93,6 +93,7 @@ func (s *Speedtest) CustomServer(host string) (*Server, error) {
 }
 
 // ServerList list of Server
+// Users(Client) also exists with @param speedTestServersAdvanced
 type ServerList struct {
 	Servers []*Server `xml:"servers>server"`
 	Users   []User    `xml:"client"`
