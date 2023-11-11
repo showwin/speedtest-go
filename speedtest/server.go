@@ -42,7 +42,6 @@ type Server struct {
 	Country      string        `xml:"country,attr" json:"country"`
 	Sponsor      string        `xml:"sponsor,attr" json:"sponsor"`
 	ID           string        `xml:"id,attr" json:"id"`
-	URL2         string        `xml:"url2,attr" json:"url_2"`
 	Host         string        `xml:"host,attr" json:"host"`
 	Distance     float64       `json:"distance"`
 	Latency      time.Duration `json:"latency"`
