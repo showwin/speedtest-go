@@ -18,9 +18,9 @@ var (
 type Proto int
 
 const (
-	ICMP Proto = iota
+	HTTP Proto = iota
 	TCP
-	HTTP
+	ICMP
 )
 
 // Speedtest is a speedtest client.
