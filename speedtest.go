@@ -201,6 +201,7 @@ func main() {
 	if *jsonOutput {
 		json, errMarshal := speedtestClient.JSON(targets)
 		if errMarshal != nil {
+			panic(errMarshal)
 			return
 		}
 		fmt.Print(string(json))
