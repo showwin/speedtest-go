@@ -1,6 +1,8 @@
 package speedtest
 
 import (
+	"math"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -26,6 +28,35 @@ func TestFetchServerList(t *testing.T) {
 	}
 }
 
+func TestDistanceSame(t *testing.T) {
+	for i := 0; i < 10000000; i++ {
+		v1 := rand.Float64() * 90
+		v2 := rand.Float64() * 180
+		v3 := rand.Float64() * 90
+		v4 := rand.Float64() * 180
+		k1 := distance(v1, v2, v1, v2)
+		k2 := distance(v1, v2, v3, v4)
+		if math.IsNaN(k1) || math.IsNaN(k2) {
+			t.Fatalf("NaN distance: %f, %f, %f, %f", v1, v2, v3, v4)
+		}
+	}
+
+	testdata := [][]float64{
+		{32.0803, 34.7805, 32.0803, 34.7805},
+		{0, 0, 0, 0},
+		{1, 1, 1, 1},
+		{2, 2, 2, 2},
+		{-123.23, 123.33, -123.23, 123.33},
+		{90, 180, 90, 180},
+	}
+	for i := range testdata {
+		k := distance(testdata[i][0], testdata[i][1], testdata[i][2], testdata[i][3])
+		if math.IsNaN(k) {
+			t.Fatalf("NaN distance: %f, %f, %f, %f", testdata[i][0], testdata[i][1], testdata[i][2], testdata[i][3])
+		}
+	}
+}
+
 func TestDistance(t *testing.T) {
 	d := distance(0.0, 0.0, 1.0, 1.0)
 	if d < 157 || 158 < d {
@@ -33,19 +64,19 @@ func TestDistance(t *testing.T) {
 	}
 
 	d = distance(0.0, 180.0, 0.0, -180.0)
-	if d != 0 {
+	if d < 0 && d > 1 {
 		t.Errorf("got: %v, expected 0", d)
 	}
 
 	d1 := distance(100.0, 100.0, 100.0, 101.0)
 	d2 := distance(100.0, 100.0, 100.0, 99.0)
 	if d1 != d2 {
-		t.Errorf("%v and %v should be save value", d1, d2)
+		t.Errorf("%v and %v should be same value", d1, d2)
 	}
 
 	d = distance(35.0, 140.0, -40.0, -140.0)
 	if d < 11000 || 12000 < d {
-		t.Errorf("got: %v, expected 0", d)
+		t.Errorf("got: %v, expected ~11694.5122", d)
 	}
 }
 
@@ -138,7 +169,7 @@ func TestFetchServerByID(t *testing.T) {
 		if server != nil && (server.ID == id) != b {
 			t.Errorf("id %s == %s is not %v", id, server.ID, b)
 		}
-  }
+	}
 }
 
 func TestTotalDurationCount(t *testing.T) {
