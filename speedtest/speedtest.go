@@ -90,6 +90,9 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 	var icmpSource net.Addr
 	var proxy = http.ProxyFromEnvironment
 	s.config = uc
+	if len(s.config.UserAgent) == 0 {
+		s.config.UserAgent = DefaultUserAgent
+	}
 	if len(uc.Source) > 0 {
 		_, address := parseAddr(uc.Source)
 		addr0, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("[%s]:0", address)) // dynamic tcp port
