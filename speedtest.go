@@ -6,6 +6,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/showwin/speedtest-go/speedtest"
@@ -151,8 +152,8 @@ func main() {
 				task.CheckError(server.DownloadTest())
 			}
 			ticker.Stop()
-			mean, _, std, min, max := speedtest.StandardDeviation(latencies)
-			task.Printf("Download: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.DLSpeed, float64(server.Context.Manager.GetTotalDownload())/1024/1024, mean/1000000, std/1000000, min/1000000, max/1000000)
+			mean, _, std, minL, maxL := speedtest.StandardDeviation(latencies)
+			task.Printf("Download: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.DLSpeed, float64(server.Context.Manager.GetTotalDownload())/1024/1024, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 
@@ -187,8 +188,8 @@ func main() {
 			}
 			ticker.Stop()
 			quit = true
-			mean, _, std, min, max := speedtest.StandardDeviation(latencies)
-			task.Printf("Upload: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1024/1024, mean/1000000, std/1000000, min/1000000, max/1000000)
+			mean, _, std, minL, maxL := speedtest.StandardDeviation(latencies)
+			task.Printf("Upload: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1024/1024, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 		taskManager.Reset()
@@ -200,7 +201,7 @@ func main() {
 	if *jsonOutput {
 		json, errMarshal := speedtestClient.JSON(targets)
 		if errMarshal != nil {
-			return
+			panic(errMarshal)
 		}
 		fmt.Print(string(json))
 	}
@@ -220,6 +221,7 @@ func showServerList(servers speedtest.Servers) {
 }
 
 func parseProto(str string) speedtest.Proto {
+	str = strings.ToLower(str)
 	if str == "icmp" {
 		return speedtest.ICMP
 	} else if str == "tcp" {

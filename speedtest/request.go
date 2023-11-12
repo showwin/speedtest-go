@@ -387,6 +387,9 @@ func checkSum(data []byte) uint16 {
 }
 
 func StandardDeviation(vector []int64) (mean, variance, stdDev, min, max int64) {
+	if len(vector) == 0 {
+		return
+	}
 	var sumNum, accumulate int64
 	min = math.MaxInt64
 	max = math.MinInt64
