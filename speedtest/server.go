@@ -331,13 +331,14 @@ func FetchServerListContext(ctx context.Context) (Servers, error) {
 func distance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 	radius := 6378.137
 
-	a1 := lat1 * math.Pi / 180.0
-	b1 := lon1 * math.Pi / 180.0
-	a2 := lat2 * math.Pi / 180.0
-	b2 := lon2 * math.Pi / 180.0
+	phi1 := lat1 * math.Pi / 180.0
+	phi2 := lat2 * math.Pi / 180.0
 
-	x := math.Sin(a1)*math.Sin(a2) + math.Cos(a1)*math.Cos(a2)*math.Cos(b2-b1)
-	return radius * math.Acos(x)
+	deltaPhiHalf := (lat1 - lat2) * math.Pi / 360.0
+	deltaLambdaHalf := (lon1 - lon2) * math.Pi / 360.0
+	sinePhiHalf2 := math.Sin(deltaPhiHalf)*math.Sin(deltaPhiHalf) + math.Cos(phi1)*math.Cos(phi2)*math.Sin(deltaLambdaHalf)*math.Sin(deltaLambdaHalf) // phi half-angle sine ^ 2
+	delta := 2 * math.Atan2(math.Sqrt(sinePhiHalf2), math.Sqrt(1-sinePhiHalf2))                                                                       // 2 arc sine
+	return radius * delta                                                                                                                             // r * delta
 }
 
 // FindServer finds server by serverID in given server list.
