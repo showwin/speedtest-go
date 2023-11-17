@@ -352,7 +352,7 @@ func (s *Server) ICMPPing(
 		}
 		buf := make([]byte, 20+echoOptionDataSize+8)
 		_, err = dialContext.Read(buf)
-		if err != nil {
+		if err != nil || buf[20] != 0x00 {
 			failTimes++
 			continue
 		}
