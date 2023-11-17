@@ -114,7 +114,7 @@ func main() {
 			fmt.Println()
 		}
 		taskManager.Println("Test Server: " + server.String())
-		taskManager.Run("Latency: ", func(task *Task) {
+		taskManager.Run("Latency: --", func(task *Task) {
 			task.CheckError(server.PingTest(func(latency time.Duration) {
 				task.Printf("Latency: %v", latency)
 			}))
