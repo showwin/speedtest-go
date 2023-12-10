@@ -90,7 +90,7 @@ func main() {
 				targets = append(targets, serverPtr)
 			}
 			task.CheckError(err)
-			task.Printf("Found %d Specified Public Servers", len(targets))
+			task.Printf("Found %d Specified Public Server(s)", len(targets))
 		} else {
 			servers, err = speedtestClient.FetchServers()
 			task.CheckError(err)
