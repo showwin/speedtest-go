@@ -282,8 +282,8 @@ func (s *Server) HTTPPing(
 			failTimes++
 			continue
 		}
-		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
 		latencies = append(latencies, endTime.Nanoseconds()/2)
 		dbg.Printf("2RTT: %s\n", endTime)
 		if callback != nil {
