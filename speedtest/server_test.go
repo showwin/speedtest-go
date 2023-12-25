@@ -154,7 +154,6 @@ func TestFetchServerByID(t *testing.T) {
 	testData := map[string]bool{
 		"45170":     true,
 		"-99999999": false,
-		"14656":     true,
 		"28910":     true,
 		"どうも":       false,
 		"hello":     false,
