@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/showwin/speedtest-go/speedtest/tcp"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/showwin/speedtest-go/speedtest/tcp"
 )
 
 type (
@@ -274,9 +276,11 @@ func (s *Server) HTTPPing(
 	}
 	for i := 0; i < echoTimes; i++ {
 		sTime := time.Now()
-		_, err = s.Context.doer.Do(req)
+		resp, err := s.Context.doer.Do(req)
 		endTime := time.Since(sTime)
 		if err != nil {
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
 			failTimes++
 			continue
 		}
