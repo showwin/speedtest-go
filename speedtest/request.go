@@ -279,8 +279,6 @@ func (s *Server) HTTPPing(
 		resp, err := s.Context.doer.Do(req)
 		endTime := time.Since(sTime)
 		if err != nil {
-			_, _ = io.Copy(io.Discard, resp.Body)
-			_ = resp.Body.Close()
 			failTimes++
 			continue
 		}
