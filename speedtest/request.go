@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/showwin/speedtest-go/speedtest/transport"
 	"io"
 	"math"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/showwin/speedtest-go/speedtest/transport"
 )
 
 type (
@@ -48,7 +49,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 		dbg.Printf("Register Download Handler: %s\n", sp.URL)
 		td = server.Context.RegisterDownloadHandler(func() {
 			atomic.AddInt64(&requestTimes, 1)
-			if err := downloadRequest(_context, sp, 3); err != nil {
+			if err := downloadRequest(_context, sp, s.Context.config.DlSize); err != nil {
 				atomic.AddInt64(&errorTimes, 1)
 			}
 		})
@@ -83,7 +84,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		dbg.Printf("Register Upload Handler: %s\n", sp.URL)
 		td = server.Context.RegisterUploadHandler(func() {
 			atomic.AddInt64(&requestTimes, 1)
-			if err := uploadRequest(_context, sp, 3); err != nil {
+			if err := uploadRequest(_context, sp, s.Context.config.UlSize); err != nil {
 				atomic.AddInt64(&errorTimes, 1)
 			}
 		})
@@ -112,11 +113,12 @@ func (s *Server) DownloadTestContext(ctx context.Context) error {
 func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downloadFunc) error {
 	var errorTimes int64 = 0
 	var requestTimes int64 = 0
+
 	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterDownloadHandler(func() {
 		atomic.AddInt64(&requestTimes, 1)
-		if err := downloadRequest(_context, s, 3); err != nil {
+		if err := downloadRequest(_context, s, s.Context.config.DlSize); err != nil {
 			atomic.AddInt64(&errorTimes, 1)
 		}
 	}).Start(cancel, 0)
@@ -143,11 +145,12 @@ func (s *Server) UploadTestContext(ctx context.Context) error {
 func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc) error {
 	var errorTimes int64 = 0
 	var requestTimes int64 = 0
+
 	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterUploadHandler(func() {
 		atomic.AddInt64(&requestTimes, 1)
-		if err := uploadRequest(_context, s, 4); err != nil {
+		if err := uploadRequest(_context, s, s.Context.config.UlSize); err != nil {
 			atomic.AddInt64(&errorTimes, 1)
 		}
 	}).Start(cancel, 0)
@@ -161,8 +164,7 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 	return nil
 }
 
-func downloadRequest(ctx context.Context, s *Server, w int) error {
-	size := dlSizes[w]
+func downloadRequest(ctx context.Context, s *Server, size int) error {
 	u, err := url.Parse(s.URL)
 	if err != nil {
 		return err
@@ -183,8 +185,7 @@ func downloadRequest(ctx context.Context, s *Server, w int) error {
 	return s.Context.NewChunk().DownloadHandler(resp.Body)
 }
 
-func uploadRequest(ctx context.Context, s *Server, w int) error {
-	size := ulSizes[w]
+func uploadRequest(ctx context.Context, s *Server, size int) error {
 	chunkSize := int64(size*100-51) * 10
 	dc := s.Context.NewChunk().UploadHandler(chunkSize)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.URL, io.NopCloser(dc))
