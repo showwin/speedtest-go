@@ -51,6 +51,7 @@ type Server struct {
 	DLSpeed      float64       `json:"dl_speed"`
 	ULSpeed      float64       `json:"ul_speed"`
 	TestDuration TestDuration  `json:"test_duration"`
+	CC           string        `json:"cc"`
 
 	Context *Speedtest `json:"-"`
 }
@@ -253,6 +254,14 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 
 		if err = decoder.Decode(&servers); err != nil {
 			return servers, err
+		}
+		if s.config.Location != nil {
+			for _, server := range servers {
+				if server.CC != strings.ToUpper(s.config.Location.CC) {
+					servers = append(servers[:0], servers[1:]...)
+				}
+			}
+
 		}
 	case typeXMLPayload:
 		var list ServerList
