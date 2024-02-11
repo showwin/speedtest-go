@@ -256,12 +256,13 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 			return servers, err
 		}
 		if s.config.Location != nil {
+			var tmpServers Servers
 			for _, server := range servers {
-				if server.CC != strings.ToUpper(s.config.Location.CC) {
-					servers = append(servers[:0], servers[1:]...)
+				if server.CC == strings.ToUpper(s.config.Location.CC) {
+					tmpServers = append(tmpServers, server)
 				}
 			}
-
+			servers = tmpServers
 		}
 	case typeXMLPayload:
 		var list ServerList
