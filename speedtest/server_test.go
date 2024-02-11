@@ -3,6 +3,7 @@ package speedtest
 import (
 	"math"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 )
@@ -193,5 +194,21 @@ func TestTotalDurationCount(t *testing.T) {
 	server.testDurationTotalCount()
 	if server.TestDuration.Total.Nanoseconds() != 22184365875 {
 		t.Error("addition in testDurationTotalCount didn't work")
+	}
+}
+
+func TestCityFlag(t *testing.T) {
+	client := New(WithUserConfig(&UserConfig{CityFlag: "yishun"}))
+	servers, err := client.FetchServers()
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	row := 1
+	for _, server := range servers {
+
+		if server.CC != strings.ToUpper(client.config.Location.CC) {
+			t.Error("server country code does not match client country code")
+		}
+		row++
 	}
 }
