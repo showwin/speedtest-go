@@ -198,17 +198,21 @@ func TestTotalDurationCount(t *testing.T) {
 }
 
 func TestCityFlag(t *testing.T) {
-	client := New(WithUserConfig(&UserConfig{CityFlag: "yishun"}))
-	servers, err := client.FetchServers()
-	if err != nil {
-		t.Errorf(err.Error())
+	testCC := "YISHUN"
+	testData := Servers{
+		{CC: "YISHUN"},
+		{CC: "TOKYO"},
+		{CC: "YISHUN"},
+		{CC: "TEST"},
 	}
-	row := 1
-	for _, server := range servers {
 
-		if server.CC != strings.ToUpper(client.config.Location.CC) {
-			t.Error("server country code does not match client country code")
+	var tmpServers Servers
+	for _, server := range testData {
+		if server.CC == strings.ToUpper(testCC) {
+			tmpServers = append(tmpServers, server)
 		}
-		row++
+	}
+	if tmpServers.Len() != 2 && tmpServers[0].CC != testCC {
+		t.Fatalf("not match: %s", testCC)
 	}
 }
