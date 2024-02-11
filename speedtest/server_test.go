@@ -185,7 +185,7 @@ func TestTotalDurationCount(t *testing.T) {
 	server.TestDuration.Download = &downloadTime
 	server.testDurationTotalCount()
 	if server.TestDuration.Total.Nanoseconds() != 20001209417 {
-		t.Error("addition in testDurationTotalCount do didn't work")
+		t.Error("addition in testDurationTotalCount didn't work")
 	}
 
 	pingTime := time.Duration(2183156458)
