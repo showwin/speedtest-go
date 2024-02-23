@@ -48,6 +48,7 @@ Flags:
                                eg: --proxy=socks://10.20.0.101:7890
                                eg: --proxy=http://10.20.0.101:7890
       --source=SOURCE          Bind a source interface for the speedtest.
+      --dns-bind-source        DNS request binding source.(Experimental)
                                eg: --source=10.20.0.101
   -m  --multi                  Enable multi-server mode.
   -t  --thread=THREAD          Set the number of concurrent connections.
