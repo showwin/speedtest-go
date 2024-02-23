@@ -99,7 +99,7 @@ func main() {
 				task.Complete()
 				task.manager.Reset()
 				showServerList(servers)
-				os.Exit(1)
+				os.Exit(0)
 			}
 			targets, err = servers.FindServer(*serverIds)
 			task.CheckError(err)
