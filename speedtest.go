@@ -29,6 +29,7 @@ var (
 	noDownload   = kingpin.Flag("no-download", "Disable download test.").Bool()
 	noUpload     = kingpin.Flag("no-upload", "Disable upload test.").Bool()
 	pingMode     = kingpin.Flag("ping-mode", "Select a method for Ping. (support icmp/tcp/http)").Default("http").String()
+	tos          = kingpin.Flag("tos", "type of service field in IP header").Short('Q').Int()
 	debug        = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 )
 
@@ -52,6 +53,7 @@ func main() {
 			Keyword:      *search,
 			NoDownload:   *noDownload,
 			NoUpload:     *noUpload,
+			Tos:          *tos,
 		}))
 	speedtestClient.SetNThread(*thread)
 

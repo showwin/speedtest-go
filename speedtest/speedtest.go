@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -52,6 +53,7 @@ type UserConfig struct {
 
 	NoDownload bool
 	NoUpload   bool
+	Tos        int
 }
 
 func parseAddr(addr string) (string, string) {
@@ -119,13 +121,31 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 		}
 	}
 
+	setTos := func(network, address string, c syscall.RawConn) error {
+		return c.Control(func(fd uintptr) {
+			level := syscall.IPPROTO_IP
+			optname := syscall.IP_TOS
+			if network != "tcp4" {
+				level = syscall.IPPROTO_IPV6
+				optname = syscall.IPV6_TCLASS
+			}
+			err := syscall.SetsockoptInt(int(fd), level, optname, uc.Tos)
+			if err != nil {
+				dbg.Printf("syscall.SetsockoptInt: %s", err)
+				return
+			}
+		})
+	}
+
 	s.tcpDialer = &net.Dialer{
+		Control:   setTos,
 		LocalAddr: tcpSource,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
 
 	s.ipDialer = &net.Dialer{
+		Control:   setTos,
 		LocalAddr: icmpSource,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
