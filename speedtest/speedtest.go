@@ -1,6 +1,7 @@
 package speedtest
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -35,12 +36,13 @@ type Speedtest struct {
 }
 
 type UserConfig struct {
-	T         *http.Transport
-	UserAgent string
-	Proxy     string
-	Source    string
-	Debug     bool
-	PingMode  Proto
+	T             *http.Transport
+	UserAgent     string
+	Proxy         string
+	Source        string
+	DnsBindSource bool
+	Debug         bool
+	PingMode      Proto
 
 	SavingMode bool
 
@@ -106,6 +108,24 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 			icmpSource = addr1
 		} else {
 			dbg.Printf("Warning: skipping parse the source address. err: %s\n", err.Error())
+		}
+		if uc.DnsBindSource {
+			net.DefaultResolver.Dial = func(ctx context.Context, network, dnsServer string) (net.Conn, error) {
+				dialer := &net.Dialer{
+					Timeout: 5 * time.Second,
+					LocalAddr: func(network string) net.Addr {
+						switch network {
+						case "udp", "udp4", "udp6":
+							return &net.UDPAddr{IP: net.ParseIP(address)}
+						case "tcp", "tcp4", "tcp6":
+							return &net.TCPAddr{IP: net.ParseIP(address)}
+						default:
+							return nil
+						}
+					}(network),
+				}
+				return dialer.DialContext(ctx, network, dnsServer)
+			}
 		}
 	}
 
