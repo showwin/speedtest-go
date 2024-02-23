@@ -8,7 +8,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -49,7 +48,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 		sp := server
 		dbg.Printf("Register Download Handler: %s\n", sp.URL)
 		fp = server.Context.RegisterDownloadHandler(func() {
-			_ = downloadRequest(_context, sp, 3)
+			_ = downloadRequest(_context, sp, s.Context.config.DlSize)
 		})
 	}
 	fp.Start(cancel, mainIDIndex) // block here
@@ -76,7 +75,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		sp := server
 		dbg.Printf("Register Upload Handler: %s\n", sp.URL)
 		fp = server.Context.RegisterUploadHandler(func() {
-			_ = uploadRequest(_context, sp, 3)
+			_ = uploadRequest(_context, sp, s.Context.config.UlSize)
 		})
 	}
 	fp.Start(cancel, mainIDIndex) // block here
@@ -100,17 +99,10 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 		return nil
 	}
 
-	dlSize := dlSizes[3]
-	if s.Context.config.DlSize > 0 && slices.Contains(dlSizes[:], s.Context.config.DlSize) {
-		dlSize = s.Context.config.DlSize
-	} else {
-		dbg.Printf("Invalid download size: %d. Using default size: %d.\n", s.Context.config.DlSize, dlSize)
-	}
-
 	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterDownloadHandler(func() {
-		_ = downloadRequest(_context, s, dlSize)
+		_ = downloadRequest(_context, s, s.Context.config.DlSize)
 	}).Start(cancel, 0)
 	duration := time.Since(start)
 	s.DLSpeed = s.Context.GetAvgDownloadRate()
@@ -135,17 +127,10 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 		return nil
 	}
 
-	ulSize := ulSizes[4]
-	if s.Context.config.UlSize > 0 && slices.Contains(ulSizes[:], s.Context.config.UlSize) {
-		ulSize = s.Context.config.UlSize
-	} else {
-		dbg.Printf("Invalid upload size: %d. Using default size: %d.\n", s.Context.config.UlSize, ulSize)
-	}
-
 	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterUploadHandler(func() {
-		_ = uploadRequest(_context, s, ulSize)
+		_ = uploadRequest(_context, s, s.Context.config.UlSize)
 	}).Start(cancel, 0)
 	duration := time.Since(start)
 	s.ULSpeed = s.Context.GetAvgUploadRate()
