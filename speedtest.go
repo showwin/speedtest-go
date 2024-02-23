@@ -23,7 +23,7 @@ var (
 	showCityList  = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
 	proxy         = kingpin.Flag("proxy", "Set a proxy(http[s] or socks) for the speedtest.").String()
 	source        = kingpin.Flag("source", "Bind a source interface for the speedtest.").String()
-	dnsBindSource = kingpin.Flag("dns-bind-source", "DNS request binding source.").Bool()
+	dnsBindSource = kingpin.Flag("dns-bind-source", "DNS request binding source.(Experimental)").Bool()
 	multi         = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
 	thread        = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
 	search        = kingpin.Flag("search", "Fuzzy search servers by a keyword.").String()
