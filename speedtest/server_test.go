@@ -1,6 +1,7 @@
 package speedtest
 
 import (
+	"errors"
 	"math"
 	"math/rand"
 	"testing"
@@ -154,6 +155,10 @@ func TestFetchServerByID(t *testing.T) {
 	remoteList, err := FetchServers()
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if remoteList.Len() < 1 {
+		t.Fatal(errors.New("server not found"))
 	}
 
 	testData := map[string]bool{
