@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -32,7 +33,7 @@ var (
 	noUpload      = kingpin.Flag("no-upload", "Disable upload test.").Bool()
 	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping. (support icmp/tcp/http)").Default("http").String()
 	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
-  countryCode   = kingpin.Flag("cc", "Filter By Country Code").String()
+	countryCode   = kingpin.Flag("filter-cc", "Filter servers by Country Code(s).").Default("disable").Strings()
 )
 
 func main() {
@@ -56,7 +57,6 @@ func main() {
 			Keyword:       *search,
 			NoDownload:    *noDownload,
 			NoUpload:      *noUpload,
-      CountryCode:   *countryCode,
 		}))
 	speedtestClient.SetNThread(*thread)
 
@@ -99,7 +99,16 @@ func main() {
 		} else {
 			servers, err = speedtestClient.FetchServers()
 			task.CheckError(err)
-			task.Printf("Found %d Public Servers", len(servers))
+			// cc filter auto attach
+			if slices.Contains(*countryCode, "auto") {
+				*countryCode = append(*countryCode, speedtestClient.User.Country)
+			}
+			if len(*countryCode) > 0 {
+				servers = servers.CC(*countryCode)
+				task.Printf("Found %d Public Servers with Country Code[%v]", len(servers), strings.Join(*countryCode, ","))
+			} else {
+				task.Printf("Found %d Public Servers", len(servers))
+			}
 			if *showList {
 				task.Complete()
 				task.manager.Reset()

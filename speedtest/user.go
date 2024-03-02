@@ -62,6 +62,9 @@ func (s *Speedtest) FetchUserInfoContext(ctx context.Context) (*User, error) {
 	}
 
 	s.User = &users.Users[0]
+	if s.config.Location != nil && len(s.config.Location.CC) > 0 {
+		s.User.Country = s.config.Location.CC
+	}
 	return s.User, nil
 }
 

@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -134,6 +135,24 @@ func (servers Servers) Swap(i, j int) {
 	servers[i], servers[j] = servers[j], servers[i]
 }
 
+// Filter filter by filterFunc
+func (servers Servers) Filter(filterFunc func(server *Server) bool) Servers {
+	var retServers Servers
+	for i := range servers {
+		if filterFunc(servers[i]) {
+			retServers = append(retServers, servers[i])
+		}
+	}
+	return retServers
+}
+
+// CC filter by Country Code
+func (servers Servers) CC(cc []string) Servers {
+	return servers.Filter(func(server *Server) bool {
+		return slices.Contains(cc, server.CC)
+	})
+}
+
 // Less compares the distance. For sorting servers.
 func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
@@ -214,22 +233,6 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		query.Set("lon", strconv.FormatFloat(s.config.Location.Lon, 'f', -1, 64))
 	}
 
-	if len(s.config.CountryCode) > 0 {
-		var lowerCode = strings.ToLower(s.config.CountryCode)
-		var lat float64 = 0
-		var lon float64 = 0
-		for _, v := range Locations {
-			if v.CC == lowerCode {
-				lat = v.Lat
-				lon = v.Lon
-			}
-		}
-		if lat != 0 && lon != 0 {
-			query.Set("lat", strconv.FormatFloat(lat, 'f', -1, 64))
-			query.Set("lon", strconv.FormatFloat(lon, 'f', -1, 64))
-		}
-	}
-
 	u.RawQuery = query.Encode()
 	dbg.Printf("Retrieving servers: %s\n", u.String())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
@@ -272,25 +275,6 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		if err = decoder.Decode(&servers); err != nil {
 			return servers, err
 		}
-		var CountryCode = ""
-		if s.config.Location != nil {
-			CountryCode = strings.ToUpper(s.config.Location.CC)
-		} else if len(s.config.CountryCode) > 0 {
-			CountryCode = strings.ToUpper(s.config.CountryCode)
-		} else {
-			defaultConfig, err := FetchUserInfo()
-			if err != nil {
-				return servers, err
-			}
-			CountryCode = defaultConfig.Country
-		}
-		var tmpServers Servers
-		for _, server := range servers {
-			if server.CC == CountryCode {
-				tmpServers = append(tmpServers, server)
-			}
-		}
-		servers = tmpServers
 	case typeXMLPayload:
 		var list ServerList
 		// Decode xml

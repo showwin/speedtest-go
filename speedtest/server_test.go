@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math"
 	"math/rand"
-	"strings"
 	"testing"
 	"time"
 )
@@ -215,12 +214,7 @@ func TestCityFlag(t *testing.T) {
 		{CC: "TEST"},
 	}
 
-	var tmpServers Servers
-	for _, server := range testData {
-		if server.CC == strings.ToUpper(testCC) {
-			tmpServers = append(tmpServers, server)
-		}
-	}
+	tmpServers := testData.CC([]string{testCC})
 	if tmpServers.Len() != 2 && tmpServers[0].CC != testCC {
 		t.Fatalf("not match: %s", testCC)
 	}
