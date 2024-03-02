@@ -12,10 +12,11 @@ const speedTestConfigUrl = "https://www.speedtest.net/speedtest-config.php"
 
 // User represents information determined about the caller by speedtest.net
 type User struct {
-	IP  string `xml:"ip,attr"`
-	Lat string `xml:"lat,attr"`
-	Lon string `xml:"lon,attr"`
-	Isp string `xml:"isp,attr"`
+	IP      string `xml:"ip,attr"`
+	Lat     string `xml:"lat,attr"`
+	Lon     string `xml:"lon,attr"`
+	Isp     string `xml:"isp,attr"`
+	Country string `xml:"country,attr"`
 }
 
 // Users for decode xml

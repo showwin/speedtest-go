@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/showwin/speedtest-go/speedtest"
 )
@@ -30,6 +31,7 @@ var (
 	noUpload     = kingpin.Flag("no-upload", "Disable upload test.").Bool()
 	pingMode     = kingpin.Flag("ping-mode", "Select a method for Ping. (support icmp/tcp/http)").Default("http").String()
 	debug        = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
+	countryCode  = kingpin.Flag("cc", "Filter By Country Code").String()
 )
 
 func main() {
@@ -52,6 +54,7 @@ func main() {
 			Keyword:      *search,
 			NoDownload:   *noDownload,
 			NoUpload:     *noUpload,
+			CountryCode:  *countryCode,
 		}))
 	speedtestClient.SetNThread(*thread)
 
