@@ -33,7 +33,7 @@ var (
 	noUpload      = kingpin.Flag("no-upload", "Disable upload test.").Bool()
 	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping. (support icmp/tcp/http)").Default("http").String()
 	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
-	countryCode   = kingpin.Flag("filter-cc", "Filter servers by Country Code(s).").Default("disable").Strings()
+	countryCode   = kingpin.Flag("filter-cc", "Filter servers by Country Code(s).").Strings()
 )
 
 func main() {
