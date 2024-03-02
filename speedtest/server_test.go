@@ -1,6 +1,7 @@
 package speedtest
 
 import (
+	"errors"
 	"math"
 	"math/rand"
 	"strings"
@@ -152,13 +153,21 @@ func TestCustomServer(t *testing.T) {
 }
 
 func TestFetchServerByID(t *testing.T) {
+	remoteList, err := FetchServers()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if remoteList.Len() < 1 {
+		t.Fatal(errors.New("server not found"))
+	}
+
 	testData := map[string]bool{
-		"45170":     true,
-		"-99999999": false,
-		"28910":     true,
-		"どうも":       false,
-		"hello":     false,
-		"你好":        false,
+		remoteList[0].ID: true,
+		"-99999999":      false,
+		"どうも":            false,
+		"hello":          false,
+		"你好":             false,
 	}
 
 	for id, b := range testData {
@@ -186,7 +195,7 @@ func TestTotalDurationCount(t *testing.T) {
 	server.TestDuration.Download = &downloadTime
 	server.testDurationTotalCount()
 	if server.TestDuration.Total.Nanoseconds() != 20001209417 {
-		t.Error("addition in testDurationTotalCount do didn't work")
+		t.Error("addition in testDurationTotalCount didn't work")
 	}
 
 	pingTime := time.Duration(2183156458)

@@ -14,24 +14,25 @@ import (
 )
 
 var (
-	showList     = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
-	serverIds    = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
-	customURL    = kingpin.Flag("custom-url", "Specify the url of the server instead of getting a list from speedtest.net.").String()
-	savingMode   = kingpin.Flag("saving-mode", "Test with few resources, though low accuracy (especially > 30Mbps).").Bool()
-	jsonOutput   = kingpin.Flag("json", "Output results in json format.").Bool()
-	location     = kingpin.Flag("location", "Change the location with a precise coordinate. Format: lat,lon").String()
-	city         = kingpin.Flag("city", "Change the location with a predefined city label.").String()
-	showCityList = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
-	proxy        = kingpin.Flag("proxy", "Set a proxy(http[s] or socks) for the speedtest.").String()
-	source       = kingpin.Flag("source", "Bind a source interface for the speedtest.").String()
-	multi        = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
-	thread       = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
-	search       = kingpin.Flag("search", "Fuzzy search servers by a keyword.").String()
-	noDownload   = kingpin.Flag("no-download", "Disable download test.").Bool()
-	noUpload     = kingpin.Flag("no-upload", "Disable upload test.").Bool()
-	pingMode     = kingpin.Flag("ping-mode", "Select a method for Ping. (support icmp/tcp/http)").Default("http").String()
-	debug        = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
-	countryCode  = kingpin.Flag("cc", "Filter By Country Code").String()
+	showList      = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
+	serverIds     = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
+	customURL     = kingpin.Flag("custom-url", "Specify the url of the server instead of getting a list from speedtest.net.").String()
+	savingMode    = kingpin.Flag("saving-mode", "Test with few resources, though low accuracy (especially > 30Mbps).").Bool()
+	jsonOutput    = kingpin.Flag("json", "Output results in json format.").Bool()
+	location      = kingpin.Flag("location", "Change the location with a precise coordinate. Format: lat,lon").String()
+	city          = kingpin.Flag("city", "Change the location with a predefined city label.").String()
+	showCityList  = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
+	proxy         = kingpin.Flag("proxy", "Set a proxy(http[s] or socks) for the speedtest.").String()
+	source        = kingpin.Flag("source", "Bind a source interface for the speedtest.").String()
+	dnsBindSource = kingpin.Flag("dns-bind-source", "DNS request binding source.(Experimental)").Bool()
+	multi         = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
+	thread        = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
+	search        = kingpin.Flag("search", "Fuzzy search servers by a keyword.").String()
+	noDownload    = kingpin.Flag("no-download", "Disable download test.").Bool()
+	noUpload      = kingpin.Flag("no-upload", "Disable upload test.").Bool()
+	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping. (support icmp/tcp/http)").Default("http").String()
+	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
+  countryCode   = kingpin.Flag("cc", "Filter By Country Code").String()
 )
 
 func main() {
@@ -43,18 +44,19 @@ func main() {
 	// 0. speed test setting
 	var speedtestClient = speedtest.New(speedtest.WithUserConfig(
 		&speedtest.UserConfig{
-			UserAgent:    speedtest.DefaultUserAgent,
-			Proxy:        *proxy,
-			Source:       *source,
-			Debug:        *debug,
-			PingMode:     parseProto(*pingMode), // TCP as default
-			SavingMode:   *savingMode,
-			CityFlag:     *city,
-			LocationFlag: *location,
-			Keyword:      *search,
-			NoDownload:   *noDownload,
-			NoUpload:     *noUpload,
-			CountryCode:  *countryCode,
+			UserAgent:     speedtest.DefaultUserAgent,
+			Proxy:         *proxy,
+			Source:        *source,
+			DnsBindSource: *dnsBindSource,
+			Debug:         *debug,
+			PingMode:      parseProto(*pingMode), // TCP as default
+			SavingMode:    *savingMode,
+			CityFlag:      *city,
+			LocationFlag:  *location,
+			Keyword:       *search,
+			NoDownload:    *noDownload,
+			NoUpload:      *noUpload,
+      CountryCode:   *countryCode,
 		}))
 	speedtestClient.SetNThread(*thread)
 
@@ -102,7 +104,7 @@ func main() {
 				task.Complete()
 				task.manager.Reset()
 				showServerList(servers)
-				os.Exit(1)
+				os.Exit(0)
 			}
 			targets, err = servers.FindServer(*serverIds)
 			task.CheckError(err)
