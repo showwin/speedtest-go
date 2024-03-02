@@ -148,8 +148,12 @@ func (servers Servers) Filter(filterFunc func(server *Server) bool) Servers {
 
 // CC filter by Country Code
 func (servers Servers) CC(cc []string) Servers {
+	var upperCC []string
+	for i := range cc {
+		upperCC = append(upperCC, strings.ToUpper(cc[i]))
+	}
 	return servers.Filter(func(server *Server) bool {
-		return slices.Contains(cc, server.CC)
+		return slices.Contains(upperCC, server.CC)
 	})
 }
 
