@@ -8,7 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"strconv"
+	"path"
 	"strings"
 	"time"
 
@@ -139,7 +139,12 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 
 func downloadRequest(ctx context.Context, s *Server, w int) error {
 	size := dlSizes[w]
-	xdlURL := strings.Split(s.URL, "/upload.php")[0] + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	u, err := url.Parse(s.URL)
+	if err != nil {
+		return err
+	}
+	u.Path = path.Dir(u.Path)
+	xdlURL := u.JoinPath(fmt.Sprintf("random%dx%d.jpg", size, size)).String()
 	dbg.Printf("XdlURL: %s\n", xdlURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, xdlURL, nil)
 	if err != nil {
@@ -267,7 +272,8 @@ func (s *Server) HTTPPing(
 	if err != nil || len(u.Host) == 0 {
 		return nil, err
 	}
-	pingDst := fmt.Sprintf("%s/latency.txt", s.URL)
+	u.Path = path.Dir(u.Path)
+	pingDst := u.JoinPath("latency.txt").String()
 	dbg.Printf("Echo: %s\n", pingDst)
 	failTimes := 0
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pingDst, nil)

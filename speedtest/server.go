@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -71,12 +72,12 @@ func CustomServer(host string) (*Server, error) {
 // CustomServer given a URL string, return a new Server object, with as much
 // filled in as we can
 func (s *Speedtest) CustomServer(host string) (*Server, error) {
-	if !strings.HasSuffix(host, "/upload.php") {
-		return nil, errors.New("please use the full URL of the server, ending in '/upload.php'")
-	}
 	u, err := url.Parse(host)
 	if err != nil {
 		return nil, err
+	}
+	if path.Base(u.Path) != "upload.php" {
+		return nil, errors.New("please use the full URL of the server, ending in '/upload.php'")
 	}
 	return &Server{
 		ID:      "Custom",
