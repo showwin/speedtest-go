@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -41,6 +42,7 @@ type UserConfig struct {
 	Proxy         string
 	Source        string
 	DnsBindSource bool
+	DialerControl func(network, address string, c syscall.RawConn) error
 	Debug         bool
 	PingMode      Proto
 
@@ -143,12 +145,14 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 		LocalAddr: tcpSource,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
+		Control:   uc.DialerControl,
 	}
 
 	s.ipDialer = &net.Dialer{
 		LocalAddr: icmpSource,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
+		Control:   uc.DialerControl,
 	}
 
 	s.config.T = &http.Transport{
