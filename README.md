@@ -53,6 +53,7 @@ Flags:
   -m  --multi                  Enable multi-server mode.
   -t  --thread=THREAD          Set the number of concurrent connections.
       --search=SEARCH          Fuzzy search servers by a keyword.
+      --ua                     Set the user-agent header for the speedtest.
       --no-download            Disable download test.
       --no-upload              Disable upload test.
       --ping-mode              Select a method for Ping. (support icmp/tcp/http)
