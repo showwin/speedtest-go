@@ -9,7 +9,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -76,15 +75,13 @@ func (s *Speedtest) CustomServer(host string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	if path.Base(u.Path) != "upload.php" {
-		return nil, errors.New("please use the full URL of the server, ending in '/upload.php'")
-	}
+	parseHost := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, "/speedtest/upload.php")
 	return &Server{
 		ID:      "Custom",
 		Lat:     "?",
 		Lon:     "?",
 		Country: "?",
-		URL:     host,
+		URL:     parseHost,
 		Name:    u.Host,
 		Host:    u.Host,
 		Sponsor: "?",
