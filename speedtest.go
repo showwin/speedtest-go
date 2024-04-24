@@ -27,6 +27,7 @@ var (
 	multi         = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
 	thread        = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
 	search        = kingpin.Flag("search", "Fuzzy search servers by a keyword.").String()
+	userAgent     = kingpin.Flag("ua", "Set the user-agent header for the speedtest.").String()
 	noDownload    = kingpin.Flag("no-download", "Disable download test.").Bool()
 	noUpload      = kingpin.Flag("no-upload", "Disable upload test.").Bool()
 	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping. (support icmp/tcp/http)").Default("http").String()
@@ -42,7 +43,7 @@ func main() {
 	// 0. speed test setting
 	var speedtestClient = speedtest.New(speedtest.WithUserConfig(
 		&speedtest.UserConfig{
-			UserAgent:     speedtest.DefaultUserAgent,
+			UserAgent:     *userAgent,
 			Proxy:         *proxy,
 			Source:        *source,
 			DnsBindSource: *dnsBindSource,
