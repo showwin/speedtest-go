@@ -143,12 +143,6 @@ func TestCustomServer(t *testing.T) {
 	if got.Host != "example.com" {
 		t.Error("did not properly set the Host field on a custom server")
 	}
-
-	// Missing upload.php
-	_, err = CustomServer("https://example.com")
-	if err == nil {
-		t.Error("did not create a custom server without upload.php")
-	}
 }
 
 func TestFetchServerByID(t *testing.T) {

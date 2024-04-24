@@ -71,19 +71,17 @@ func CustomServer(host string) (*Server, error) {
 // CustomServer given a URL string, return a new Server object, with as much
 // filled in as we can
 func (s *Speedtest) CustomServer(host string) (*Server, error) {
-	if !strings.HasSuffix(host, "/upload.php") {
-		return nil, errors.New("please use the full URL of the server, ending in '/upload.php'")
-	}
 	u, err := url.Parse(host)
 	if err != nil {
 		return nil, err
 	}
+	parseHost := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, "/speedtest/upload.php")
 	return &Server{
 		ID:      "Custom",
 		Lat:     "?",
 		Lon:     "?",
 		Country: "?",
-		URL:     host,
+		URL:     parseHost,
 		Name:    u.Host,
 		Host:    u.Host,
 		Sponsor: "?",
