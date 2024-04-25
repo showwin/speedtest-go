@@ -156,7 +156,7 @@ func main() {
 			}
 			ticker.Stop()
 			mean, _, std, minL, maxL := speedtest.StandardDeviation(latencies)
-			task.Printf("Download: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.DLSpeed, float64(server.Context.Manager.GetTotalDownload())/1024/1024, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
+			task.Printf("Download: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.DLSpeed, float64(server.Context.Manager.GetTotalDownload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 
@@ -192,7 +192,7 @@ func main() {
 			ticker.Stop()
 			quit = true
 			mean, _, std, minL, maxL := speedtest.StandardDeviation(latencies)
-			task.Printf("Upload: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1024/1024, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
+			task.Printf("Upload: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 		taskManager.Reset()
