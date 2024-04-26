@@ -58,6 +58,8 @@ Flags:
       --no-upload              Disable upload test.
       --ping-mode              Select a method for Ping. (support icmp/tcp/http)
   -d  --debug                  Enable debug mode.
+      --dl-size=1000           Set download chunk size.
+      --ul-size=800            Set upload chunk size.
       --version                Show application version.
 ```
 
