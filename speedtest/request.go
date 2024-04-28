@@ -302,7 +302,7 @@ func (s *Server) HTTPPing(
 		if i > 0 {
 			latency := endTime.Nanoseconds()
 			latencies = append(latencies, latency)
-			dbg.Printf("2RTT: %s\n", latency)
+			dbg.Printf("RTT: %d\n", latency)
 			if callback != nil {
 				callback(endTime)
 			}
