@@ -268,6 +268,7 @@ func (s *Server) HTTPPing(
 	echoFreq time.Duration,
 	callback func(latency time.Duration),
 ) (latencies []int64, err error) {
+	var contextErr error
 	u, err := url.Parse(s.URL)
 	if err != nil || len(u.Host) == 0 {
 		return nil, err
@@ -285,6 +286,11 @@ func (s *Server) HTTPPing(
 		resp, err := s.Context.doer.Do(req)
 		endTime := time.Since(sTime)
 		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				contextErr = err
+				break
+			}
+
 			failTimes++
 			continue
 		}
@@ -297,9 +303,15 @@ func (s *Server) HTTPPing(
 		}
 		time.Sleep(echoFreq)
 	}
+
+	if contextErr != nil {
+		return latencies, contextErr
+	}
+
 	if failTimes == echoTimes {
 		return nil, ErrConnectTimeout
 	}
+
 	return
 }
 
