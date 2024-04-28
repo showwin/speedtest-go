@@ -305,7 +305,7 @@ func (s *Server) HTTPPing(
 	}
 
 	if contextErr != nil {
-		return nil, contextErr
+		return latencies, contextErr
 	}
 
 	if failTimes == echoTimes {
