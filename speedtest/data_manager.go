@@ -95,7 +95,7 @@ func NewDataManager() *DataManager {
 	ret := &DataManager{
 		nThread:              runtime.NumCPU(),
 		captureTime:          time.Second * 10,
-		rateCaptureFrequency: time.Millisecond * 100,
+		rateCaptureFrequency: time.Millisecond * 50,
 		Snapshot:             &Snapshot{},
 	}
 	ret.dFn = &funcGroup{manager: ret}
