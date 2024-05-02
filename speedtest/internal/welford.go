@@ -26,7 +26,7 @@ func NewWelford(windowSize int) *Welford {
 	return &Welford{
 		vector:                               make([]float64, windowSize),
 		cap:                                  windowSize,
-		consecutiveStableIterationsThreshold: 201,
+		consecutiveStableIterationsThreshold: 10,
 	}
 }
 
@@ -65,8 +65,8 @@ func (w *Welford) Update(value float64) bool {
 	}
 	// ewma beta ratio
 	// TODO: w.cv needs normalization
-	beta := w.cv*0.618 + 0.381
-	w.ewmaMean = value*beta + w.ewmaMean*(1-beta)
+	beta := w.cv*0.381 + 0.618
+	w.ewmaMean = w.mean*beta + w.ewmaMean*(1-beta)
 	// acc consecutiveStableIterations
 	if w.cap/2 < w.n && w.cv < 0.03 {
 		w.consecutiveStableIterations++

@@ -142,11 +142,11 @@ func main() {
 					latencies = append(latencies, latency...)
 				}
 			}()
-			ticker := speedtestClient.CallbackDownloadRate(func(downRate float64) {
+			speedtestClient.SetCallbackDownload(func(downRate float64) {
 				if lc == 0 {
-					task.Printf("Download: %.2fMbps (latency: --)", downRate)
+					task.Printf("Download: %.2fMbps (latency: --)", downRate*8/1000000)
 				} else {
-					task.Printf("Download: %.2fMbps (latency: %dms)", downRate, lc/1000000)
+					task.Printf("Download: %.2fMbps (latency: %dms)", downRate*8/1000000, lc/1000000)
 				}
 			})
 			if *multi {
@@ -154,9 +154,8 @@ func main() {
 			} else {
 				task.CheckError(server.DownloadTest())
 			}
-			ticker.Stop()
 			mean, _, std, minL, maxL := speedtest.StandardDeviation(latencies)
-			task.Printf("Download: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.DLSpeed, float64(server.Context.Manager.GetTotalDownload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
+			task.Printf("Download: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.DLSpeed*8/1000000, float64(server.Context.Manager.GetTotalDownload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 
@@ -177,11 +176,11 @@ func main() {
 					latencies = append(latencies, latency...)
 				}
 			}()
-			ticker := speedtestClient.CallbackUploadRate(func(upRate float64) {
+			speedtestClient.SetCallbackUpload(func(upRate float64) {
 				if lc == 0 {
-					task.Printf("Upload: %.2fMbps (latency: --)", upRate)
+					task.Printf("Upload: %.2fMbps (latency: --)", upRate*8/1000000)
 				} else {
-					task.Printf("Upload: %.2fMbps (latency: %dms)", upRate, lc/1000000)
+					task.Printf("Upload: %.2fMbps (latency: %dms)", upRate*8/1000000, lc/1000000)
 				}
 			})
 			if *multi {
@@ -189,10 +188,9 @@ func main() {
 			} else {
 				task.CheckError(server.UploadTest())
 			}
-			ticker.Stop()
 			quit = true
 			mean, _, std, minL, maxL := speedtest.StandardDeviation(latencies)
-			task.Printf("Upload: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
+			task.Printf("Upload: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.ULSpeed*8/1000000, float64(server.Context.Manager.GetTotalUpload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 		taskManager.Reset()
