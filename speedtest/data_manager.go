@@ -116,7 +116,7 @@ func (dm *DataManager) NewDataDirection(testType int) *TestDirection {
 func NewDataManager() *DataManager {
 	ret := &DataManager{
 		nThread:              runtime.NumCPU(),
-		captureTime:          time.Second * 10,
+		captureTime:          time.Second * 15,
 		rateCaptureFrequency: time.Millisecond * 50,
 		Snapshot:             &Snapshot{},
 	}
