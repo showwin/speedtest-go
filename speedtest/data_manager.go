@@ -195,13 +195,16 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 	stopCapture := td.rateCapture()
 
 	// refresh once function
-	td.closeFunc = sync.OnceFunc(func() {
-		stopCapture <- true
-		close(stopCapture)
-		td.manager.running = false
-		cancel()
-		dbg.Println("FuncGroup: Stop")
-	})
+	once := sync.Once{}
+	td.closeFunc = func() {
+		once.Do(func() {
+			stopCapture <- true
+			close(stopCapture)
+			td.manager.running = false
+			cancel()
+			dbg.Println("FuncGroup: Stop")
+		})
+	}
 
 	time.AfterFunc(td.manager.captureTime, td.closeFunc)
 	for i := 0; i < mainN; i++ {
