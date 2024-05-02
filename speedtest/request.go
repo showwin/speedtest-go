@@ -39,20 +39,24 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 		return errors.New("not found available servers")
 	}
 	mainIDIndex := 0
-	var fp *funcGroup
+	var td *TestDirection
 	_context, cancel := context.WithCancel(ctx)
+	defer cancel()
 	for i, server := range *ss {
 		if server.ID == s.ID {
 			mainIDIndex = i
 		}
 		sp := server
 		dbg.Printf("Register Download Handler: %s\n", sp.URL)
-		fp = server.Context.RegisterDownloadHandler(func() {
+		td = server.Context.RegisterDownloadHandler(func() {
 			_ = downloadRequest(_context, sp, 3)
 		})
 	}
-	fp.Start(cancel, mainIDIndex) // block here
-	s.DLSpeed = fp.manager.GetAvgDownloadRate()
+	if td == nil {
+		return ErrorUninitializedManager
+	}
+	td.Start(cancel, mainIDIndex) // block here
+	s.DLSpeed = td.manager.GetEWMADownloadRate()
 	return nil
 }
 
@@ -66,20 +70,24 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		return errors.New("not found available servers")
 	}
 	mainIDIndex := 0
-	var fp *funcGroup
+	var td *TestDirection
 	_context, cancel := context.WithCancel(ctx)
+	defer cancel()
 	for i, server := range *ss {
 		if server.ID == s.ID {
 			mainIDIndex = i
 		}
 		sp := server
 		dbg.Printf("Register Upload Handler: %s\n", sp.URL)
-		fp = server.Context.RegisterUploadHandler(func() {
+		td = server.Context.RegisterUploadHandler(func() {
 			_ = uploadRequest(_context, sp, 3)
 		})
 	}
-	fp.Start(cancel, mainIDIndex) // block here
-	s.ULSpeed = fp.manager.GetAvgUploadRate()
+	if td == nil {
+		return ErrorUninitializedManager
+	}
+	td.Start(cancel, mainIDIndex) // block here
+	s.ULSpeed = td.manager.GetEWMAUploadRate()
 	return nil
 }
 
@@ -104,7 +112,7 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 		_ = downloadRequest(_context, s, 3)
 	}).Start(cancel, 0)
 	duration := time.Since(start)
-	s.DLSpeed = s.Context.GetAvgDownloadRate()
+	s.DLSpeed = s.Context.GetEWMADownloadRate()
 	s.TestDuration.Download = &duration
 	s.testDurationTotalCount()
 	return nil

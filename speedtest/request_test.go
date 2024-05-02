@@ -29,8 +29,9 @@ func TestDownloadTestContext(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	if server.DLSpeed < idealSpeed*(1-delta) || idealSpeed*(1+delta) < server.DLSpeed {
-		t.Errorf("got unexpected server.DLSpeed '%v', expected between %v and %v", server.DLSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
+	value := server.Context.Manager.GetAvgDownloadRate()
+	if value < idealSpeed*(1-delta) || idealSpeed*(1+delta) < value {
+		t.Errorf("got unexpected server.DLSpeed '%v', expected between %v and %v", value, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
 	if server.TestDuration.Download == nil || *server.TestDuration.Download != *server.TestDuration.Total {
 		t.Errorf("can't count test duration, server.TestDuration.Download=%v, server.TestDuration.Total=%v", server.TestDuration.Download, server.TestDuration.Total)
