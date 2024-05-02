@@ -60,8 +60,9 @@ func TestUploadTestContext(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	if server.ULSpeed < idealSpeed*(1-delta) || idealSpeed*(1+delta) < server.ULSpeed {
-		t.Errorf("got unexpected server.ULSpeed '%v', expected between %v and %v", server.ULSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
+	value := server.Context.Manager.GetAvgUploadRate()
+	if value < idealSpeed*(1-delta) || idealSpeed*(1+delta) < value {
+		t.Errorf("got unexpected server.ULSpeed '%v', expected between %v and %v", value, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
 	if server.TestDuration.Upload == nil || *server.TestDuration.Upload != *server.TestDuration.Total {
 		t.Errorf("can't count test duration, server.TestDuration.Upload=%v, server.TestDuration.Total=%v", server.TestDuration.Upload, server.TestDuration.Total)
