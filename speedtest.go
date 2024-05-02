@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/showwin/speedtest-go/speedtest"
@@ -124,25 +125,11 @@ func main() {
 			task.Printf("Latency: %v Jitter: %v Min: %v Max: %v", server.Latency, server.Jitter, server.MinLatency, server.MaxLatency)
 			task.Complete()
 		})
-
+		accEcho := newAccompanyEcho(server, time.Millisecond*500)
 		taskManager.Run("Download", func(task *Task) {
-			var latencies []int64
-			var lc int64
-			quit := false
-			go func() {
-				for {
-					if quit {
-						return
-					}
-					latency, err1 := server.HTTPPing(context.Background(), 1, time.Millisecond*500, nil)
-					if err1 != nil {
-						continue
-					}
-					lc = latency[0]
-					latencies = append(latencies, latency...)
-				}
-			}()
+			accEcho.Run()
 			speedtestClient.SetCallbackDownload(func(downRate float64) {
+				lc := accEcho.CurrentLatency()
 				if lc == 0 {
 					task.Printf("Download: %.2fMbps (latency: --)", downRate*8/1000000)
 				} else {
@@ -154,29 +141,16 @@ func main() {
 			} else {
 				task.CheckError(server.DownloadTest())
 			}
-			mean, _, std, minL, maxL := speedtest.StandardDeviation(latencies)
+			accEcho.Stop()
+			mean, _, std, minL, maxL := speedtest.StandardDeviation(accEcho.Latencies())
 			task.Printf("Download: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.DLSpeed*8/1000000, float64(server.Context.Manager.GetTotalDownload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 
 		taskManager.Run("Upload", func(task *Task) {
-			var latencies []int64
-			var lc int64
-			quit := false
-			go func() {
-				for {
-					if quit {
-						return
-					}
-					latency, err1 := server.HTTPPing(context.Background(), 1, time.Millisecond*500, nil)
-					if err1 != nil {
-						continue
-					}
-					lc = latency[0]
-					latencies = append(latencies, latency...)
-				}
-			}()
+			accEcho.Run()
 			speedtestClient.SetCallbackUpload(func(upRate float64) {
+				lc := accEcho.CurrentLatency()
 				if lc == 0 {
 					task.Printf("Upload: %.2fMbps (latency: --)", upRate*8/1000000)
 				} else {
@@ -188,8 +162,8 @@ func main() {
 			} else {
 				task.CheckError(server.UploadTest())
 			}
-			quit = true
-			mean, _, std, minL, maxL := speedtest.StandardDeviation(latencies)
+			accEcho.Stop()
+			mean, _, std, minL, maxL := speedtest.StandardDeviation(accEcho.Latencies())
 			task.Printf("Upload: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.ULSpeed*8/1000000, float64(server.Context.Manager.GetTotalUpload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
@@ -206,6 +180,54 @@ func main() {
 		}
 		fmt.Print(string(json))
 	}
+}
+
+type AccompanyEcho struct {
+	stopEcho       chan bool
+	server         *speedtest.Server
+	currentLatency int64
+	interval       time.Duration
+	latencies      []int64
+}
+
+func newAccompanyEcho(server *speedtest.Server, interval time.Duration) *AccompanyEcho {
+	return &AccompanyEcho{
+		server:   server,
+		interval: interval,
+		stopEcho: make(chan bool),
+	}
+}
+
+func (ae *AccompanyEcho) Run() {
+	ae.latencies = make([]int64, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case <-ae.stopEcho:
+				cancel()
+				return
+			default:
+				latency, _ := ae.server.HTTPPing(ctx, 1, ae.interval, nil)
+				if len(latency) > 0 {
+					atomic.StoreInt64(&ae.currentLatency, latency[0])
+					ae.latencies = append(ae.latencies, latency[0])
+				}
+			}
+		}
+	}()
+}
+
+func (ae *AccompanyEcho) Stop() {
+	ae.stopEcho <- false
+}
+
+func (ae *AccompanyEcho) CurrentLatency() int64 {
+	return atomic.LoadInt64(&ae.currentLatency)
+}
+
+func (ae *AccompanyEcho) Latencies() []int64 {
+	return ae.latencies
 }
 
 func showServerList(servers speedtest.Servers) {
