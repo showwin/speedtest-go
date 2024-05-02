@@ -26,7 +26,7 @@ func NewWelford(windowSize int) *Welford {
 	return &Welford{
 		vector:                               make([]float64, windowSize),
 		cap:                                  windowSize,
-		consecutiveStableIterationsThreshold: 10,
+		consecutiveStableIterationsThreshold: 42,
 	}
 }
 
