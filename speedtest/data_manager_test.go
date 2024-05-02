@@ -35,14 +35,14 @@ func TestDataManager_AddTotalDownload(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	if dmp.totalDownload != 43521000000 {
+	if dmp.download.totalDataVolume != 43521000000 {
 		t.Fatal()
 	}
 }
 
 func TestDataManager_GetAvgDownloadRate(t *testing.T) {
 	dm := NewDataManager()
-	dm.totalDownload = 3000000
+	dm.download.totalDataVolume = 3000000
 	dm.captureTime = time.Second * 10
 
 	result := dm.GetAvgDownloadRate()
