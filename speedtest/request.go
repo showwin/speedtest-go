@@ -139,7 +139,7 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 		_ = uploadRequest(_context, s, 4)
 	}).Start(cancel, 0)
 	duration := time.Since(start)
-	s.ULSpeed = s.Context.GetAvgUploadRate()
+	s.ULSpeed = s.Context.GetEWMAUploadRate()
 	s.TestDuration.Upload = &duration
 	s.testDurationTotalCount()
 	return nil
