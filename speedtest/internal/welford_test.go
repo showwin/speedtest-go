@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"github.com/showwin/speedtest-go/speedtest"
 	"math/rand"
 	"testing"
 	"time"
@@ -33,31 +32,4 @@ func TestWOM(t *testing.T) {
 		fmt.Printf("[%d] %s\n", i, w)
 		time.Sleep(time.Millisecond * 50)
 	}
-}
-
-func TestGenTestData(t *testing.T) {
-	var speedtestClient = speedtest.New()
-	serverList, _ := speedtestClient.FetchServers()
-	targets, _ := serverList.FindServer([]int{})
-
-	var d []float64
-
-	speedtestClient.CallbackDownloadRate(func(downRate float64) {
-		d = append(d, downRate)
-	})
-
-	for _, s := range targets {
-		// Please make sure your host can access this test server,
-		// otherwise you will get an error.
-		// It is recommended to replace a server at this time
-		s.DownloadTest()
-		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
-		s.Context.Reset() // reset counter
-	}
-
-	fmt.Print("data := []float64{")
-	for _, val := range d {
-		fmt.Printf("%v, ", val)
-	}
-	fmt.Print("}")
 }
