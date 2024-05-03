@@ -260,13 +260,15 @@ func (td *TestDirection) rateCapture() chan bool {
 				prevTotalDataVolume = newTotalDataVolume
 				if deltaDataVolume != 0 {
 					td.RateSequence = append(td.RateSequence, deltaDataVolume)
-					if td.captureCallback != nil {
-						globalAvg := (float64(td.totalDataVolume)) / float64(time.Since(sTime).Milliseconds()) * 1000
-						if td.welford.Update(globalAvg) {
-							go td.closeFunc()
-						}
-						td.captureCallback(td.welford.EWMA())
-					}
+				}
+				// anyway we update the measuring instrument
+				globalAvg := (float64(td.totalDataVolume)) / float64(time.Since(sTime).Milliseconds()) * 1000
+				if td.welford.Update(globalAvg) {
+					go td.closeFunc()
+				}
+				// reports the current rate at the given rate
+				if td.captureCallback != nil {
+					td.captureCallback(td.welford.EWMA())
 				}
 			case stop := <-stopCapture:
 				if stop {
