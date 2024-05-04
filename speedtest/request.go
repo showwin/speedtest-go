@@ -176,6 +176,8 @@ func uploadRequest(ctx context.Context, s *Server, w int) error {
 	if err != nil {
 		return err
 	}
+	req.ContentLength = dc.(*DataChunk).ContentLength
+	dbg.Printf("Len=%d, XulURL: %s\n", req.ContentLength, s.URL)
 
 	req.Header.Set("Content-Type", "application/octet-stream")
 	resp, err := s.Context.doer.Do(req)
