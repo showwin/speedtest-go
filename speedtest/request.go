@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/showwin/speedtest-go/speedtest/tcp"
@@ -42,6 +43,8 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 	var td *TestDirection
 	_context, cancel := context.WithCancel(ctx)
 	defer cancel()
+	var errorTimes int64 = 0
+	var requestTimes int64 = 0
 	for i, server := range *ss {
 		if server.ID == s.ID {
 			mainIDIndex = i
@@ -49,7 +52,10 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 		sp := server
 		dbg.Printf("Register Download Handler: %s\n", sp.URL)
 		td = server.Context.RegisterDownloadHandler(func() {
-			_ = downloadRequest(_context, sp, 3)
+			atomic.AddInt64(&requestTimes, 1)
+			if err := downloadRequest(_context, sp, 3); err != nil {
+				atomic.AddInt64(&errorTimes, 1)
+			}
 		})
 	}
 	if td == nil {
@@ -57,6 +63,9 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 	}
 	td.Start(cancel, mainIDIndex) // block here
 	s.DLSpeed = ByteRate(td.manager.GetEWMADownloadRate())
+	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
+		s.DLSpeed = -1 // N/A
+	}
 	return nil
 }
 
@@ -73,6 +82,8 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 	var td *TestDirection
 	_context, cancel := context.WithCancel(ctx)
 	defer cancel()
+	var errorTimes int64 = 0
+	var requestTimes int64 = 0
 	for i, server := range *ss {
 		if server.ID == s.ID {
 			mainIDIndex = i
@@ -80,7 +91,10 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		sp := server
 		dbg.Printf("Register Upload Handler: %s\n", sp.URL)
 		td = server.Context.RegisterUploadHandler(func() {
-			_ = uploadRequest(_context, sp, 3)
+			atomic.AddInt64(&requestTimes, 1)
+			if err := uploadRequest(_context, sp, 3); err != nil {
+				atomic.AddInt64(&errorTimes, 1)
+			}
 		})
 	}
 	if td == nil {
@@ -88,6 +102,9 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 	}
 	td.Start(cancel, mainIDIndex) // block here
 	s.ULSpeed = ByteRate(td.manager.GetEWMAUploadRate())
+	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
+		s.ULSpeed = -1 // N/A
+	}
 	return nil
 }
 
@@ -106,13 +123,21 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 		dbg.Println("Download test disabled")
 		return nil
 	}
+	var errorTimes int64 = 0
+	var requestTimes int64 = 0
 	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterDownloadHandler(func() {
-		_ = downloadRequest(_context, s, 3)
+		atomic.AddInt64(&requestTimes, 1)
+		if err := downloadRequest(_context, s, 3); err != nil {
+			atomic.AddInt64(&errorTimes, 1)
+		}
 	}).Start(cancel, 0)
 	duration := time.Since(start)
 	s.DLSpeed = ByteRate(s.Context.GetEWMADownloadRate())
+	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
+		s.DLSpeed = -1 // N/A
+	}
 	s.TestDuration.Download = &duration
 	s.testDurationTotalCount()
 	return nil
@@ -133,13 +158,21 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 		dbg.Println("Upload test disabled")
 		return nil
 	}
+	var errorTimes int64 = 0
+	var requestTimes int64 = 0
 	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterUploadHandler(func() {
-		_ = uploadRequest(_context, s, 4)
+		atomic.AddInt64(&requestTimes, 1)
+		if err := uploadRequest(_context, s, 4); err != nil {
+			atomic.AddInt64(&errorTimes, 1)
+		}
 	}).Start(cancel, 0)
 	duration := time.Since(start)
 	s.ULSpeed = ByteRate(s.Context.GetEWMAUploadRate())
+	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
+		s.ULSpeed = -1 // N/A
+	}
 	s.TestDuration.Upload = &duration
 	s.testDurationTotalCount()
 	return nil
