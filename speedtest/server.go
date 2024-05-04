@@ -222,7 +222,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		return Servers{}, err
 	}
 
-	payloadType := typeJSONPayload
+	_payloadType := typeJSONPayload
 
 	if resp.ContentLength == 0 {
 		_ = resp.Body.Close()
@@ -237,14 +237,14 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 			return Servers{}, err
 		}
 
-		payloadType = typeXMLPayload
+		_payloadType = typeXMLPayload
 	}
 
 	defer resp.Body.Close()
 
 	var servers Servers
 
-	switch payloadType {
+	switch _payloadType {
 	case typeJSONPayload:
 		// Decode xml
 		decoder := json.NewDecoder(resp.Body)
@@ -360,14 +360,14 @@ func (servers Servers) FindServer(serverID []int) (Servers, error) {
 
 	if len(retServer) == 0 {
 		// choose the lowest latency server
-		var min int64 = math.MaxInt64
+		var minLatency int64 = math.MaxInt64
 		var minServerIndex int
 		for index, server := range servers {
 			if server.Latency <= 0 {
 				continue
 			}
-			if min > server.Latency.Milliseconds() {
-				min = server.Latency.Milliseconds()
+			if minLatency > server.Latency.Milliseconds() {
+				minLatency = server.Latency.Milliseconds()
 				minServerIndex = index
 			}
 		}

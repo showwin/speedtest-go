@@ -140,6 +140,10 @@ func TestCustomServer(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
+	if got == nil {
+		t.Error("empty server")
+		return
+	}
 	if got.Host != "example.com" {
 		t.Error("did not properly set the Host field on a custom server")
 	}

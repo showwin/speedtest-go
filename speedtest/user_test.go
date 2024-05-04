@@ -13,6 +13,10 @@ func TestFetchUserInfo(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
+	if user == nil {
+		t.Error("empty user info")
+		return
+	}
 	// IP
 	if len(user.IP) < 7 || len(user.IP) > 15 {
 		t.Errorf("invalid IP length. got: %v;", user.IP)
