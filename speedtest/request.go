@@ -56,7 +56,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 		return ErrorUninitializedManager
 	}
 	td.Start(cancel, mainIDIndex) // block here
-	s.DLSpeed = td.manager.GetEWMADownloadRate()
+	s.DLSpeed = ByteRate(td.manager.GetEWMADownloadRate())
 	return nil
 }
 
@@ -87,7 +87,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		return ErrorUninitializedManager
 	}
 	td.Start(cancel, mainIDIndex) // block here
-	s.ULSpeed = td.manager.GetEWMAUploadRate()
+	s.ULSpeed = ByteRate(td.manager.GetEWMAUploadRate())
 	return nil
 }
 
@@ -112,7 +112,7 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 		_ = downloadRequest(_context, s, 3)
 	}).Start(cancel, 0)
 	duration := time.Since(start)
-	s.DLSpeed = s.Context.GetEWMADownloadRate()
+	s.DLSpeed = ByteRate(s.Context.GetEWMADownloadRate())
 	s.TestDuration.Download = &duration
 	s.testDurationTotalCount()
 	return nil
@@ -139,7 +139,7 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 		_ = uploadRequest(_context, s, 4)
 	}).Start(cancel, 0)
 	duration := time.Since(start)
-	s.ULSpeed = s.Context.GetEWMAUploadRate()
+	s.ULSpeed = ByteRate(s.Context.GetEWMAUploadRate())
 	s.TestDuration.Upload = &duration
 	s.testDurationTotalCount()
 	return nil

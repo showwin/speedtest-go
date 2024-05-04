@@ -38,17 +38,17 @@ Flags:
       --help                   Show context-sensitive help (also try --help-long and --help-man).
   -l, --list                   Show available speedtest.net servers.
   -s, --server=SERVER ...      Select server id to speedtest.
-      --custom-url=CUSTOM-URL  Specify the url of the server instead of getting a list from speedtest.net.
+      --custom-url=CUSTOM-URL  Specify the url of the server instead of fetching from speedtest.net.
       --saving-mode            Test with few resources, though low accuracy (especially > 30Mbps).
       --json                   Output results in json format.
-      --location=LOCATION      Change the location with a precise coordinate.
+      --location=LOCATION      Change the location with a precise coordinate (format: lat,lon).
       --city=CITY              Change the location with a predefined city label.
       --city-list              List all predefined city labels.
       --proxy=PROXY            Set a proxy(http[s] or socks) for the speedtest.
                                eg: --proxy=socks://10.20.0.101:7890
                                eg: --proxy=http://10.20.0.101:7890
       --source=SOURCE          Bind a source interface for the speedtest.
-      --dns-bind-source        DNS request binding source.(Experimental)
+      --dns-bind-source        DNS request binding source (experimental).
                                eg: --source=10.20.0.101
   -m  --multi                  Enable multi-server mode.
   -t  --thread=THREAD          Set the number of concurrent connections.
@@ -56,7 +56,9 @@ Flags:
       --ua                     Set the user-agent header for the speedtest.
       --no-download            Disable download test.
       --no-upload              Disable upload test.
-      --ping-mode              Select a method for Ping. (support icmp/tcp/http)
+      --ping-mode              Select a method for Ping (support icmp/tcp/http).
+  -u  --unit                   Set human-readable and auto-scaled rate units for output 
+                               (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).
   -d  --debug                  Enable debug mode.
       --version                Show application version.
 ```
@@ -68,15 +70,15 @@ Simply use `speedtest` command. The closest server is selected by default. Use t
 ```bash
 $ speedtest
 
-    speedtest-go v1.6.5 @showwin
+    speedtest-go v1.7.0 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 20 Public Servers
 
 ✓ Test Server: [6691] 9.03km Shizuoka (Japan) by sudosan
-✓ Latency: 24.15396ms Jitter: 777.465µs Min: 22.8926ms Max: 25.5387ms
-✓ Download: 73.30Mbps (used: 101.48MB)
-✓ Upload: 35.26Mbps (used: 47.33MB)
+✓ Latency: 4.452963ms Jitter: 41.271µs Min: 4.395179ms Max: 4.517576ms
+✓ Download: 115.52 Mbps (Used: 135.75MB) (Latency: 4ms Jitter: 0ms Min: 4ms Max: 4ms)
+✓ Upload: 4.02 Mbps (Used: 6.85MB) (Latency: 4ms Jitter: 1ms Min: 3ms Max: 8ms)
 ```
 
 #### Test with Other Servers
@@ -98,23 +100,20 @@ and select them by id.
 ```bash
 $ speedtest --server 6691 --server 6087
 
-    speedtest-go v1.6.5 @showwin
+    speedtest-go v1.7.0 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
-✓ Found 20 Public Servers
+✓ Found 2 Specified Public Server(s)
 
 ✓ Test Server: [6691] 9.03km Shizuoka (Japan) by sudosan
 ✓ Latency: 21.424ms Jitter: 1.644ms Min: 19.142ms Max: 23.926ms
-✓ Download: 65.82Mbps (used: 75.48MB)
-✓ Upload: 27.00Mbps (used: 36.33MB)
+✓ Download: 65.82Mbps (Used: 75.48MB) (Latency: 22ms Jitter: 2ms Min: 17ms Max: 24ms)
+✓ Upload: 27.00Mbps (Used: 36.33MB) (Latency: 23ms Jitter: 2ms Min: 18ms Max: 25ms)
 
 ✓ Test Server: [6087] 120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
 ✓ Latency: 38.694699ms Jitter: 2.724ms Min: 36.443ms Max: 39.953ms
-✓ Download: 72.24Mbps (used: 83.72MB)
-✓ Upload: 29.56Mbps (used: 47.64MB)
-
-Download Avg: 69.03 Mbit/s
-Upload Avg: 28.28 Mbit/s
+✓ Download: 72.24Mbps (Used: 83.72MB) (Latency: 37ms Jitter: 3ms Min: 36ms Max: 40ms)
+✓ Upload: 29.56Mbps (Used: 47.64MB) (Latency: 38ms Jitter: 3ms Min: 37ms Max: 41ms)
 ```
 
 #### Test with a virtual location
@@ -195,7 +194,8 @@ func main() {
 		s.PingTest(nil)
 		s.DownloadTest()
 		s.UploadTest()
-		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
+		// Note: The unit of s.DLSpeed, s.ULSpeed is bytes per second, this is a float64.
+		fmt.Printf("Latency: %s, Download: %s, Upload: %s\n", s.Latency, s.DLSpeed, s.ULSpeed)
 		s.Context.Reset() // reset counter
 	}
 }

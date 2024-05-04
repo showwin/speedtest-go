@@ -30,8 +30,8 @@ type Manager interface {
 	GetEWMADownloadRate() float64
 	GetEWMAUploadRate() float64
 
-	SetCallbackDownload(callback func(downRate float64))
-	SetCallbackUpload(callback func(upRate float64))
+	SetCallbackDownload(callback func(downRate ByteRate))
+	SetCallbackUpload(callback func(upRate ByteRate))
 
 	RegisterDownloadHandler(fn func()) *TestDirection
 	RegisterUploadHandler(fn func()) *TestDirection
@@ -95,14 +95,14 @@ type DataManager struct {
 }
 
 type TestDirection struct {
-	TestType        int                        // test type
-	manager         *DataManager               // manager
-	totalDataVolume int64                      // total send/receive data volume
-	RateSequence    []int64                    // rate history sequence
-	welford         *internal.Welford          // std/EWMA/mean
-	captureCallback func(realTimeRate float64) // user callback
-	closeFunc       func()                     // close func
-	*funcGroup                                 // actually exec function
+	TestType        int                         // test type
+	manager         *DataManager                // manager
+	totalDataVolume int64                       // total send/receive data volume
+	RateSequence    []int64                     // rate history sequence
+	welford         *internal.Welford           // std/EWMA/mean
+	captureCallback func(realTimeRate ByteRate) // user callback
+	closeFunc       func()                      // close func
+	*funcGroup                                  // actually exec function
 }
 
 func (dm *DataManager) NewDataDirection(testType int) *TestDirection {
@@ -126,13 +126,13 @@ func NewDataManager() *DataManager {
 	return ret
 }
 
-func (dm *DataManager) SetCallbackDownload(callback func(downRate float64)) {
+func (dm *DataManager) SetCallbackDownload(callback func(downRate ByteRate)) {
 	if dm.download != nil {
 		dm.download.captureCallback = callback
 	}
 }
 
-func (dm *DataManager) SetCallbackUpload(callback func(upRate float64)) {
+func (dm *DataManager) SetCallbackUpload(callback func(upRate ByteRate)) {
 	if dm.upload != nil {
 		dm.upload.captureCallback = callback
 	}
@@ -268,7 +268,7 @@ func (td *TestDirection) rateCapture() chan bool {
 				}
 				// reports the current rate at the given rate
 				if td.captureCallback != nil {
-					td.captureCallback(td.welford.EWMA())
+					td.captureCallback(ByteRate(td.welford.EWMA()))
 				}
 			case stop := <-stopCapture:
 				if stop {

@@ -48,8 +48,8 @@ type Server struct {
 	MaxLatency   time.Duration `json:"max_latency"`
 	MinLatency   time.Duration `json:"min_latency"`
 	Jitter       time.Duration `json:"jitter"`
-	DLSpeed      float64       `json:"dl_speed"`
-	ULSpeed      float64       `json:"ul_speed"`
+	DLSpeed      ByteRate      `json:"dl_speed"`
+	ULSpeed      ByteRate      `json:"ul_speed"`
 	TestDuration TestDuration  `json:"test_duration"`
 
 	Context *Speedtest `json:"-"`
