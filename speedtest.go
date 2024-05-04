@@ -16,22 +16,23 @@ import (
 var (
 	showList      = kingpin.Flag("list", "Show available speedtest.net servers.").Short('l').Bool()
 	serverIds     = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
-	customURL     = kingpin.Flag("custom-url", "Specify the url of the server instead of getting a list from speedtest.net.").String()
+	customURL     = kingpin.Flag("custom-url", "Specify the url of the server instead of fetching from speedtest.net.").String()
 	savingMode    = kingpin.Flag("saving-mode", "Test with few resources, though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput    = kingpin.Flag("json", "Output results in json format.").Bool()
-	location      = kingpin.Flag("location", "Change the location with a precise coordinate. Format: lat,lon").String()
+	location      = kingpin.Flag("location", "Change the location with a precise coordinate (format: lat,lon).").String()
 	city          = kingpin.Flag("city", "Change the location with a predefined city label.").String()
 	showCityList  = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
 	proxy         = kingpin.Flag("proxy", "Set a proxy(http[s] or socks) for the speedtest.").String()
 	source        = kingpin.Flag("source", "Bind a source interface for the speedtest.").String()
-	dnsBindSource = kingpin.Flag("dns-bind-source", "DNS request binding source.(Experimental)").Bool()
+	dnsBindSource = kingpin.Flag("dns-bind-source", "DNS request binding source (experimental).").Bool()
 	multi         = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
 	thread        = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
 	search        = kingpin.Flag("search", "Fuzzy search servers by a keyword.").String()
 	userAgent     = kingpin.Flag("ua", "Set the user-agent header for the speedtest.").String()
 	noDownload    = kingpin.Flag("no-download", "Disable download test.").Bool()
 	noUpload      = kingpin.Flag("no-upload", "Disable upload test.").Bool()
-	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping. (support icmp/tcp/http)").Default("http").String()
+	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping (support icmp/tcp/http).").Default("http").String()
+	unit          = kingpin.Flag("unit", "Set human-readable and auto-scaled rate units for output (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).").Short('u').String()
 	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 )
 
@@ -40,6 +41,8 @@ func main() {
 	kingpin.Version(speedtest.Version())
 	kingpin.Parse()
 	AppInfo()
+
+	speedtest.SetUnit(parseUnit(*unit))
 
 	// 0. speed test setting
 	var speedtestClient = speedtest.New(speedtest.WithUserConfig(
@@ -128,12 +131,12 @@ func main() {
 		accEcho := newAccompanyEcho(server, time.Millisecond*500)
 		taskManager.Run("Download", func(task *Task) {
 			accEcho.Run()
-			speedtestClient.SetCallbackDownload(func(downRate float64) {
+			speedtestClient.SetCallbackDownload(func(downRate speedtest.ByteRate) {
 				lc := accEcho.CurrentLatency()
 				if lc == 0 {
-					task.Printf("Download: %.2fMbps (latency: --)", downRate*8/1000000)
+					task.Printf("Download: %s (Latency: --)", downRate)
 				} else {
-					task.Printf("Download: %.2fMbps (latency: %dms)", downRate*8/1000000, lc/1000000)
+					task.Printf("Download: %s (Latency: %dms)", downRate, lc/1000000)
 				}
 			})
 			if *multi {
@@ -143,18 +146,18 @@ func main() {
 			}
 			accEcho.Stop()
 			mean, _, std, minL, maxL := speedtest.StandardDeviation(accEcho.Latencies())
-			task.Printf("Download: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.DLSpeed*8/1000000, float64(server.Context.Manager.GetTotalDownload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
+			task.Printf("Download: %s (Used: %.2fMB) (Latency: %dms Jitter: %dms Min: %dms Max: %dms)", server.DLSpeed, float64(server.Context.Manager.GetTotalDownload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 
 		taskManager.Run("Upload", func(task *Task) {
 			accEcho.Run()
-			speedtestClient.SetCallbackUpload(func(upRate float64) {
+			speedtestClient.SetCallbackUpload(func(upRate speedtest.ByteRate) {
 				lc := accEcho.CurrentLatency()
 				if lc == 0 {
-					task.Printf("Upload: %.2fMbps (latency: --)", upRate*8/1000000)
+					task.Printf("Upload: %s (Latency: --)", upRate)
 				} else {
-					task.Printf("Upload: %.2fMbps (latency: %dms)", upRate*8/1000000, lc/1000000)
+					task.Printf("Upload: %s (Latency: %dms)", upRate, lc/1000000)
 				}
 			})
 			if *multi {
@@ -164,7 +167,7 @@ func main() {
 			}
 			accEcho.Stop()
 			mean, _, std, minL, maxL := speedtest.StandardDeviation(accEcho.Latencies())
-			task.Printf("Upload: %.2fMbps (used: %.2fMB) (latency: %dms jitter: %dms min: %dms max: %dms)", server.ULSpeed*8/1000000, float64(server.Context.Manager.GetTotalUpload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
+			task.Printf("Upload: %s (Used: %.2fMB) (Latency: %dms Jitter: %dms Min: %dms Max: %dms)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 		taskManager.Reset()
@@ -240,6 +243,21 @@ func showServerList(servers speedtest.Servers) {
 			fmt.Printf("%-dms ", s.Latency/time.Millisecond)
 		}
 		fmt.Printf("\t%s (%s) by %s \n", s.Name, s.Country, s.Sponsor)
+	}
+}
+
+func parseUnit(str string) speedtest.UnitType {
+	str = strings.ToLower(str)
+	if str == "decimal-bits" {
+		return speedtest.UnitTypeDecimalBits
+	} else if str == "decimal-bytes" {
+		return speedtest.UnitTypeDecimalBytes
+	} else if str == "binary-bits" {
+		return speedtest.UnitTypeBinaryBits
+	} else if str == "binary-bytes" {
+		return speedtest.UnitTypeBinaryBytes
+	} else {
+		return speedtest.UnitTypeDefaultMbps
 	}
 }
 
