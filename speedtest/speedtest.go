@@ -46,7 +46,8 @@ type UserConfig struct {
 	Debug         bool
 	PingMode      Proto
 
-	SavingMode bool
+	SavingMode     bool
+	MaxConnections int
 
 	CityFlag     string
 	LocationFlag string
@@ -72,8 +73,9 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 	}
 
 	if uc.SavingMode {
-		s.SetNThread(1) // Set the number of concurrent connections to 1
+		uc.MaxConnections = 1 // Set the number of concurrent connections to 1
 	}
+	s.SetNThread(uc.MaxConnections)
 
 	if len(uc.CityFlag) > 0 {
 		var err error

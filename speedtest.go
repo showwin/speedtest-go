@@ -47,20 +47,20 @@ func main() {
 	// 0. speed test setting
 	var speedtestClient = speedtest.New(speedtest.WithUserConfig(
 		&speedtest.UserConfig{
-			UserAgent:     *userAgent,
-			Proxy:         *proxy,
-			Source:        *source,
-			DnsBindSource: *dnsBindSource,
-			Debug:         *debug,
-			PingMode:      parseProto(*pingMode), // TCP as default
-			SavingMode:    *savingMode,
-			CityFlag:      *city,
-			LocationFlag:  *location,
-			Keyword:       *search,
-			NoDownload:    *noDownload,
-			NoUpload:      *noUpload,
+			UserAgent:      *userAgent,
+			Proxy:          *proxy,
+			Source:         *source,
+			DnsBindSource:  *dnsBindSource,
+			Debug:          *debug,
+			PingMode:       parseProto(*pingMode), // TCP as default
+			SavingMode:     *savingMode,
+			MaxConnections: *thread,
+			CityFlag:       *city,
+			LocationFlag:   *location,
+			Keyword:        *search,
+			NoDownload:     *noDownload,
+			NoUpload:       *noUpload,
 		}))
-	speedtestClient.SetNThread(*thread)
 
 	if *showCityList {
 		speedtest.PrintCityList()
