@@ -31,7 +31,8 @@ func main() {
 		checkError(s.DownloadTest())
 		checkError(s.UploadTest())
 
-		fmt.Printf("Latency: %s, Download: %f, Upload: %f\n", s.Latency, s.DLSpeed, s.ULSpeed)
+		// Note: The unit of s.DLSpeed, s.ULSpeed is bytes per second, this is a float64.
+		fmt.Printf("Latency: %s, Download: %s, Upload: %s\n", s.Latency, s.DLSpeed, s.ULSpeed)
 		s.Context.Reset()
 	}
 }
