@@ -171,8 +171,6 @@ func uploadRequest(ctx context.Context, s *Server, w int) error {
 	size := ulSizes[w]
 	dc := s.Context.NewChunk().UploadHandler(int64(size*100-51) * 10)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.URL, dc)
-	req.ContentLength = dc.(*DataChunk).ContentLength
-	dbg.Printf("Len=%d, XulURL: %s\n", req.ContentLength, s.URL)
 	if err != nil {
 		return err
 	}
@@ -208,12 +206,12 @@ func (s *Server) PingTestContext(ctx context.Context, callback func(latency time
 		return err
 	}
 	dbg.Printf("Before StandardDeviation: %v\n", vectorPingResult)
-	mean, _, std, min, max := StandardDeviation(vectorPingResult)
+	mean, _, std, minLatency, maxLatency := StandardDeviation(vectorPingResult)
 	duration := time.Since(start)
 	s.Latency = time.Duration(mean) * time.Nanosecond
 	s.Jitter = time.Duration(std) * time.Nanosecond
-	s.MinLatency = time.Duration(min) * time.Nanosecond
-	s.MaxLatency = time.Duration(max) * time.Nanosecond
+	s.MinLatency = time.Duration(minLatency) * time.Nanosecond
+	s.MaxLatency = time.Duration(maxLatency) * time.Nanosecond
 	s.TestDuration.Ping = &duration
 	s.testDurationTotalCount()
 	return nil
