@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/showwin/speedtest-go/speedtest"
 )
@@ -34,6 +36,7 @@ var (
 	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping (support icmp/tcp/http).").Default("http").String()
 	unit          = kingpin.Flag("unit", "Set human-readable and auto-scaled rate units for output (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).").Short('u').String()
 	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
+	countryCode   = kingpin.Flag("filter-cc", "Filter servers by Country Code(s).").Strings()
 )
 
 func main() {
@@ -101,7 +104,16 @@ func main() {
 		} else {
 			servers, err = speedtestClient.FetchServers()
 			task.CheckError(err)
-			task.Printf("Found %d Public Servers", len(servers))
+			// cc filter auto attach
+			if slices.Contains(*countryCode, "auto") {
+				*countryCode = append(*countryCode, speedtestClient.User.Country)
+			}
+			if len(*countryCode) > 0 {
+				servers = servers.CC(*countryCode)
+				task.Printf("Found %d Public Servers with Country Code[%v]", len(servers), strings.Join(*countryCode, ","))
+			} else {
+				task.Printf("Found %d Public Servers", len(servers))
+			}
 			if *showList {
 				task.Complete()
 				task.manager.Reset()

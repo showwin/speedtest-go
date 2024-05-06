@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -51,6 +52,7 @@ type Server struct {
 	DLSpeed      ByteRate      `json:"dl_speed"`
 	ULSpeed      ByteRate      `json:"ul_speed"`
 	TestDuration TestDuration  `json:"test_duration"`
+	CC           string        `json:"cc"`
 
 	Context *Speedtest `json:"-"`
 }
@@ -129,6 +131,28 @@ func (servers Servers) Len() int {
 // Swap swaps i-th and j-th. For sorting servers.
 func (servers Servers) Swap(i, j int) {
 	servers[i], servers[j] = servers[j], servers[i]
+}
+
+// Filter filter by filterFunc
+func (servers Servers) Filter(filterFunc func(server *Server) bool) Servers {
+	var retServers Servers
+	for i := range servers {
+		if filterFunc(servers[i]) {
+			retServers = append(retServers, servers[i])
+		}
+	}
+	return retServers
+}
+
+// CC filter by Country Code
+func (servers Servers) CC(cc []string) Servers {
+	var upperCC []string
+	for i := range cc {
+		upperCC = append(upperCC, strings.ToUpper(cc[i]))
+	}
+	return servers.Filter(func(server *Server) bool {
+		return slices.Contains(upperCC, server.CC)
+	})
 }
 
 // Less compares the distance. For sorting servers.
@@ -210,6 +234,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		query.Set("lat", strconv.FormatFloat(s.config.Location.Lat, 'f', -1, 64))
 		query.Set("lon", strconv.FormatFloat(s.config.Location.Lon, 'f', -1, 64))
 	}
+
 	u.RawQuery = query.Encode()
 	dbg.Printf("Retrieving servers: %s\n", u.String())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)

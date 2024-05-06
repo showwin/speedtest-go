@@ -202,3 +202,18 @@ func TestTotalDurationCount(t *testing.T) {
 		t.Error("addition in testDurationTotalCount didn't work")
 	}
 }
+
+func TestCityFlag(t *testing.T) {
+	testCC := "YISHUN"
+	testData := Servers{
+		{CC: "YISHUN"},
+		{CC: "TOKYO"},
+		{CC: "YISHUN"},
+		{CC: "TEST"},
+	}
+
+	tmpServers := testData.CC([]string{testCC})
+	if tmpServers.Len() != 2 && tmpServers[0].CC != testCC {
+		t.Fatalf("not match: %s", testCC)
+	}
+}
