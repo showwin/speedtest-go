@@ -19,8 +19,9 @@ var (
 )
 
 var (
-	ErrEchoData  = errors.New("incorrect echo data")
-	ErrEmptyConn = errors.New("empty conn")
+	ErrEchoData    = errors.New("incorrect echo data")
+	ErrEmptyConn   = errors.New("empty conn")
+	ErrUnsupported = errors.New("unsupported protocol tcp") // Some servers have disabled ip:8080, we return this error.
 )
 
 func pingFormat(locTime int64) []byte {
