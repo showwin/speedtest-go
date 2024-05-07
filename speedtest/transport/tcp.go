@@ -1,4 +1,4 @@
-package tcp
+package transport
 
 import (
 	"bufio"
