@@ -18,7 +18,7 @@ var (
 
 type PacketLossSender struct {
 	ID            string   // UUID
-	nounce        int      // Random int (maybe) [0,10000000000)
+	nounce        int64    // Random int (maybe) [0,10000000000)
 	withTimestamp bool     // With timestamp (ten seconds level)
 	conn          net.Conn // UDP Conn
 	raw           []byte
@@ -28,7 +28,7 @@ type PacketLossSender struct {
 
 func NewPacketLossSender(uuid string, dialer *net.Dialer) (*PacketLossSender, error) {
 	rd := mrand.New(mrand.NewSource(time.Now().UnixNano()))
-	nounce := rd.Intn(10000000000)
+	nounce := rd.Int63n(10000000000)
 	p := &PacketLossSender{
 		ID:            strings.ToUpper(uuid),
 		nounce:        nounce,
