@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/showwin/speedtest-go/speedtest/transport"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 	"strconv"
@@ -128,6 +130,24 @@ func main() {
 			task.Printf("Latency: %v Jitter: %v Min: %v Max: %v", server.Latency, server.Jitter, server.MinLatency, server.MaxLatency)
 			task.Complete()
 		})
+
+		// 3.0 create a packet loss analyzer, use default options
+		var analyzer *speedtest.PacketLossAnalyzer
+		analyzer, err = speedtest.NewPacketLossAnalyzer(&speedtest.PacketLossAnalyzerOptions{
+			SourceInterface: *source,
+		})
+		server.PacketLoss = -1.0 // N/A as default
+		packetLossAnalyzerCtx, packetLossAnalyzerCancel := context.WithTimeout(context.Background(), time.Second*40)
+		go func() {
+			err = analyzer.RunWithContext(packetLossAnalyzerCtx, server.Host, func(packetLoss *transport.PLoss) {
+				server.PacketLoss = packetLoss.Loss()
+			})
+			if errors.Is(err, transport.ErrUnsupported) {
+				packetLossAnalyzerCancel() // cancel early
+			}
+		}()
+
+		// 3.1 create accompany Echo
 		accEcho := newAccompanyEcho(server, time.Millisecond*500)
 		taskManager.Run("Download", func(task *Task) {
 			accEcho.Run()
@@ -172,8 +192,15 @@ func main() {
 		})
 		taskManager.Reset()
 		speedtestClient.Manager.Reset()
+		packetLossAnalyzerCancel()
+		if !*jsonOutput {
+			if server.PacketLoss != -1 {
+				fmt.Printf("  Packet Loss: %.2f%%", server.PacketLoss*100)
+			} else {
+				fmt.Printf("  Packet Loss: N/A")
+			}
+		}
 	}
-
 	taskManager.Stop()
 
 	if *jsonOutput {

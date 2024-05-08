@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/showwin/speedtest-go/speedtest/transport"
 	"io"
 	"math"
 	"net/http"
@@ -12,8 +13,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
-
-	"github.com/showwin/speedtest-go/speedtest/tcp"
 )
 
 type (
@@ -280,8 +279,11 @@ func (s *Server) TCPPing(
 		pingDst = s.Host
 	}
 	failTimes := 0
-	client := tcp.NewClient(s.Context.tcpDialer, pingDst)
-	err = client.Connect()
+	client, err := transport.NewClient(s.Context.tcpDialer)
+	if err != nil {
+		return nil, err
+	}
+	err = client.Connect(ctx, pingDst)
 	if err != nil {
 		return nil, err
 	}
