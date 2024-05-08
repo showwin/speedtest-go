@@ -70,7 +70,7 @@ Simply use `speedtest` command. The closest server is selected by default. Use t
 ```bash
 $ speedtest
 
-    speedtest-go v1.7.0 @showwin
+    speedtest-go v1.7.1 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 20 Public Servers
@@ -79,6 +79,7 @@ $ speedtest
 ✓ Latency: 4.452963ms Jitter: 41.271µs Min: 4.395179ms Max: 4.517576ms
 ✓ Download: 115.52 Mbps (Used: 135.75MB) (Latency: 4ms Jitter: 0ms Min: 4ms Max: 4ms)
 ✓ Upload: 4.02 Mbps (Used: 6.85MB) (Latency: 4ms Jitter: 1ms Min: 3ms Max: 8ms)
+  Packet Loss: 3.36%
 ```
 
 #### Test with Other Servers
@@ -100,7 +101,7 @@ and select them by id.
 ```bash
 $ speedtest --server 6691 --server 6087
 
-    speedtest-go v1.7.0 @showwin
+    speedtest-go v1.7.1 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 2 Specified Public Server(s)
@@ -109,11 +110,13 @@ $ speedtest --server 6691 --server 6087
 ✓ Latency: 21.424ms Jitter: 1.644ms Min: 19.142ms Max: 23.926ms
 ✓ Download: 65.82Mbps (Used: 75.48MB) (Latency: 22ms Jitter: 2ms Min: 17ms Max: 24ms)
 ✓ Upload: 27.00Mbps (Used: 36.33MB) (Latency: 23ms Jitter: 2ms Min: 18ms Max: 25ms)
+  Packet Loss: 7.55%
 
 ✓ Test Server: [6087] 120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
 ✓ Latency: 38.694699ms Jitter: 2.724ms Min: 36.443ms Max: 39.953ms
 ✓ Download: 72.24Mbps (Used: 83.72MB) (Latency: 37ms Jitter: 3ms Min: 36ms Max: 40ms)
 ✓ Upload: 29.56Mbps (Used: 47.64MB) (Latency: 38ms Jitter: 3ms Min: 37ms Max: 41ms)
+  Packet Loss: 4.33%
 ```
 
 #### Test with a virtual location
@@ -154,7 +157,7 @@ go get github.com/showwin/speedtest-go
 
 ### API Usage
 
-The [code](https://github.com/showwin/speedtest-go/blob/master/example/main.go) below finds the closest available speedtest server and tests the latency, download, and upload speeds.
+The [code](https://github.com/showwin/speedtest-go/blob/master/example/naive/main.go) below finds the closest available speedtest server and tests the latency, download, and upload speeds.
 ```go
 package main
 
@@ -201,6 +204,38 @@ func main() {
 }
 ```
 
+The [code](https://github.com/showwin/speedtest-go/blob/master/example/packet_loss/main.go) will find the closest available speedtest server and analyze packet loss.
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/showwin/speedtest-go/speedtest"
+	"github.com/showwin/speedtest-go/speedtest/transport"
+)
+
+// Note: The current packet loss analyzer does not support udp over http.
+// This means we cannot get packet loss through a proxy.
+func main() {
+	// Retrieve available servers
+	var speedtestClient = speedtest.New()
+	serverList, _ := speedtestClient.FetchServers()
+	targets, _ := serverList.FindServer([]int{})
+
+	// Create a packet loss analyzer, use default options
+	analyzer, err := speedtest.NewPacketLossAnalyzer(nil)
+	checkError(err)
+
+	// Perform packet loss analysis on all available servers
+	for _, server := range targets {
+		err = analyzer.Run(server.Host, func(packetLoss *transport.PLoss) {
+			fmt.Println(packetLoss, server.Host, server.Name)
+			// fmt.Println(packetLoss.Loss())
+		})
+		checkError(err)
+	}
+}
+```
 
 ## Summary of Experimental Results
 
