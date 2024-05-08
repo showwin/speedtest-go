@@ -51,6 +51,7 @@ type Server struct {
 	DLSpeed      ByteRate      `json:"dl_speed"`
 	ULSpeed      ByteRate      `json:"ul_speed"`
 	TestDuration TestDuration  `json:"test_duration"`
+	PacketLoss   float64       `json:"packet_loss"`
 
 	Context *Speedtest `json:"-"`
 }

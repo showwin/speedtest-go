@@ -279,8 +279,11 @@ func (s *Server) TCPPing(
 		pingDst = s.Host
 	}
 	failTimes := 0
-	client := transport.NewClient(s.Context.tcpDialer, pingDst)
-	err = client.Connect()
+	client, err := transport.NewClient(s.Context.tcpDialer)
+	if err != nil {
+		return nil, err
+	}
+	err = client.Connect(ctx, pingDst)
 	if err != nil {
 		return nil, err
 	}
