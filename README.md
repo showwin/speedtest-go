@@ -239,7 +239,7 @@ func main() {
 
 ## Summary of Experimental Results
 
-Speedtest-go is a great tool because of the following 4 reasons:
+Speedtest-go is a great tool because of the following five reasons:
 * Cross-platform available.
 * Low memory environment.
 * We are the first open source project to implement all features base on speedtest.net, including down/up rates, jitter and packet loss, etc.
