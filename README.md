@@ -242,6 +242,7 @@ func main() {
 Speedtest-go is a great tool because of the following 4 reasons:
 * Cross-platform available.
 * Low memory environment.
+* We are the first open source project to implement all features base on speedtest.net, including down/up rates, jitter and packet loss, etc.
 * Testing time is the **SHORTEST** compare to [speedtest.net](http://www.speedtest.net/) and [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli), especially about 2x faster than [speedtest.net](http://www.speedtest.net/).
 * Result is **MORE CLOSE** to [speedtest.net](http://www.speedtest.net/) than [speedtest-cli](https://github.com/sivel/speedtest-cli).
 
