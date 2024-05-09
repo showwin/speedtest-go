@@ -68,7 +68,7 @@ func (pla *PacketLossAnalyzer) RunMulti(hosts []string) (float64, error) {
 }
 
 func (pla *PacketLossAnalyzer) RunMultiWithContext(ctx context.Context, hosts []string) (float64, error) {
-	results := make(map[string]float64)
+	results := make(map[string]*transport.PLoss)
 	mutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
 	for _, host := range hosts {
@@ -76,10 +76,9 @@ func (pla *PacketLossAnalyzer) RunMultiWithContext(ctx context.Context, hosts []
 		go func(h string) {
 			defer wg.Done()
 			_ = pla.RunWithContext(ctx, h, func(packetLoss *transport.PLoss) {
-				loss := packetLoss.Loss()
-				if loss != -1 {
+				if packetLoss.Sent != 0 {
 					mutex.Lock()
-					results[h] = loss
+					results[h] = packetLoss
 					mutex.Unlock()
 				}
 			})
@@ -89,11 +88,13 @@ func (pla *PacketLossAnalyzer) RunMultiWithContext(ctx context.Context, hosts []
 	if len(results) == 0 {
 		return -1, transport.ErrUnsupported
 	}
-	packetLossAvg := 0.0
+	var pLoss transport.PLoss
 	for _, hostPacketLoss := range results {
-		packetLossAvg += hostPacketLoss
+		pLoss.Sent += hostPacketLoss.Sent
+		pLoss.Dup += hostPacketLoss.Dup
+		pLoss.Max += hostPacketLoss.Max
 	}
-	return packetLossAvg / float64(len(results)), nil
+	return pLoss.Loss(), nil
 }
 
 func (pla *PacketLossAnalyzer) Run(host string, callback func(packetLoss *transport.PLoss)) error {

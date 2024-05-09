@@ -26,9 +26,7 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	// 3. Perform packet loss analysis on all available servers
-	var hosts []string
 	for _, server := range *targets {
-		hosts = append(hosts, server.Host)
 		wg.Add(1)
 		//ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 		//go func(server *speedtest.Server, analyzer *speedtest.PacketLossAnalyzer, ctx context.Context, cancel context.CancelFunc) {
@@ -52,7 +50,7 @@ func main() {
 	wg.Wait()
 
 	// use mixed PacketLoss
-	mixed, err := analyzer.RunMulti(hosts)
+	mixed, err := analyzer.RunMulti(serverList.Hosts())
 	checkError(err)
 	fmt.Printf("Mixed packets lossed: %.2f\n", mixed)
 }
