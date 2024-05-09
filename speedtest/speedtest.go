@@ -54,9 +54,6 @@ type UserConfig struct {
 	Location     *Location
 
 	Keyword string // Fuzzy search
-
-	NoDownload bool
-	NoUpload   bool
 }
 
 func parseAddr(addr string) (string, string) {

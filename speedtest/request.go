@@ -30,10 +30,6 @@ var (
 )
 
 func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) error {
-	if s.Context.config.NoDownload {
-		dbg.Println("Download test disabled")
-		return nil
-	}
 	ss := servers.Available()
 	if ss.Len() == 0 {
 		return errors.New("not found available servers")
@@ -69,10 +65,6 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 }
 
 func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) error {
-	if s.Context.config.NoUpload {
-		dbg.Println("Upload test disabled")
-		return nil
-	}
 	ss := servers.Available()
 	if ss.Len() == 0 {
 		return errors.New("not found available servers")
@@ -118,10 +110,6 @@ func (s *Server) DownloadTestContext(ctx context.Context) error {
 }
 
 func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downloadFunc) error {
-	if s.Context.config.NoDownload {
-		dbg.Println("Download test disabled")
-		return nil
-	}
 	var errorTimes int64 = 0
 	var requestTimes int64 = 0
 	start := time.Now()
@@ -153,10 +141,6 @@ func (s *Server) UploadTestContext(ctx context.Context) error {
 }
 
 func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc) error {
-	if s.Context.config.NoUpload {
-		dbg.Println("Upload test disabled")
-		return nil
-	}
 	var errorTimes int64 = 0
 	var requestTimes int64 = 0
 	start := time.Now()

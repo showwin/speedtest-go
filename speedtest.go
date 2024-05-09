@@ -20,7 +20,8 @@ var (
 	serverIds     = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
 	customURL     = kingpin.Flag("custom-url", "Specify the url of the server instead of fetching from speedtest.net.").String()
 	savingMode    = kingpin.Flag("saving-mode", "Test with few resources, though low accuracy (especially > 30Mbps).").Bool()
-	jsonOutput    = kingpin.Flag("json", "Output results in json format.").Bool()
+	jsonOutput    = kingpin.Flag("json", "Output results in json like format.").Bool()
+	unixOutput    = kingpin.Flag("unix", "Output results in unix like format.").Bool()
 	location      = kingpin.Flag("location", "Change the location with a precise coordinate (format: lat,lon).").String()
 	city          = kingpin.Flag("city", "Change the location with a predefined city label.").String()
 	showCityList  = kingpin.Flag("city-list", "List all predefined city labels.").Bool()
@@ -46,6 +47,11 @@ func main() {
 
 	speedtest.SetUnit(parseUnit(*unit))
 
+	// start unix output for saving mode by default.
+	if *savingMode && !*jsonOutput && !*unixOutput {
+		*unixOutput = true
+	}
+
 	// 0. speed test setting
 	var speedtestClient = speedtest.New(speedtest.WithUserConfig(
 		&speedtest.UserConfig{
@@ -60,8 +66,6 @@ func main() {
 			CityFlag:       *city,
 			LocationFlag:   *location,
 			Keyword:        *search,
-			NoDownload:     *noDownload,
-			NoUpload:       *noUpload,
 		}))
 
 	if *showCityList {
@@ -70,7 +74,7 @@ func main() {
 	}
 
 	// 1. retrieving user information
-	taskManager := InitTaskManager(!*jsonOutput)
+	taskManager := InitTaskManager(*jsonOutput, *unixOutput)
 	taskManager.AsyncRun("Retrieving User Information", func(task *Task) {
 		u, err := speedtestClient.FetchUserInfo()
 		task.CheckError(err)
@@ -125,7 +129,7 @@ func main() {
 		taskManager.Println("Test Server: " + server.String())
 		taskManager.Run("Latency: --", func(task *Task) {
 			task.CheckError(server.PingTest(func(latency time.Duration) {
-				task.Printf("Latency: %v", latency)
+				task.Updatef("Latency: %v", latency)
 			}))
 			task.Printf("Latency: %v Jitter: %v Min: %v Max: %v", server.Latency, server.Jitter, server.MinLatency, server.MaxLatency)
 			task.Complete()
@@ -136,27 +140,31 @@ func main() {
 		analyzer, err = speedtest.NewPacketLossAnalyzer(&speedtest.PacketLossAnalyzerOptions{
 			SourceInterface: *source,
 		})
-		server.PacketLoss = -1.0 // N/A as default
+
 		packetLossAnalyzerCtx, packetLossAnalyzerCancel := context.WithTimeout(context.Background(), time.Second*40)
-		go func() {
-			err = analyzer.RunWithContext(packetLossAnalyzerCtx, server.Host, func(packetLoss *transport.PLoss) {
-				server.PacketLoss = packetLoss.Loss()
-			})
-			if errors.Is(err, transport.ErrUnsupported) {
-				packetLossAnalyzerCancel() // cancel early
-			}
-		}()
+		taskManager.Run("Packet Loss Analyzer", func(task *Task) {
+			go func() {
+				err = analyzer.RunWithContext(packetLossAnalyzerCtx, server.Host, func(packetLoss *transport.PLoss) {
+					server.PacketLoss = *packetLoss
+				})
+				if errors.Is(err, transport.ErrUnsupported) {
+					packetLossAnalyzerCancel() // cancel early
+				}
+			}()
+			task.Println("Packet Loss Analyzer: Running in background (<= 30 Sec)")
+			task.Complete()
+		})
 
 		// 3.1 create accompany Echo
 		accEcho := newAccompanyEcho(server, time.Millisecond*500)
-		taskManager.Run("Download", func(task *Task) {
+		taskManager.RunWithTrigger(!*noDownload, "Download", func(task *Task) {
 			accEcho.Run()
 			speedtestClient.SetCallbackDownload(func(downRate speedtest.ByteRate) {
 				lc := accEcho.CurrentLatency()
 				if lc == 0 {
-					task.Printf("Download: %s (Latency: --)", downRate)
+					task.Updatef("Download: %s (Latency: --)", downRate)
 				} else {
-					task.Printf("Download: %s (Latency: %dms)", downRate, lc/1000000)
+					task.Updatef("Download: %s (Latency: %dms)", downRate, lc/1000000)
 				}
 			})
 			if *multi {
@@ -170,14 +178,14 @@ func main() {
 			task.Complete()
 		})
 
-		taskManager.Run("Upload", func(task *Task) {
+		taskManager.RunWithTrigger(!*noUpload, "Upload", func(task *Task) {
 			accEcho.Run()
 			speedtestClient.SetCallbackUpload(func(upRate speedtest.ByteRate) {
 				lc := accEcho.CurrentLatency()
 				if lc == 0 {
-					task.Printf("Upload: %s (Latency: --)", upRate)
+					task.Updatef("Upload: %s (Latency: --)", upRate)
 				} else {
-					task.Printf("Upload: %s (Latency: %dms)", upRate, lc/1000000)
+					task.Updatef("Upload: %s (Latency: %dms)", upRate, lc/1000000)
 				}
 			})
 			if *multi {
@@ -190,16 +198,16 @@ func main() {
 			task.Printf("Upload: %s (Used: %.2fMB) (Latency: %dms Jitter: %dms Min: %dms Max: %dms)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
-		taskManager.Reset()
-		speedtestClient.Manager.Reset()
+
+		if *noUpload && *noDownload {
+			time.Sleep(time.Second * 30)
+		}
 		packetLossAnalyzerCancel()
 		if !*jsonOutput {
-			if server.PacketLoss != -1 {
-				fmt.Printf("  Packet Loss: %.2f%%", server.PacketLoss*100)
-			} else {
-				fmt.Printf("  Packet Loss: N/A")
-			}
+			taskManager.Println(server.PacketLoss.String())
 		}
+		taskManager.Reset()
+		speedtestClient.Manager.Reset()
 	}
 	taskManager.Stop()
 
