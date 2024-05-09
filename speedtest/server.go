@@ -133,6 +133,15 @@ func (servers Servers) Swap(i, j int) {
 	servers[i], servers[j] = servers[j], servers[i]
 }
 
+// Hosts return hosts of servers
+func (servers Servers) Hosts() []string {
+	var retServer []string
+	for _, server := range servers {
+		retServer = append(retServer, server.Host)
+	}
+	return retServer
+}
+
 // Less compares the distance. For sorting servers.
 func (b ByDistance) Less(i, j int) bool {
 	return b.Servers[i].Distance < b.Servers[j].Distance
