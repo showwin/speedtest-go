@@ -63,6 +63,14 @@ func SetUnit(unit UnitType) {
 	globalByteRateUnit = unit
 }
 
+func (r ByteRate) Mbps() float64 {
+	return float64(r) / 125000.0
+}
+
+func (r ByteRate) Gbps() float64 {
+	return float64(r) / 125000000.0
+}
+
 // Byte Specifies the format output byte rate
 func (r ByteRate) Byte(formatType UnitType) string {
 	if r == 0 {
