@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/showwin/speedtest-go/speedtest/transport"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -22,7 +23,7 @@ type PacketLossAnalyzer struct {
 	options *PacketLossAnalyzerOptions
 }
 
-func NewPacketLossAnalyzer(options *PacketLossAnalyzerOptions) (*PacketLossAnalyzer, error) {
+func NewPacketLossAnalyzer(options *PacketLossAnalyzerOptions) *PacketLossAnalyzer {
 	if options == nil {
 		options = &PacketLossAnalyzerOptions{}
 	}
@@ -56,7 +57,43 @@ func NewPacketLossAnalyzer(options *PacketLossAnalyzerOptions) (*PacketLossAnaly
 	}
 	return &PacketLossAnalyzer{
 		options: options,
-	}, nil
+	}
+}
+
+// RunMulti Mix all servers to get the average packet loss.
+func (pla *PacketLossAnalyzer) RunMulti(hosts []string) (float64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), pla.options.SamplingDuration)
+	defer cancel()
+	return pla.RunMultiWithContext(ctx, hosts)
+}
+
+func (pla *PacketLossAnalyzer) RunMultiWithContext(ctx context.Context, hosts []string) (float64, error) {
+	results := make(map[string]float64)
+	mutex := &sync.Mutex{}
+	wg := &sync.WaitGroup{}
+	for _, host := range hosts {
+		wg.Add(1)
+		go func(h string) {
+			defer wg.Done()
+			_ = pla.RunWithContext(ctx, h, func(packetLoss *transport.PLoss) {
+				loss := packetLoss.Loss()
+				if loss != -1 {
+					mutex.Lock()
+					results[h] = loss
+					mutex.Unlock()
+				}
+			})
+		}(host)
+	}
+	wg.Wait()
+	if len(results) == 0 {
+		return -1, transport.ErrUnsupported
+	}
+	packetLossAvg := 0.0
+	for _, hostPacketLoss := range results {
+		packetLossAvg += hostPacketLoss
+	}
+	return packetLossAvg / float64(len(results)), nil
 }
 
 func (pla *PacketLossAnalyzer) Run(host string, callback func(packetLoss *transport.PLoss)) error {

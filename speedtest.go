@@ -151,7 +151,7 @@ func main() {
 					packetLossAnalyzerCancel() // cancel early
 				}
 			}()
-			task.Println("Packet Loss Analyzer: Running in background (<= 30 Sec)")
+			task.Println("Packet Loss Analyzer: Running in background (<= 30 Secs)")
 			task.Complete()
 		})
 

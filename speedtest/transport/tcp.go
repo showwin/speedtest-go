@@ -191,6 +191,9 @@ func (p PLoss) String() string {
 }
 
 func (p PLoss) Loss() float64 {
+	if p.Sent == 0 {
+		return -1
+	}
 	return 1 - (float64(p.Sent-p.Dup))/float64(p.Max+1)
 }
 

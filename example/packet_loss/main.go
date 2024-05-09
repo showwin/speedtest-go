@@ -6,6 +6,7 @@ import (
 	"github.com/showwin/speedtest-go/speedtest/transport"
 	"log"
 	"sync"
+	"time"
 )
 
 // Note: The current packet loss analyzer does not support udp over http.
@@ -19,12 +20,15 @@ func main() {
 	targets := serverList.Available()
 
 	// 2. Create a packet loss analyzer, use default options
-	analyzer, err := speedtest.NewPacketLossAnalyzer(nil)
-	checkError(err)
+	analyzer := speedtest.NewPacketLossAnalyzer(&speedtest.PacketLossAnalyzerOptions{
+		PacketSendingInterval: time.Millisecond * 100,
+	})
 
 	wg := &sync.WaitGroup{}
 	// 3. Perform packet loss analysis on all available servers
+	var hosts []string
 	for _, server := range *targets {
+		hosts = append(hosts, server.Host)
 		wg.Add(1)
 		//ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 		//go func(server *speedtest.Server, analyzer *speedtest.PacketLossAnalyzer, ctx context.Context, cancel context.CancelFunc) {
@@ -46,6 +50,11 @@ func main() {
 		}(server, analyzer)
 	}
 	wg.Wait()
+
+	// use mixed PacketLoss
+	mixed, err := analyzer.RunMulti(hosts)
+	checkError(err)
+	fmt.Printf("Mixed packets lossed: %.2f\n", mixed)
 }
 
 func checkError(err error) {
