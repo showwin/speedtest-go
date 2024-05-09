@@ -1,5 +1,5 @@
 # speedtest-go
-**Command Line Interface and pure [Go API](#go-api) to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)**.
+**Full-featured Command Line Interface and pure [Go API](#go-api) to Test Internet Speed using [speedtest.net](http://www.speedtest.net/)**.
 
 You can speedtest 2x faster than [speedtest.net](http://www.speedtest.net/) with almost the same result. [See the experimental results](https://github.com/showwin/speedtest-go#summary-of-experimental-results).
 Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
@@ -40,7 +40,7 @@ Flags:
   -s, --server=SERVER ...      Select server id to speedtest.
       --custom-url=CUSTOM-URL  Specify the url of the server instead of fetching from speedtest.net.
       --saving-mode            Test with few resources, though low accuracy (especially > 30Mbps).
-      --json                   Output results in json format.
+      --json                   Output results in json like format.
       --unix                   Output results in unix like format.
       --location=LOCATION      Change the location with a precise coordinate (format: lat,lon).
       --city=CITY              Change the location with a predefined city label.
@@ -69,6 +69,8 @@ Flags:
 Simply use `speedtest` command. The closest server is selected by default. Use the `-m` flag to enable multi-measurement mode (recommended)
 
 ```bash
+## unix like format output
+# speedtest --unix
 $ speedtest
 
     speedtest-go v1.7.3 @showwin
@@ -245,7 +247,7 @@ func main() {
 Speedtest-go is a great tool because of the following five reasons:
 * Cross-platform available.
 * Low memory environment.
-* We are the first open source project to implement all features base on speedtest.net, including down/up rates, jitter and packet loss, etc.
+* We are the first **FULL-FEATURED** open source speed testing project based on speedtest.net, including down/up rates, jitter and packet loss, etc.
 * Testing time is the **SHORTEST** compare to [speedtest.net](http://www.speedtest.net/) and [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli), especially about 2x faster than [speedtest.net](http://www.speedtest.net/).
 * Result is **MORE CLOSE** to [speedtest.net](http://www.speedtest.net/) than [speedtest-cli](https://github.com/sivel/speedtest-cli).
 
