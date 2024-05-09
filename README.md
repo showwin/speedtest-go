@@ -41,6 +41,7 @@ Flags:
       --custom-url=CUSTOM-URL  Specify the url of the server instead of fetching from speedtest.net.
       --saving-mode            Test with few resources, though low accuracy (especially > 30Mbps).
       --json                   Output results in json format.
+      --unix                   Output results in unix like format.
       --location=LOCATION      Change the location with a precise coordinate (format: lat,lon).
       --city=CITY              Change the location with a predefined city label.
       --city-list              List all predefined city labels.
@@ -70,7 +71,7 @@ Simply use `speedtest` command. The closest server is selected by default. Use t
 ```bash
 $ speedtest
 
-    speedtest-go v1.7.2 @showwin
+    speedtest-go v1.7.3 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 20 Public Servers
@@ -79,7 +80,7 @@ $ speedtest
 ✓ Latency: 4.452963ms Jitter: 41.271µs Min: 4.395179ms Max: 4.517576ms
 ✓ Download: 115.52 Mbps (Used: 135.75MB) (Latency: 4ms Jitter: 0ms Min: 4ms Max: 4ms)
 ✓ Upload: 4.02 Mbps (Used: 6.85MB) (Latency: 4ms Jitter: 1ms Min: 3ms Max: 8ms)
-  Packet Loss: 3.36%
+✓ Packet Loss: 8.82% (Sent: 217/Dup: 0/Max: 237)
 ```
 
 #### Test with Other Servers
@@ -101,22 +102,24 @@ and select them by id.
 ```bash
 $ speedtest --server 6691 --server 6087
 
-    speedtest-go v1.7.2 @showwin
+    speedtest-go v1.7.3 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 2 Specified Public Server(s)
 
 ✓ Test Server: [6691] 9.03km Shizuoka (Japan) by sudosan
 ✓ Latency: 21.424ms Jitter: 1.644ms Min: 19.142ms Max: 23.926ms
+✓ Packet Loss Analyzer: Running in background (<= 30 Sec)
 ✓ Download: 65.82Mbps (Used: 75.48MB) (Latency: 22ms Jitter: 2ms Min: 17ms Max: 24ms)
 ✓ Upload: 27.00Mbps (Used: 36.33MB) (Latency: 23ms Jitter: 2ms Min: 18ms Max: 25ms)
-  Packet Loss: 7.55%
+✓ Packet Loss: 0.00% (Sent: 321/Dup: 0/Max: 320)
 
 ✓ Test Server: [6087] 120.55km Fussa-shi (Japan) by Allied Telesis Capital Corporation
 ✓ Latency: 38.694699ms Jitter: 2.724ms Min: 36.443ms Max: 39.953ms
+✓ Packet Loss Analyzer: Running in background (<= 30 Sec)
 ✓ Download: 72.24Mbps (Used: 83.72MB) (Latency: 37ms Jitter: 3ms Min: 36ms Max: 40ms)
 ✓ Upload: 29.56Mbps (Used: 47.64MB) (Latency: 38ms Jitter: 3ms Min: 37ms Max: 41ms)
-  Packet Loss: 4.33%
+✓ Packet Loss: 0.00% (Sent: 343/Dup: 0/Max: 342)
 ```
 
 #### Test with a virtual location
