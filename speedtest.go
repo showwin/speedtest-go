@@ -136,8 +136,7 @@ func main() {
 		})
 
 		// 3.0 create a packet loss analyzer, use default options
-		var analyzer *speedtest.PacketLossAnalyzer
-		analyzer, err = speedtest.NewPacketLossAnalyzer(&speedtest.PacketLossAnalyzerOptions{
+		var analyzer = speedtest.NewPacketLossAnalyzer(&speedtest.PacketLossAnalyzerOptions{
 			SourceInterface: *source,
 		})
 
@@ -151,7 +150,7 @@ func main() {
 					packetLossAnalyzerCancel() // cancel early
 				}
 			}()
-			task.Println("Packet Loss Analyzer: Running in background (<= 30 Sec)")
+			task.Println("Packet Loss Analyzer: Running in background (<= 30 Secs)")
 			task.Complete()
 		})
 
