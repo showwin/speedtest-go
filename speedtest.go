@@ -136,8 +136,7 @@ func main() {
 		})
 
 		// 3.0 create a packet loss analyzer, use default options
-		var analyzer *speedtest.PacketLossAnalyzer
-		analyzer = speedtest.NewPacketLossAnalyzer(&speedtest.PacketLossAnalyzerOptions{
+		var analyzer = speedtest.NewPacketLossAnalyzer(&speedtest.PacketLossAnalyzerOptions{
 			SourceInterface: *source,
 		})
 
