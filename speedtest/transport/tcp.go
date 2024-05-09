@@ -171,18 +171,27 @@ func (client *Client) InitPacketLoss() error {
 	return client.Write(initPacket)
 }
 
+// PLoss Packet loss statistics
+// The packet loss here generally refers to uplink packet loss.
+// We use the following formula to calculate the packet loss:
+// packetLoss = [1 - (Sent - Dup) / (Max + 1)] * 100%
 type PLoss struct {
-	Sent            int
-	Dup             int
-	MaximumReceived int
+	Sent int `json:"sent"` // Number of sent packets acknowledged by the remote.
+	Dup  int `json:"dup"`  // Number of duplicate packets acknowledged by the remote.
+	Max  int `json:"max"`  // The maximum index value received by the remote.
 }
 
-func (p *PLoss) String() string {
-	return fmt.Sprintf("Sent: %d, DupPacket: %d, MaximumReceived: %d", p.Sent, p.Dup, p.MaximumReceived)
+func (p PLoss) String() string {
+	if p.Sent == 0 {
+		// if p.Sent == 0, maybe all data is dropped by the upper gateway.
+		// we believe this feature is not applicable on this server now.
+		return "Packet Loss: N/A"
+	}
+	return fmt.Sprintf("Packet Loss: %.2f%% (Sent: %d/Dup: %d/Max: %d)", p.Loss()*100, p.Sent, p.Dup, p.Max)
 }
 
-func (p *PLoss) Loss() float64 {
-	return 1 - (float64(p.Sent-p.Dup))/float64(p.MaximumReceived+1)
+func (p PLoss) Loss() float64 {
+	return 1 - (float64(p.Sent-p.Dup))/float64(p.Max+1)
 }
 
 func (client *Client) PacketLoss() (*PLoss, error) {
@@ -211,9 +220,9 @@ func (client *Client) PacketLoss() (*PLoss, error) {
 		return nil, err
 	}
 	return &PLoss{
-		Sent:            x0,
-		Dup:             x1,
-		MaximumReceived: x2,
+		Sent: x0,
+		Dup:  x1,
+		Max:  x2,
 	}, nil
 }
 
