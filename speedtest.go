@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/showwin/speedtest-go/speedtest/transport"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"io"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -40,12 +42,14 @@ var (
 )
 
 func main() {
-
 	kingpin.Version(speedtest.Version())
 	kingpin.Parse()
 	AppInfo()
 
 	speedtest.SetUnit(parseUnit(*unit))
+
+	// discard standard log.
+	log.SetOutput(io.Discard)
 
 	// start unix output for saving mode by default.
 	if *savingMode && !*jsonOutput && !*unixOutput {
