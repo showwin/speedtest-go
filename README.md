@@ -40,7 +40,7 @@ Flags:
   -s, --server=SERVER ...      Select server id to speedtest.
       --custom-url=CUSTOM-URL  Specify the url of the server instead of fetching from speedtest.net.
       --saving-mode            Test with few resources, though low accuracy (especially > 30Mbps).
-      --json                   Output results in json like format.
+      --json                   Output results in json format.
       --unix                   Output results in unix like format.
       --location=LOCATION      Change the location with a precise coordinate (format: lat,lon).
       --city=CITY              Change the location with a predefined city label.
@@ -73,13 +73,14 @@ Simply use `speedtest` command. The closest server is selected by default. Use t
 # speedtest --unix
 $ speedtest
 
-    speedtest-go v1.7.3 @showwin
+    speedtest-go v1.7.6 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 20 Public Servers
 
 ✓ Test Server: [6691] 9.03km Shizuoka (Japan) by sudosan
 ✓ Latency: 4.452963ms Jitter: 41.271µs Min: 4.395179ms Max: 4.517576ms
+✓ Packet Loss Analyzer: Running in background (<= 30 Secs)
 ✓ Download: 115.52 Mbps (Used: 135.75MB) (Latency: 4ms Jitter: 0ms Min: 4ms Max: 4ms)
 ✓ Upload: 4.02 Mbps (Used: 6.85MB) (Latency: 4ms Jitter: 1ms Min: 3ms Max: 8ms)
 ✓ Packet Loss: 8.82% (Sent: 217/Dup: 0/Max: 237)
@@ -104,7 +105,7 @@ and select them by id.
 ```bash
 $ speedtest --server 6691 --server 6087
 
-    speedtest-go v1.7.3 @showwin
+    speedtest-go v1.7.6 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 2 Specified Public Server(s)
@@ -228,17 +229,21 @@ func main() {
 	targets, _ := serverList.FindServer([]int{})
 
 	// Create a packet loss analyzer, use default options
-	analyzer, err := speedtest.NewPacketLossAnalyzer(nil)
-	checkError(err)
+	analyzer := speedtest.NewPacketLossAnalyzer(nil)
 
 	// Perform packet loss analysis on all available servers
 	for _, server := range targets {
-		err = analyzer.Run(server.Host, func(packetLoss *transport.PLoss) {
+		err := analyzer.Run(server.Host, func(packetLoss *transport.PLoss) {
 			fmt.Println(packetLoss, server.Host, server.Name)
 			// fmt.Println(packetLoss.Loss())
 		})
 		checkError(err)
 	}
+	
+	// or test all at the same time.
+	packetLoss, err := analyzer.RunMulti(targets.Hosts())
+	checkError(err)
+	fmt.Println(packetLoss)
 }
 ```
 
