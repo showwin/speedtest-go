@@ -52,7 +52,9 @@ func main() {
 	// use mixed PacketLoss
 	mixed, err := analyzer.RunMulti(serverList.Hosts())
 	checkError(err)
-	fmt.Printf("Mixed packets lossed: %.2f\n", mixed)
+	fmt.Printf("Mixed packets lossed: %.2f%%\n", mixed.LossPercent())
+	fmt.Printf("Mixed packets lossed: %.2f\n", mixed.Loss())
+	fmt.Printf("Mixed packets lossed: %s\n", mixed)
 }
 
 func checkError(err error) {

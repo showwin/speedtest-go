@@ -197,6 +197,13 @@ func (p PLoss) Loss() float64 {
 	return 1 - (float64(p.Sent-p.Dup))/float64(p.Max+1)
 }
 
+func (p PLoss) LossPercent() float64 {
+	if p.Sent == 0 {
+		return -1
+	}
+	return p.Loss() * 100
+}
+
 func (client *Client) PacketLoss() (*PLoss, error) {
 	err := client.Write(packetLoss)
 	if err != nil {
