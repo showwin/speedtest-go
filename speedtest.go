@@ -22,7 +22,7 @@ var (
 	serverIds     = kingpin.Flag("server", "Select server id to run speedtest.").Short('s').Ints()
 	customURL     = kingpin.Flag("custom-url", "Specify the url of the server instead of fetching from speedtest.net.").String()
 	savingMode    = kingpin.Flag("saving-mode", "Test with few resources, though low accuracy (especially > 30Mbps).").Bool()
-	jsonOutput    = kingpin.Flag("json", "Output results in json like format.").Bool()
+	jsonOutput    = kingpin.Flag("json", "Output results in json format.").Bool()
 	unixOutput    = kingpin.Flag("unix", "Output results in unix like format.").Bool()
 	location      = kingpin.Flag("location", "Change the location with a precise coordinate (format: lat,lon).").String()
 	city          = kingpin.Flag("city", "Change the location with a predefined city label.").String()
