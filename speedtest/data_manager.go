@@ -248,7 +248,7 @@ func (td *TestDirection) rateCapture() chan bool {
 	ticker := time.NewTicker(td.manager.rateCaptureFrequency)
 	var prevTotalDataVolume int64 = 0
 	stopCapture := make(chan bool)
-	td.welford = internal.NewWelford(int(5 * time.Second / td.manager.rateCaptureFrequency))
+	td.welford = internal.NewWelford(5*time.Second, td.manager.rateCaptureFrequency)
 	sTime := time.Now()
 	go func(t *time.Ticker) {
 		defer t.Stop()
@@ -263,7 +263,7 @@ func (td *TestDirection) rateCapture() chan bool {
 				}
 				// anyway we update the measuring instrument
 				globalAvg := (float64(td.totalDataVolume)) / float64(time.Since(sTime).Milliseconds()) * 1000
-				if td.welford.Update(globalAvg) {
+				if td.welford.Update(globalAvg, float64(deltaDataVolume)) {
 					go td.closeFunc()
 				}
 				// reports the current rate at the given rate
