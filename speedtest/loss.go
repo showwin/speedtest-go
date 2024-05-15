@@ -61,13 +61,13 @@ func NewPacketLossAnalyzer(options *PacketLossAnalyzerOptions) *PacketLossAnalyz
 }
 
 // RunMulti Mix all servers to get the average packet loss.
-func (pla *PacketLossAnalyzer) RunMulti(hosts []string) (float64, error) {
+func (pla *PacketLossAnalyzer) RunMulti(hosts []string) (*transport.PLoss, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), pla.options.SamplingDuration)
 	defer cancel()
 	return pla.RunMultiWithContext(ctx, hosts)
 }
 
-func (pla *PacketLossAnalyzer) RunMultiWithContext(ctx context.Context, hosts []string) (float64, error) {
+func (pla *PacketLossAnalyzer) RunMultiWithContext(ctx context.Context, hosts []string) (*transport.PLoss, error) {
 	results := make(map[string]*transport.PLoss)
 	mutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
@@ -86,7 +86,7 @@ func (pla *PacketLossAnalyzer) RunMultiWithContext(ctx context.Context, hosts []
 	}
 	wg.Wait()
 	if len(results) == 0 {
-		return -1, transport.ErrUnsupported
+		return nil, transport.ErrUnsupported
 	}
 	var pLoss transport.PLoss
 	for _, hostPacketLoss := range results {
@@ -94,7 +94,7 @@ func (pla *PacketLossAnalyzer) RunMultiWithContext(ctx context.Context, hosts []
 		pLoss.Dup += hostPacketLoss.Dup
 		pLoss.Max += hostPacketLoss.Max
 	}
-	return pLoss.Loss(), nil
+	return &pLoss, nil
 }
 
 func (pla *PacketLossAnalyzer) Run(host string, callback func(packetLoss *transport.PLoss)) error {
