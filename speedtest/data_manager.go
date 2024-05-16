@@ -480,7 +480,6 @@ func (dc *DataChunk) WriteTo(w io.Writer) (written int64, err error) {
 // We use [DataChunk.WriteTo] that implements [io.WriterTo] to bypass this function.
 func (dc *DataChunk) Read(b []byte) (n int, err error) {
 	panic("unexpected call: only used to implement the io.Reader")
-	return
 }
 
 // calcMAFilter Median-Averaging Filter
