@@ -73,7 +73,7 @@ Simply use `speedtest` command. The closest server is selected by default. Use t
 # speedtest --unix
 $ speedtest
 
-    speedtest-go v1.7.6 @showwin
+    speedtest-go v1.7.7 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 20 Public Servers
@@ -105,7 +105,7 @@ and select them by id.
 ```bash
 $ speedtest --server 6691 --server 6087
 
-    speedtest-go v1.7.6 @showwin
+    speedtest-go v1.7.7 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 2 Specified Public Server(s)
