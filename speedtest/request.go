@@ -186,13 +186,11 @@ func downloadRequest(ctx context.Context, s *Server, w int) error {
 func uploadRequest(ctx context.Context, s *Server, w int) error {
 	size := ulSizes[w]
 	dc := s.Context.NewChunk().UploadHandler(int64(size*100-51) * 10)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.URL, dc)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.URL, io.NopCloser(dc))
 	if err != nil {
 		return err
 	}
-	req.ContentLength = dc.(*DataChunk).ContentLength
 	dbg.Printf("Len=%d, XulURL: %s\n", req.ContentLength, s.URL)
-
 	req.Header.Set("Content-Type", "application/octet-stream")
 	resp, err := s.Context.doer.Do(req)
 	if err != nil {
