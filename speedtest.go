@@ -41,8 +41,13 @@ var (
 	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 )
 
+var (
+	commit = "dev"
+	date   = "unknown"
+)
+
 func main() {
-	kingpin.Version(speedtest.Version())
+	kingpin.Version(fmt.Sprintf("speedtest-go v%s git-%s built at %s", speedtest.Version(), commit, date))
 	kingpin.Parse()
 	AppInfo()
 
@@ -313,7 +318,7 @@ func parseProto(str string) speedtest.Proto {
 func AppInfo() {
 	if !*jsonOutput {
 		fmt.Println()
-		fmt.Printf("    speedtest-go v%s @showwin\n", speedtest.Version())
+		fmt.Printf("    speedtest-go v%s (git-%s) @showwin\n", speedtest.Version(), commit)
 		fmt.Println()
 	}
 }
