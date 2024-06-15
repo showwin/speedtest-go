@@ -47,15 +47,15 @@ var globalByteRateUnit UnitType
 
 func (r ByteRate) String() string {
 	if r == 0 {
-		return "0.00 Mbps"
+		return zeroSpeedString
 	}
 	if r == -1 {
-		return "N/A"
+		return naString
 	}
 	if globalByteRateUnit != UnitTypeDefaultMbps {
 		return r.Byte(globalByteRateUnit)
 	}
-	return strconv.FormatFloat(float64(r/125000.0), 'f', 2, 64) + " Mbps"
+	return strconv.FormatFloat(r.Mbps(), 'f', 2, 64) + " " + DecimalBitsUnits[2]
 }
 
 // SetUnit Set global output units
@@ -74,10 +74,10 @@ func (r ByteRate) Gbps() float64 {
 // Byte Specifies the format output byte rate
 func (r ByteRate) Byte(formatType UnitType) string {
 	if r == 0 {
-		return "0.00 Mbps"
+		return zeroSpeedString
 	}
 	if r == -1 {
-		return "N/A"
+		return naString
 	}
 	return format(float64(r), formatType)
 }

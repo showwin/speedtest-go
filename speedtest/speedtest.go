@@ -13,6 +13,8 @@ import (
 )
 
 var (
+	naString         = "N/A"
+	zeroSpeedString  = "0.00 Mbps"
 	version          = "1.7.7"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
 )

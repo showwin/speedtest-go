@@ -61,6 +61,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.DLSpeed = -1 // N/A
 	}
+	s.DLSpeedStr = s.DLSpeed.String()
 	return nil
 }
 
@@ -96,6 +97,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.ULSpeed = -1 // N/A
 	}
+	s.ULSpeedStr = s.ULSpeed.String()
 	return nil
 }
 
@@ -125,6 +127,7 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.DLSpeed = -1 // N/A
 	}
+	s.DLSpeedStr = s.DLSpeed.String()
 	s.TestDuration.Download = &duration
 	s.testDurationTotalCount()
 	return nil
@@ -156,6 +159,7 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.ULSpeed = -1 // N/A
 	}
+	s.ULSpeedStr = s.ULSpeed.String()
 	s.TestDuration.Upload = &duration
 	s.testDurationTotalCount()
 	return nil
