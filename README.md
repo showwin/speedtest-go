@@ -218,7 +218,14 @@ import (
 	"fmt"
 	"github.com/showwin/speedtest-go/speedtest"
 	"github.com/showwin/speedtest-go/speedtest/transport"
+	"log"
 )
+
+func checkError(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 // Note: The current packet loss analyzer does not support udp over http.
 // This means we cannot get packet loss through a proxy.
