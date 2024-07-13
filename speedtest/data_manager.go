@@ -171,6 +171,14 @@ func (dm *DataManager) RegisterDownloadHandler(fn func()) *TestDirection {
 	return dm.download
 }
 
+func (td *TestDirection) GetTotalDataVolume() int64 {
+	return atomic.LoadInt64(&td.totalDataVolume)
+}
+
+func (td *TestDirection) AddTotalDataVolume(delta int64) int64 {
+	return atomic.AddInt64(&td.totalDataVolume, delta)
+}
+
 func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerIndex int) {
 	if len(td.fns) == 0 {
 		panic("empty task stack")
@@ -257,14 +265,14 @@ func (td *TestDirection) rateCapture() chan bool {
 		for {
 			select {
 			case <-t.C:
-				newTotalDataVolume := td.totalDataVolume
+				newTotalDataVolume := td.GetTotalDataVolume()
 				deltaDataVolume := newTotalDataVolume - prevTotalDataVolume
 				prevTotalDataVolume = newTotalDataVolume
 				if deltaDataVolume != 0 {
 					td.RateSequence = append(td.RateSequence, deltaDataVolume)
 				}
 				// anyway we update the measuring instrument
-				globalAvg := (float64(td.totalDataVolume)) / float64(time.Since(sTime).Milliseconds()) * 1000
+				globalAvg := (float64(td.GetTotalDataVolume())) / float64(time.Since(sTime).Milliseconds()) * 1000
 				if td.welford.Update(globalAvg, float64(deltaDataVolume)) {
 					go td.closeFunc()
 				}
@@ -292,19 +300,19 @@ func (dm *DataManager) NewChunk() Chunk {
 }
 
 func (dm *DataManager) AddTotalDownload(value int64) {
-	atomic.AddInt64(&dm.download.totalDataVolume, value)
+	dm.download.AddTotalDataVolume(value)
 }
 
 func (dm *DataManager) AddTotalUpload(value int64) {
-	atomic.AddInt64(&dm.upload.totalDataVolume, value)
+	dm.upload.AddTotalDataVolume(value)
 }
 
 func (dm *DataManager) GetTotalDownload() int64 {
-	return dm.download.totalDataVolume
+	return dm.download.GetTotalDataVolume()
 }
 
 func (dm *DataManager) GetTotalUpload() int64 {
-	return dm.upload.totalDataVolume
+	return dm.upload.GetTotalDataVolume()
 }
 
 func (dm *DataManager) SetRateCaptureFrequency(duration time.Duration) Manager {
@@ -339,7 +347,7 @@ func (dm *DataManager) Reset() {
 
 func (dm *DataManager) GetAvgDownloadRate() float64 {
 	unit := float64(dm.captureTime / time.Millisecond)
-	return float64(dm.download.totalDataVolume*8/1000) / unit
+	return float64(dm.download.GetTotalDataVolume()*8/1000) / unit
 }
 
 func (dm *DataManager) GetEWMADownloadRate() float64 {
@@ -351,7 +359,7 @@ func (dm *DataManager) GetEWMADownloadRate() float64 {
 
 func (dm *DataManager) GetAvgUploadRate() float64 {
 	unit := float64(dm.captureTime / time.Millisecond)
-	return float64(dm.upload.totalDataVolume*8/1000) / unit
+	return float64(dm.upload.GetTotalDataVolume()*8/1000) / unit
 }
 
 func (dm *DataManager) GetEWMAUploadRate() float64 {
@@ -414,7 +422,7 @@ func (dc *DataChunk) DownloadHandler(r io.Reader) error {
 		rs := int64(readSize)
 
 		dc.remainOrDiscardSize += rs
-		atomic.AddInt64(&dc.manager.download.totalDataVolume, rs)
+		dc.manager.download.AddTotalDataVolume(rs)
 		if dc.err != nil {
 			if dc.err == io.EOF {
 				return nil
