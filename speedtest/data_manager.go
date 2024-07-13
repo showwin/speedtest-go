@@ -248,7 +248,10 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 			go func() {
 				defer wg.Done()
 				for {
-					if !td.manager.running {
+					td.manager.runningRW.RLock()
+					running := td.manager.running
+					td.manager.runningRW.RUnlock()
+					if !running {
 						return
 					}
 					td.fns[t]()
