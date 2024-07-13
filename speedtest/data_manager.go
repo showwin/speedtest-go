@@ -88,7 +88,8 @@ type DataManager struct {
 	rateCaptureFrequency time.Duration
 	nThread              int
 
-	running bool
+	running   bool
+	runningRW sync.RWMutex
 
 	download *TestDirection
 	upload   *TestDirection
@@ -210,7 +211,9 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 		once.Do(func() {
 			stopCapture <- true
 			close(stopCapture)
+			td.manager.runningRW.Lock()
 			td.manager.running = false
+			td.manager.runningRW.Unlock()
 			cancel()
 			dbg.Println("FuncGroup: Stop")
 		})
@@ -222,7 +225,10 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 		go func() {
 			defer wg.Done()
 			for {
-				if !td.manager.running {
+				td.manager.runningRW.RLock()
+				running := td.manager.running
+				td.manager.runningRW.RUnlock()
+				if !running {
 					return
 				}
 				td.fns[mainRequestHandlerIndex]()
@@ -415,7 +421,10 @@ func (dc *DataChunk) DownloadHandler(r io.Reader) error {
 	defer blackHolePool.Put(bufP)
 	readSize := 0
 	for {
-		if !dc.manager.running {
+		dc.manager.runningRW.RLock()
+		running := dc.manager.running
+		dc.manager.runningRW.RUnlock()
+		if !running {
 			return nil
 		}
 		readSize, dc.err = r.Read(*bufP)
@@ -457,7 +466,10 @@ func (dc *DataChunk) WriteTo(w io.Writer) (written int64, err error) {
 	nw := 0
 	nr := readChunkSize
 	for {
-		if !dc.manager.running || dc.remainOrDiscardSize <= 0 {
+		dc.manager.runningRW.RLock()
+		running := dc.manager.running
+		dc.manager.runningRW.RUnlock()
+		if !running || dc.remainOrDiscardSize <= 0 {
 			dc.endTime = time.Now()
 			return written, io.EOF
 		}
