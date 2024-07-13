@@ -153,8 +153,8 @@ func main() {
 		blocker := sync.WaitGroup{}
 		packetLossAnalyzerCtx, packetLossAnalyzerCancel := context.WithTimeout(context.Background(), time.Second*40)
 		taskManager.Run("Packet Loss Analyzer", func(task *Task) {
+			blocker.Add(1)
 			go func() {
-				blocker.Add(1)
 				defer blocker.Done()
 				err = analyzer.RunWithContext(packetLossAnalyzerCtx, server.Host, func(packetLoss *transport.PLoss) {
 					server.PacketLoss = *packetLoss
