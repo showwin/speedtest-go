@@ -291,14 +291,15 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		wg.Add(1)
 		go func(gs *Server) {
 			var latency []int64
+			var errPing error
 			if s.config.PingMode == TCP {
-				latency, err = gs.TCPPing(pCtx, 1, time.Millisecond, nil)
+				latency, errPing = gs.TCPPing(pCtx, 1, time.Millisecond, nil)
 			} else if s.config.PingMode == ICMP {
-				latency, err = gs.ICMPPing(pCtx, 4*time.Second, 1, time.Millisecond, nil)
+				latency, errPing = gs.ICMPPing(pCtx, 4*time.Second, 1, time.Millisecond, nil)
 			} else {
-				latency, err = gs.HTTPPing(pCtx, 1, time.Millisecond, nil)
+				latency, errPing = gs.HTTPPing(pCtx, 1, time.Millisecond, nil)
 			}
-			if err != nil || len(latency) < 1 {
+			if errPing != nil || len(latency) < 1 {
 				gs.Latency = PingTimeout
 			} else {
 				gs.Latency = time.Duration(latency[0]) * time.Nanosecond

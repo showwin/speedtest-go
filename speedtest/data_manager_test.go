@@ -35,7 +35,7 @@ func TestDataManager_AddTotalDownload(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	if dmp.download.totalDataVolume != 43521000000 {
+	if dmp.download.GetTotalDataVolume() != 43521000000 {
 		t.Fatal()
 	}
 }
