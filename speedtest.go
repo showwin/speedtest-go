@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -149,9 +150,12 @@ func main() {
 			SourceInterface: *source,
 		})
 
+		blocker := sync.WaitGroup{}
 		packetLossAnalyzerCtx, packetLossAnalyzerCancel := context.WithTimeout(context.Background(), time.Second*40)
 		taskManager.Run("Packet Loss Analyzer", func(task *Task) {
 			go func() {
+				blocker.Add(1)
+				defer blocker.Done()
 				err = analyzer.RunWithContext(packetLossAnalyzerCtx, server.Host, func(packetLoss *transport.PLoss) {
 					server.PacketLoss = *packetLoss
 				})
@@ -211,6 +215,7 @@ func main() {
 			time.Sleep(time.Second * 30)
 		}
 		packetLossAnalyzerCancel()
+		blocker.Wait()
 		if !*jsonOutput {
 			taskManager.Println(server.PacketLoss.String())
 		}
