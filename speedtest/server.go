@@ -297,7 +297,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 			} else if s.config.PingMode == ICMP {
 				latency, errPing = gs.ICMPPing(pCtx, 4*time.Second, 1, time.Millisecond, nil)
 			} else {
-				latency, errPing = gs.HTTPPing(context.Background(), 1, time.Millisecond, nil)
+				latency, errPing = gs.HTTPPing(pCtx, 1, time.Millisecond, nil)
 			}
 			if errPing != nil || len(latency) < 1 {
 				gs.Latency = PingTimeout
