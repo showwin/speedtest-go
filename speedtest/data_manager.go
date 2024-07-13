@@ -114,11 +114,13 @@ func (dm *DataManager) NewDataDirection(testType int) *TestDirection {
 }
 
 func NewDataManager() *DataManager {
+	r := bytes.Repeat([]byte{0xAA}, readChunkSize) // uniformly distributed sequence of bits
 	ret := &DataManager{
 		nThread:              runtime.NumCPU(),
 		captureTime:          time.Second * 15,
 		rateCaptureFrequency: time.Millisecond * 50,
 		Snapshot:             &Snapshot{},
+		repeatByte:           &r,
 	}
 	ret.download = ret.NewDataDirection(typeDownload)
 	ret.upload = ret.NewDataDirection(typeUpload)
@@ -434,12 +436,6 @@ func (dc *DataChunk) UploadHandler(size int64) Chunk {
 	dc.ContentLength = size
 	dc.remainOrDiscardSize = size
 	dc.dateType = typeUpload
-
-	if dc.manager.repeatByte == nil {
-		r := bytes.Repeat([]byte{0xAA}, readChunkSize) // uniformly distributed sequence of bits
-		dc.manager.repeatByte = &r
-	}
-
 	dc.startTime = time.Now()
 	return dc
 }
