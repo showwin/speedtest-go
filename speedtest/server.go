@@ -6,7 +6,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/showwin/speedtest-go/speedtest/transport"
 	"math"
 	"net/http"
 	"net/url"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/showwin/speedtest-go/speedtest/transport"
 )
 
 const (
@@ -54,7 +55,8 @@ type Server struct {
 	TestDuration TestDuration    `json:"test_duration"`
 	PacketLoss   transport.PLoss `json:"packet_loss"`
 
-	Context *Speedtest `json:"-"`
+	Context    *Speedtest `json:"-"`
+	Credential string     `json:"-"`
 }
 
 type TestDuration struct {

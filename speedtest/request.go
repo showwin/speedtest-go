@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/showwin/speedtest-go/speedtest/transport"
 	"io"
 	"math"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/showwin/speedtest-go/speedtest/transport"
 )
 
 type (
@@ -174,6 +175,9 @@ func downloadRequest(ctx context.Context, s *Server, w int) error {
 	if err != nil {
 		return err
 	}
+	if len(s.Context.config.Credential) > 0 {
+		req.Header.Set("Authorization", s.Context.config.Credential)
+	}
 
 	resp, err := s.Context.doer.Do(req)
 	if err != nil {
@@ -192,6 +196,9 @@ func uploadRequest(ctx context.Context, s *Server, w int) error {
 	}
 	dbg.Printf("Len=%d, XulURL: %s\n", req.ContentLength, s.URL)
 	req.Header.Set("Content-Type", "application/octet-stream")
+	if len(s.Context.config.Credential) > 0 {
+		req.Header.Set("Authorization", s.Context.config.Credential)
+	}
 	resp, err := s.Context.doer.Do(req)
 	if err != nil {
 		return err
@@ -305,6 +312,9 @@ func (s *Server) HTTPPing(
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pingDst, nil)
 	if err != nil {
 		return nil, err
+	}
+	if len(s.Context.config.Credential) > 0 {
+		req.Header.Set("Authorization", s.Context.config.Credential)
 	}
 	// carry out an extra request to warm up the connection and ensure the first request is not going to affect the
 	// overall estimation

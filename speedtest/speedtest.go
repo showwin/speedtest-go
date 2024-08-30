@@ -53,7 +53,8 @@ type UserConfig struct {
 	LocationFlag string
 	Location     *Location
 
-	Keyword string // Fuzzy search
+	Keyword    string // Fuzzy search
+	Credential string // Auth
 }
 
 func parseAddr(addr string) (string, string) {
