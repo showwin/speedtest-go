@@ -464,41 +464,20 @@ func (dc *DataChunk) GetParent() Manager {
 	return dc.manager
 }
 
-// WriteTo Used to hook all traffic.
-func (dc *DataChunk) WriteTo(w io.Writer) (written int64, err error) {
-	nw := 0
-	nr := readChunkSize
-	for {
-		dc.manager.runningRW.RLock()
-		running := dc.manager.running
-		dc.manager.runningRW.RUnlock()
-		if !running || dc.remainOrDiscardSize <= 0 {
-			dc.endTime = time.Now()
-			return written, io.EOF
-		}
-		if dc.remainOrDiscardSize < readChunkSize {
-			nr = int(dc.remainOrDiscardSize)
-			nw, err = w.Write((*dc.manager.repeatByte)[:nr])
-		} else {
-			nw, err = w.Write(*dc.manager.repeatByte)
-		}
-		if err != nil {
-			return
-		}
-		n64 := int64(nw)
-		written += n64
-		dc.remainOrDiscardSize -= n64
-		dc.manager.AddTotalUpload(n64)
-		if nr != nw {
-			return written, io.ErrShortWrite
-		}
-	}
-}
-
-// Please don't call it, only used to wrapped by [io.NopCloser]
-// We use [DataChunk.WriteTo] that implements [io.WriterTo] to bypass this function.
 func (dc *DataChunk) Read(b []byte) (n int, err error) {
-	panic("unexpected call: only used to implement the io.Reader")
+	if dc.remainOrDiscardSize < readChunkSize {
+		if dc.remainOrDiscardSize <= 0 {
+			dc.endTime = time.Now()
+			return n, io.EOF
+		}
+		n = copy(b, (*dc.manager.repeatByte)[:dc.remainOrDiscardSize])
+	} else {
+		n = copy(b, *dc.manager.repeatByte)
+	}
+	n64 := int64(n)
+	dc.remainOrDiscardSize -= n64
+	dc.manager.AddTotalUpload(n64)
+	return
 }
 
 // calcMAFilter Median-Averaging Filter
