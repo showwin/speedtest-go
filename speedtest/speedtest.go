@@ -3,6 +3,8 @@ package speedtest
 import (
 	"context"
 	"fmt"
+	"github.com/showwin/speedtest-go/speedtest/control"
+	"github.com/showwin/speedtest-go/speedtest/internal"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,22 +15,14 @@ import (
 )
 
 var (
-	version          = "1.7.8"
+	version          = "1.8.0-beta.1"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
-)
-
-type Proto int
-
-const (
-	HTTP Proto = iota
-	TCP
-	ICMP
 )
 
 // Speedtest is a speedtest client.
 type Speedtest struct {
 	User *User
-	Manager
+	*DataManager
 
 	doer      *http.Client
 	config    *UserConfig
@@ -41,10 +35,11 @@ type UserConfig struct {
 	UserAgent     string
 	Proxy         string
 	Source        string
+	Protocol      control.Proto
 	DnsBindSource bool
 	DialerControl func(network, address string, c syscall.RawConn) error
 	Debug         bool
-	PingMode      Proto
+	PingMode      control.Proto
 
 	SavingMode     bool
 	MaxConnections int
@@ -66,26 +61,26 @@ func parseAddr(addr string) (string, string) {
 
 func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 	if uc.Debug {
-		dbg.Enable()
+		internal.DBG().Enable()
 	}
 
 	if uc.SavingMode {
 		uc.MaxConnections = 1 // Set the number of concurrent connections to 1
 	}
-	s.SetNThread(uc.MaxConnections)
+	s.SetMaxConnections(uc.MaxConnections)
 
 	if len(uc.CityFlag) > 0 {
 		var err error
 		uc.Location, err = GetLocation(uc.CityFlag)
 		if err != nil {
-			dbg.Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
+			internal.DBG().Printf("Warning: skipping command line arguments: --city. err: %v\n", err.Error())
 		}
 	}
 	if len(uc.LocationFlag) > 0 {
 		var err error
 		uc.Location, err = ParseLocation(uc.CityFlag, uc.LocationFlag)
 		if err != nil {
-			dbg.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
+			internal.DBG().Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
 		}
 	}
 
@@ -102,13 +97,13 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 		if err == nil {
 			tcpSource = addr0
 		} else {
-			dbg.Printf("Warning: skipping parse the source address. err: %s\n", err.Error())
+			internal.DBG().Printf("Warning: skipping parse the source address. err: %s\n", err.Error())
 		}
 		addr1, err := net.ResolveIPAddr("ip", address) // dynamic tcp port
 		if err == nil {
 			icmpSource = addr1
 		} else {
-			dbg.Printf("Warning: skipping parse the source address. err: %s\n", err.Error())
+			internal.DBG().Printf("Warning: skipping parse the source address. err: %s\n", err.Error())
 		}
 		if uc.DnsBindSource {
 			net.DefaultResolver.Dial = func(ctx context.Context, network, dnsServer string) (net.Conn, error) {
@@ -132,7 +127,7 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 
 	if len(uc.Proxy) > 0 {
 		if parse, err := url.Parse(uc.Proxy); err != nil {
-			dbg.Printf("Warning: skipping parse the proxy host. err: %s\n", err.Error())
+			internal.DBG().Printf("Warning: skipping parse the proxy host. err: %s\n", err.Error())
 		} else {
 			proxy = func(_ *http.Request) (*url.URL, error) {
 				return parse, err
@@ -153,10 +148,13 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 		KeepAlive: 30 * time.Second,
 		Control:   uc.DialerControl,
 	}
-
 	s.config.T = &http.Transport{
-		Proxy:                 proxy,
-		DialContext:           s.tcpDialer.DialContext,
+		Proxy: proxy,
+		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+			conn, err := s.tcpDialer.DialContext(ctx, network, address)
+			fmt.Println(conn.LocalAddr().String())
+			return conn, err
+		},
 		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
@@ -189,20 +187,22 @@ func WithDoer(doer *http.Client) Option {
 func WithUserConfig(userConfig *UserConfig) Option {
 	return func(s *Speedtest) {
 		s.NewUserConfig(userConfig)
-		dbg.Printf("Source: %s\n", s.config.Source)
-		dbg.Printf("Proxy: %s\n", s.config.Proxy)
-		dbg.Printf("SavingMode: %v\n", s.config.SavingMode)
-		dbg.Printf("Keyword: %v\n", s.config.Keyword)
-		dbg.Printf("PingType: %v\n", s.config.PingMode)
-		dbg.Printf("OS: %s, ARCH: %s, NumCPU: %d\n", runtime.GOOS, runtime.GOARCH, runtime.NumCPU())
+		internal.DBG().Printf("Source: %s\n", s.config.Source)
+		internal.DBG().Printf("Proxy: %s\n", s.config.Proxy)
+		internal.DBG().Printf("SavingMode: %v\n", s.config.SavingMode)
+		internal.DBG().Printf("Keyword: %v\n", s.config.Keyword)
+		internal.DBG().Printf("PingType: %v\n", s.config.PingMode)
+		internal.DBG().Printf("Protocol: %v\n", s.config.Protocol)
+		internal.DBG().Printf("OS: %s, ARCH: %s, NumCPU: %d\n", runtime.GOOS, runtime.GOARCH, runtime.NumCPU())
 	}
 }
 
 // New creates a new speedtest client.
+// TODO: need refactor
 func New(opts ...Option) *Speedtest {
 	s := &Speedtest{
-		doer:    http.DefaultClient,
-		Manager: NewDataManager(),
+		doer:        http.DefaultClient,
+		DataManager: NewDataManager(control.TypeHTTP),
 	}
 	// load default config
 	s.NewUserConfig(&UserConfig{UserAgent: DefaultUserAgent})
@@ -210,6 +210,9 @@ func New(opts ...Option) *Speedtest {
 	for _, opt := range opts {
 		opt(s)
 	}
+	// init protocol
+	// // TODO tmp usage
+	s.DataManager.protocol = s.config.Protocol
 	return s
 }
 

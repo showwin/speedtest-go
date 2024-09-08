@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/showwin/speedtest-go/speedtest/control"
 	"github.com/showwin/speedtest-go/speedtest/transport"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
@@ -37,7 +38,8 @@ var (
 	userAgent     = kingpin.Flag("ua", "Set the user-agent header for the speedtest.").String()
 	noDownload    = kingpin.Flag("no-download", "Disable download test.").Bool()
 	noUpload      = kingpin.Flag("no-upload", "Disable upload test.").Bool()
-	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping (support icmp/tcp/http).").Default("http").String()
+	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping (options: icmp/tcp/http).").Default("http").String()
+	protocol      = kingpin.Flag("protocol", "Select a protocol (default: http) for speedtest (options: tcp/http).").Default("http").Short('p').String()
 	unit          = kingpin.Flag("unit", "Set human-readable and auto-scaled rate units for output (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).").Short('u').String()
 	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 )
@@ -70,12 +72,13 @@ func main() {
 			Source:         *source,
 			DnsBindSource:  *dnsBindSource,
 			Debug:          *debug,
-			PingMode:       parseProto(*pingMode), // TCP as default
+			PingMode:       control.ParseProto(*pingMode), // TCP as default
 			SavingMode:     *savingMode,
 			MaxConnections: *thread,
 			CityFlag:       *city,
 			LocationFlag:   *location,
 			Keyword:        *search,
+			Protocol:       control.ParseProto(*protocol),
 		}))
 
 	if *showCityList {
@@ -171,43 +174,43 @@ func main() {
 		accEcho := newAccompanyEcho(server, time.Millisecond*500)
 		taskManager.RunWithTrigger(!*noDownload, "Download", func(task *Task) {
 			accEcho.Run()
-			speedtestClient.SetCallbackDownload(func(downRate speedtest.ByteRate) {
+			callback := func(downRate float64) {
 				lc := accEcho.CurrentLatency()
 				if lc == 0 {
-					task.Updatef("Download: %s (Latency: --)", downRate)
+					task.Updatef("Download: %s (Latency: --)", speedtest.ByteRate(downRate))
 				} else {
-					task.Updatef("Download: %s (Latency: %dms)", downRate, lc/1000000)
+					task.Updatef("Download: %s (Latency: %dms)", speedtest.ByteRate(downRate), lc/1000000)
 				}
-			})
+			}
 			if *multi {
-				task.CheckError(server.MultiDownloadTestContext(context.Background(), servers))
+				task.CheckError(server.MultiDownloadTestContext(context.Background(), servers, callback))
 			} else {
-				task.CheckError(server.DownloadTest())
+				task.CheckError(server.DownloadTest(callback))
 			}
 			accEcho.Stop()
 			mean, _, std, minL, maxL := speedtest.StandardDeviation(accEcho.Latencies())
-			task.Printf("Download: %s (Used: %.2fMB) (Latency: %dms Jitter: %dms Min: %dms Max: %dms)", server.DLSpeed, float64(server.Context.Manager.GetTotalDownload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
+			task.Printf("Download: %s (Used: %.2fMB) (Latency: %dms Jitter: %dms Min: %dms Max: %dms)", server.DLSpeed, float64(server.Received)/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 
 		taskManager.RunWithTrigger(!*noUpload, "Upload", func(task *Task) {
 			accEcho.Run()
-			speedtestClient.SetCallbackUpload(func(upRate speedtest.ByteRate) {
+			callback := func(upRate float64) {
 				lc := accEcho.CurrentLatency()
 				if lc == 0 {
-					task.Updatef("Upload: %s (Latency: --)", upRate)
+					task.Updatef("Upload: %s (Latency: --)", speedtest.ByteRate(upRate))
 				} else {
-					task.Updatef("Upload: %s (Latency: %dms)", upRate, lc/1000000)
+					task.Updatef("Upload: %s (Latency: %dms)", speedtest.ByteRate(upRate), lc/1000000)
 				}
-			})
+			}
 			if *multi {
-				task.CheckError(server.MultiUploadTestContext(context.Background(), servers))
+				task.CheckError(server.MultiUploadTestContext(context.Background(), servers, callback))
 			} else {
-				task.CheckError(server.UploadTest())
+				task.CheckError(server.UploadTest(callback))
 			}
 			accEcho.Stop()
 			mean, _, std, minL, maxL := speedtest.StandardDeviation(accEcho.Latencies())
-			task.Printf("Upload: %s (Used: %.2fMB) (Latency: %dms Jitter: %dms Min: %dms Max: %dms)", server.ULSpeed, float64(server.Context.Manager.GetTotalUpload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
+			task.Printf("Upload: %s (Used: %.2fMB) (Latency: %dms Jitter: %dms Min: %dms Max: %dms)", server.ULSpeed, float64(server.Sent)/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 
@@ -220,7 +223,6 @@ func main() {
 			taskManager.Println(server.PacketLoss.String())
 		}
 		taskManager.Reset()
-		speedtestClient.Manager.Reset()
 	}
 	taskManager.Stop()
 
@@ -306,17 +308,6 @@ func parseUnit(str string) speedtest.UnitType {
 		return speedtest.UnitTypeBinaryBytes
 	} else {
 		return speedtest.UnitTypeDefaultMbps
-	}
-}
-
-func parseProto(str string) speedtest.Proto {
-	str = strings.ToLower(str)
-	if str == "icmp" {
-		return speedtest.ICMP
-	} else if str == "tcp" {
-		return speedtest.TCP
-	} else {
-		return speedtest.HTTP
 	}
 }
 

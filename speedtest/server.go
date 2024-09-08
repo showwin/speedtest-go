@@ -6,6 +6,8 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/showwin/speedtest-go/speedtest/control"
+	"github.com/showwin/speedtest-go/speedtest/internal"
 	"github.com/showwin/speedtest-go/speedtest/transport"
 	"math"
 	"net/http"
@@ -51,6 +53,8 @@ type Server struct {
 	Jitter       time.Duration   `json:"jitter"`
 	DLSpeed      ByteRate        `json:"dl_speed"`
 	ULSpeed      ByteRate        `json:"ul_speed"`
+	Sent         int64           `json:"sent"`
+	Received     int64           `json:"received"`
 	TestDuration TestDuration    `json:"test_duration"`
 	PacketLoss   transport.PLoss `json:"packet_loss"`
 
@@ -222,7 +226,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		query.Set("lon", strconv.FormatFloat(s.config.Location.Lon, 'f', -1, 64))
 	}
 	u.RawQuery = query.Encode()
-	dbg.Printf("Retrieving servers: %s\n", u.String())
+	internal.DBG().Printf("Retrieving servers: %s\n", u.String())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return Servers{}, err
@@ -277,7 +281,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		return servers, errors.New("response payload decoding not implemented")
 	}
 
-	dbg.Printf("Servers Num: %d\n", len(servers))
+	internal.DBG().Printf("Servers Num: %d\n", len(servers))
 	// set doer of server
 	for _, server := range servers {
 		server.Context = s
@@ -286,15 +290,15 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 	// ping once
 	var wg sync.WaitGroup
 	pCtx, fc := context.WithTimeout(context.Background(), time.Second*4)
-	dbg.Println("Echo each server...")
+	internal.DBG().Println("Echo each server...")
 	for _, server := range servers {
 		wg.Add(1)
 		go func(gs *Server) {
 			var latency []int64
 			var errPing error
-			if s.config.PingMode == TCP {
+			if s.config.PingMode.Assert(control.TypeTCP) {
 				latency, errPing = gs.TCPPing(pCtx, 1, time.Millisecond, nil)
-			} else if s.config.PingMode == ICMP {
+			} else if s.config.PingMode.Assert(control.TypeICMP) {
 				latency, errPing = gs.ICMPPing(pCtx, 4*time.Second, 1, time.Millisecond, nil)
 			} else {
 				latency, errPing = gs.HTTPPing(pCtx, 1, time.Millisecond, nil)

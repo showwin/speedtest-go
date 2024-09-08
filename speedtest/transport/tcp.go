@@ -6,19 +6,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/showwin/speedtest-go/speedtest/internal"
+	"io"
 	"net"
 	"strconv"
 	"time"
 )
 
 var (
-	pingPrefix = []byte{0x50, 0x49, 0x4e, 0x47, 0x20}
-	// downloadPrefix = []byte{0x44, 0x4F, 0x57, 0x4E, 0x4C, 0x4F, 0x41, 0x44, 0x20}
-	// uploadPrefix   = []byte{0x55, 0x50, 0x4C, 0x4F, 0x41, 0x44, 0x20}
-	initPacket = []byte{0x49, 0x4e, 0x49, 0x54, 0x50, 0x4c, 0x4f, 0x53, 0x53}
-	packetLoss = []byte{0x50, 0x4c, 0x4f, 0x53, 0x53}
-	hiFormat   = []byte{0x48, 0x49}
-	quitFormat = []byte{0x51, 0x55, 0x49, 0x54}
+	pingPrefix     = []byte{0x50, 0x49, 0x4e, 0x47, 0x20}
+	downloadPrefix = []byte{0x44, 0x4F, 0x57, 0x4E, 0x4C, 0x4F, 0x41, 0x44, 0x20}
+	uploadPrefix   = []byte{0x55, 0x50, 0x4C, 0x4F, 0x41, 0x44, 0x20}
+	initPacket     = []byte{0x49, 0x4e, 0x49, 0x54, 0x50, 0x4c, 0x4f, 0x53, 0x53}
+	packetLoss     = []byte{0x50, 0x4c, 0x4f, 0x53, 0x53}
+	hiFormat       = []byte{0x48, 0x49}
+	quitFormat     = []byte{0x51, 0x55, 0x49, 0x54}
 )
 
 var (
@@ -27,10 +29,6 @@ var (
 	ErrUnsupported                 = errors.New("unsupported protocol") // Some servers have disabled ip:8080, we return this error.
 	ErrUninitializedPacketLossInst = errors.New("uninitialized packet loss inst")
 )
-
-func pingFormat(locTime int64) []byte {
-	return strconv.AppendInt(pingPrefix, locTime, 10)
-}
 
 type Client struct {
 	id      string
@@ -44,7 +42,7 @@ type Client struct {
 }
 
 func NewClient(dialer *net.Dialer) (*Client, error) {
-	uuid, err := generateUUID()
+	uuid, err := internal.GenerateUUID()
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +66,10 @@ func (client *Client) Connect(ctx context.Context, host string) (err error) {
 	return nil
 }
 
+func (client *Client) Local() net.Addr {
+	return client.conn.LocalAddr()
+}
+
 func (client *Client) Disconnect() (err error) {
 	_, _ = client.conn.Write(quitFormat)
 	client.conn = nil
@@ -76,7 +78,7 @@ func (client *Client) Disconnect() (err error) {
 	return
 }
 
-func (client *Client) Write(data []byte) (err error) {
+func (client *Client) WriteToConn(data []byte) (err error) {
 	if client.conn == nil {
 		return ErrEmptyConn
 	}
@@ -84,7 +86,7 @@ func (client *Client) Write(data []byte) (err error) {
 	return
 }
 
-func (client *Client) Read() ([]byte, error) {
+func (client *Client) ReadFromConn() ([]byte, error) {
 	if client.conn == nil {
 		return nil, ErrEmptyConn
 	}
@@ -93,9 +95,9 @@ func (client *Client) Read() ([]byte, error) {
 
 func (client *Client) Version() string {
 	if len(client.version) == 0 {
-		err := client.Write(hiFormat)
+		err := client.WriteToConn(hiFormat)
 		if err == nil {
-			message, err := client.Read()
+			message, err := client.ReadFromConn()
 			if err != nil || len(message) < 8 {
 				return "unknown"
 			}
@@ -121,11 +123,11 @@ func (client *Client) PingContext(ctx context.Context) (int64, error) {
 	go func() {
 		for i := 0; i < 2; i++ {
 			t0 := time.Now().UnixNano()
-			if err := client.Write(pingFormat(t0)); err != nil {
+			if err := client.WriteToConn(embedFormat(pingPrefix, t0)); err != nil {
 				resultChan <- err
 				return
 			}
-			data, err := client.Read()
+			data, err := client.ReadFromConn()
 			t2 := time.Now().UnixNano()
 			if err != nil {
 				resultChan <- err
@@ -164,11 +166,11 @@ func (client *Client) InitPacketLoss() error {
 	id := client.id
 	payload := append(hiFormat, 0x20)
 	payload = append(payload, []byte(id)...)
-	err := client.Write(payload)
+	err := client.WriteToConn(payload)
 	if err != nil {
 		return err
 	}
-	return client.Write(initPacket)
+	return client.WriteToConn(initPacket)
 }
 
 // PLoss Packet loss statistics
@@ -205,11 +207,11 @@ func (p PLoss) LossPercent() float64 {
 }
 
 func (client *Client) PacketLoss() (*PLoss, error) {
-	err := client.Write(packetLoss)
+	err := client.WriteToConn(packetLoss)
 	if err != nil {
 		return nil, err
 	}
-	result, err := client.Read()
+	result, err := client.ReadFromConn()
 	if err != nil {
 		return nil, err
 	}
@@ -236,10 +238,35 @@ func (client *Client) PacketLoss() (*PLoss, error) {
 	}, nil
 }
 
-func (client *Client) Download() {
-	panic("Unimplemented method: Client.Download()")
+func (client *Client) RegisterDownload(chunkSize int64) (io.Reader, error) {
+	initPacketOperations := embedFormat(downloadPrefix, chunkSize)
+	err := client.WriteToConn(initPacketOperations)
+	if err != nil {
+		return nil, err
+	}
+	return client.conn, err
 }
 
-func (client *Client) Upload() {
-	panic("Unimplemented method: Client.Upload()")
+func (client *Client) RegisterUpload(chunkSize int64) (int64, error) {
+	initPacketOperations := embedFormat(uploadPrefix, chunkSize)
+	remain := chunkSize - int64(len(initPacketOperations)) - 1
+	return remain, client.WriteToConn(initPacketOperations)
+}
+
+// Upload Perform upload operation
+// @endpoint data input source, We can collect the upload info here.
+func (client *Client) Upload(endpoint io.Reader) (int64, error) {
+	if wt, ok := endpoint.(io.WriterTo); ok {
+		return wt.WriteTo(client)
+	} else {
+		panic("endpoint is not implement io.WriterTo")
+	}
+}
+
+func (client *Client) Write(p []byte) (n int, err error) {
+	return client.conn.Write(p)
+}
+
+func embedFormat(prefix []byte, packetSize int64) []byte {
+	return strconv.AppendInt(prefix, packetSize, 10)
 }

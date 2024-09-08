@@ -1,6 +1,7 @@
 package speedtest
 
 import (
+	"github.com/showwin/speedtest-go/speedtest/internal"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,7 +15,7 @@ func BenchmarkLogSpeed(b *testing.B) {
 	}
 	WithUserConfig(config)(s)
 	for i := 0; i < b.N; i++ {
-		dbg.Printf("hello %s\n", "s20080123") // ~1ns/op
+		internal.dbg.Printf("hello %s\n", "s20080123") // ~1ns/op
 	}
 }
 

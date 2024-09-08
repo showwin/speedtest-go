@@ -43,7 +43,7 @@ func TestDataManager_AddTotalDownload(t *testing.T) {
 func TestDataManager_GetAvgDownloadRate(t *testing.T) {
 	dm := NewDataManager()
 	dm.download.totalDataVolume = 3000000
-	dm.captureTime = time.Second * 10
+	dm.samplingPeriod = time.Second * 10
 
 	result := dm.GetAvgDownloadRate()
 	if result != 2.4 {
@@ -81,7 +81,7 @@ func TestDynamicRate(t *testing.T) {
 		//t.Error(err)
 	}
 
-	server.Context.Manager.Wait()
+	// server.Context.Manager.Wait()
 
 	err = server.UploadTest()
 	if err != nil {

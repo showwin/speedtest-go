@@ -1,4 +1,4 @@
-package speedtest
+package internal
 
 import (
 	"log"
@@ -28,6 +28,10 @@ func (d *Debug) Printf(format string, v ...any) {
 	if d.flag {
 		d.dbg.Printf(format, v...)
 	}
+}
+
+func DBG() *Debug {
+	return dbg
 }
 
 var dbg = NewDebug()

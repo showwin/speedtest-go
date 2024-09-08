@@ -3,6 +3,7 @@ package speedtest
 import (
 	"context"
 	"fmt"
+	"github.com/showwin/speedtest-go/speedtest/control"
 	"runtime"
 	"testing"
 	"time"
@@ -60,7 +61,7 @@ func TestUploadTestContext(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	value := server.Context.Manager.GetAvgUploadRate()
+	value := server.Context.Manager.GetUploadAvgRate()
 	if value < idealSpeed*(1-delta) || idealSpeed*(1+delta) < value {
 		t.Errorf("got unexpected server.ULSpeed '%v', expected between %v and %v", value, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
@@ -90,7 +91,7 @@ func TestPautaFilter(t *testing.T) {
 		t.Fail()
 	}
 
-	result := pautaFilter(vector1)
+	result := control.pautaFilter(vector1)
 	if len(result) != 10 {
 		t.Fail()
 	}
