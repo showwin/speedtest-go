@@ -6,7 +6,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/showwin/speedtest-go/speedtest/transport"
 	"math"
 	"net/http"
 	"net/url"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/showwin/speedtest-go/speedtest/transport"
 )
 
 const (
@@ -77,7 +78,8 @@ func (s *Speedtest) CustomServer(host string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	parseHost := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, "/speedtest/upload.php")
+	u.Path = "/speedtest/upload.php"
+	parseHost := u.String()
 	return &Server{
 		ID:      "Custom",
 		Lat:     "?",
