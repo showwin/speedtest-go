@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"runtime"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -54,6 +55,9 @@ type UserConfig struct {
 	Location     *Location
 
 	Keyword string // Fuzzy search
+
+	DlSize int
+	UlSize int
 }
 
 func parseAddr(addr string) (string, string) {
@@ -67,6 +71,18 @@ func parseAddr(addr string) (string, string) {
 func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 	if uc.Debug {
 		dbg.Enable()
+	}
+
+	if !(uc.DlSize > 0 && slices.Contains(dlSizes[:], uc.DlSize)) {
+		dbg.Printf("Warning: invalid/unset download size: %d.\n", uc.DlSize)
+		uc.DlSize = dlSizes[4]
+		dbg.Printf("Using default size: %d.\n", uc.DlSize)
+	}
+
+	if !(uc.UlSize > 0 && slices.Contains(ulSizes[:], uc.UlSize)) {
+		dbg.Printf("Warning: invalid/unset upload size: %d.\n", uc.UlSize)
+		uc.UlSize = ulSizes[4]
+		dbg.Printf("Using default size: %d.\n", uc.UlSize)
 	}
 
 	if uc.SavingMode {

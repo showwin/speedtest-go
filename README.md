@@ -61,6 +61,8 @@ Flags:
   -u  --unit                   Set human-readable and auto-scaled rate units for output 
                                (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).
   -d  --debug                  Enable debug mode.
+      --dl-size=1000           Set download chunk size.
+      --ul-size=800            Set upload chunk size.
       --version                Show application version.
 ```
 
