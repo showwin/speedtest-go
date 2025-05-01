@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/showwin/speedtest-go/speedtest/transport"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
 	"log"
 	"os"
@@ -14,6 +12,9 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/showwin/speedtest-go/speedtest/transport"
+	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/showwin/speedtest-go/speedtest"
 )
@@ -24,6 +25,7 @@ var (
 	customURL     = kingpin.Flag("custom-url", "Specify the url of the server instead of fetching from speedtest.net.").String()
 	savingMode    = kingpin.Flag("saving-mode", "Test with few resources, though low accuracy (especially > 30Mbps).").Bool()
 	jsonOutput    = kingpin.Flag("json", "Output results in json format.").Bool()
+	jsonlOutput   = kingpin.Flag("jsonl", "Output results in jsonl format (one json object per line).").Bool()
 	unixOutput    = kingpin.Flag("unix", "Output results in unix like format.").Bool()
 	location      = kingpin.Flag("location", "Change the location with a precise coordinate (format: lat,lon).").String()
 	city          = kingpin.Flag("city", "Change the location with a predefined city label.").String()
@@ -58,7 +60,7 @@ func main() {
 	log.SetOutput(io.Discard)
 
 	// start unix output for saving mode by default.
-	if *savingMode && !*jsonOutput && !*unixOutput {
+	if *savingMode && !*jsonOutput && !*jsonlOutput && !*unixOutput {
 		*unixOutput = true
 	}
 
@@ -84,7 +86,7 @@ func main() {
 	}
 
 	// 1. retrieving user information
-	taskManager := InitTaskManager(*jsonOutput, *unixOutput)
+	taskManager := InitTaskManager(*jsonOutput || *jsonlOutput, *unixOutput)
 	taskManager.AsyncRun("Retrieving User Information", func(task *Task) {
 		u, err := speedtestClient.FetchUserInfo()
 		task.CheckError(err)
@@ -133,7 +135,7 @@ func main() {
 
 	// 3. test each selected server with ping, download and upload.
 	for _, server := range targets {
-		if !*jsonOutput {
+		if !*jsonOutput && !*jsonlOutput {
 			fmt.Println()
 		}
 		taskManager.Println("Test Server: " + server.String())
@@ -216,7 +218,7 @@ func main() {
 		}
 		packetLossAnalyzerCancel()
 		blocker.Wait()
-		if !*jsonOutput {
+		if !*jsonOutput && !*jsonlOutput {
 			taskManager.Println(server.PacketLoss.String())
 		}
 		taskManager.Reset()
@@ -230,6 +232,14 @@ func main() {
 			panic(errMarshal)
 		}
 		fmt.Print(string(json))
+	} else if *jsonlOutput {
+		for _, server := range targets {
+			json, errMarshal := speedtestClient.JSONL(server)
+			if errMarshal != nil {
+				panic(errMarshal)
+			}
+			fmt.Println(string(json))
+		}
 	}
 }
 
@@ -321,7 +331,7 @@ func parseProto(str string) speedtest.Proto {
 }
 
 func AppInfo() {
-	if !*jsonOutput {
+	if !*jsonOutput && !*jsonlOutput {
 		fmt.Println()
 		fmt.Printf("    speedtest-go v%s (git-%s) @showwin\n", speedtest.Version(), commit)
 		fmt.Println()
