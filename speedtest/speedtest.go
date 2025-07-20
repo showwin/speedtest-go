@@ -54,6 +54,7 @@ type UserConfig struct {
 	Location     *Location
 
 	Keyword string // Fuzzy search
+	BaseUrl string
 }
 
 func parseAddr(addr string) (string, string) {
@@ -87,6 +88,9 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 		if err != nil {
 			dbg.Printf("Warning: skipping command line arguments: --location. err: %v\n", err.Error())
 		}
+	}
+	if uc.BaseUrl == "" {
+		uc.BaseUrl = defaultBaseURL
 	}
 
 	var tcpSource net.Addr // If nil, a local address is automatically chosen.
@@ -205,7 +209,10 @@ func New(opts ...Option) *Speedtest {
 		Manager: NewDataManager(),
 	}
 	// load default config
-	s.NewUserConfig(&UserConfig{UserAgent: DefaultUserAgent})
+	s.NewUserConfig(&UserConfig{
+		UserAgent: DefaultUserAgent,
+		BaseUrl:   defaultBaseURL,
+	})
 
 	for _, opt := range opts {
 		opt(s)
