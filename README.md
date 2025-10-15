@@ -41,6 +41,7 @@ Flags:
       --custom-url=CUSTOM-URL  Specify the url of the server instead of fetching from speedtest.net.
       --saving-mode            Test with few resources, though low accuracy (especially > 30Mbps).
       --json                   Output results in json format.
+      --jsonl                  Output results in jsonl format (one json object per line).
       --unix                   Output results in unix like format.
       --location=LOCATION      Change the location with a precise coordinate (format: lat,lon).
       --city=CITY              Change the location with a predefined city label.

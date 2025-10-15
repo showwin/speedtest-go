@@ -12,6 +12,12 @@ type fullOutput struct {
 	Servers   Servers    `json:"servers"`
 }
 
+type singleServerOutput struct {
+	Timestamp outputTime `json:"timestamp"`
+	UserInfo  *User      `json:"user_info"`
+	Server    *Server    `json:"server"`
+}
+
 type outputTime time.Time
 
 func (t outputTime) MarshalJSON() ([]byte, error) {
@@ -25,6 +31,17 @@ func (s *Speedtest) JSON(servers Servers) ([]byte, error) {
 			Timestamp: outputTime(time.Now()),
 			UserInfo:  s.User,
 			Servers:   servers,
+		},
+	)
+}
+
+// JSONL outputs a single server result in JSON format
+func (s *Speedtest) JSONL(server *Server) ([]byte, error) {
+	return json.Marshal(
+		singleServerOutput{
+			Timestamp: outputTime(time.Now()),
+			UserInfo:  s.User,
+			Server:    server,
 		},
 	)
 }
