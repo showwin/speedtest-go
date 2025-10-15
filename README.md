@@ -28,6 +28,85 @@ $ nix-shell -p speedtest-go
 Please download the compatible package from [Releases](https://github.com/showwin/speedtest-go/releases).
 If there are no compatible packages you want, please let me know on [Issue Tracker](https://github.com/showwin/speedtest-go/issues).
 
+#### Docker Build
+
+To build a multi-architecture Docker image:
+
+```bash
+# Check if you already have a builder instance
+docker buildx ls
+
+# Only create a new builder if you don't have one
+# If the above command shows no builders or none are in use, run:
+docker buildx create --name mybuilder --use
+
+# Build and push for multiple platforms
+docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t yourusername/speedtest-go:latest --push .
+```
+
+#### Running the Container
+
+##### Docker
+Run the container with default settings (interactive shell):
+```bash
+docker run -it yourusername/speedtest-go:latest
+```
+
+Run a speedtest with specific arguments:
+```bash
+# Run a basic speedtest
+docker run yourusername/speedtest-go:latest speedtest-go
+
+# Run with specific server
+docker run yourusername/speedtest-go:latest speedtest-go --server 6691
+
+# Run with multiple servers and JSON output
+docker run yourusername/speedtest-go:latest speedtest-go --server 6691 --server 6087 --json
+
+# Run with custom location
+docker run yourusername/speedtest-go:latest speedtest-go --location=60,-110
+```
+
+##### Kubernetes
+Here's an example Kubernetes pod specification that runs a speedtest:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: speedtest
+spec:
+  containers:
+  - name: speedtest
+    image: yourusername/speedtest-go:latest
+    # Base command to run bash
+    command: ["speedtest-go"]
+    # Or run with specific arguments
+    # args: ["--server", "6691", "--json"]
+  restartPolicy: Never
+```
+
+For a more complete deployment, you might want to use a CronJob to run periodic speedtests:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: speedtest
+spec:
+  schedule: "0 */6 * * *"  # Run every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: speedtest
+            image: yourusername/speedtest-go:latest
+            command: ["speedtest-go"]
+            args: ["--json"]
+          restartPolicy: OnFailure
+```
+
 ### Usage
 
 ```bash
