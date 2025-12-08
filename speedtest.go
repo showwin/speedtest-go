@@ -42,6 +42,8 @@ var (
 	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping (support icmp/tcp/http).").Default("http").String()
 	unit          = kingpin.Flag("unit", "Set human-readable and auto-scaled rate units for output (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).").Short('u').String()
 	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
+	dlSize        = kingpin.Flag("dl-size", "Set download chunk size.").Default("1000").Int()
+	ulSize        = kingpin.Flag("ul-size", "Set upload chunk size.").Default("800").Int()
 )
 
 var (
@@ -78,6 +80,8 @@ func main() {
 			CityFlag:       *city,
 			LocationFlag:   *location,
 			Keyword:        *search,
+			DlSize:         *dlSize,
+			UlSize:         *ulSize,
 		}))
 
 	if *showCityList {
