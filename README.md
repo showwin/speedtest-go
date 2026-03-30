@@ -131,6 +131,7 @@ Flags:
       --source=SOURCE          Bind a source interface for the speedtest.
       --dns-bind-source        DNS request binding source (experimental).
                                eg: --source=10.20.0.101
+                               eg: --source=eth0  (Linux only)
   -m  --multi                  Enable multi-server mode.
   -t  --thread=THREAD          Set the number of concurrent connections.
       --search=SEARCH          Fuzzy search servers by a keyword.
@@ -260,6 +261,8 @@ func main() {
 	
 	// Select a network card as the data interface.
 	// speedtest.WithUserConfig(&speedtest.UserConfig{Source: "192.168.1.101"})(speedtestClient)
+	// On Linux, a network interface name also works (binds via SO_BINDTODEVICE):
+	// speedtest.WithUserConfig(&speedtest.UserConfig{Source: "eth0"})(speedtestClient)
 	
 	// Get user's network information
 	// user, _ := speedtestClient.FetchUserInfo()
