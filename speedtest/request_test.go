@@ -38,8 +38,8 @@ func TestDownloadTestContext(t *testing.T) {
 }
 
 func TestUploadTestContext(t *testing.T) {
-	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
-	delta := 0.15                                                // tolerance scope (-0.05, +0.05)
+	idealSpeed := 0.1 * 8 * 1 * 10 / 0.1 // upload test is explicitly single-threaded below
+	delta := 0.15                        // tolerance scope (-0.05, +0.05)
 
 	latency, _ := time.ParseDuration("5ms")
 	server := Server{
@@ -51,6 +51,7 @@ func TestUploadTestContext(t *testing.T) {
 	server.Context.Reset()
 	server.Context.SetRateCaptureFrequency(time.Millisecond)
 	server.Context.SetCaptureTime(time.Second)
+	server.Context.SetNThread(1)
 
 	err := server.uploadTestContext(
 		context.Background(),

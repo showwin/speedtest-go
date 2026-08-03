@@ -21,6 +21,8 @@ type Manager interface {
 
 	GetTotalDownload() int64
 	GetTotalUpload() int64
+	GetUploadBacklog() int64
+	GetUploadConfirmationRatio() float64
 	AddTotalDownload(value int64)
 	AddTotalUpload(value int64)
 
@@ -87,6 +89,7 @@ type DataManager struct {
 	captureTime          time.Duration
 	rateCaptureFrequency time.Duration
 	nThread              int
+	uploadMaxWorkers     int
 
 	running   bool
 	runningRW sync.RWMutex
@@ -99,6 +102,9 @@ type TestDirection struct {
 	TestType        int                         // test type
 	manager         *DataManager                // manager
 	totalDataVolume int64                       // total send/receive data volume
+	totalReadVolume int64                       // upload bytes read into the transport
+	activeWorkers   int32                       // current upload worker limit
+	maxWorkers      int32                       // configured upload worker limit
 	RateSequence    []int64                     // rate history sequence
 	welford         *internal.Welford           // std/EWMA/mean
 	captureCallback func(realTimeRate ByteRate) // user callback
@@ -122,6 +128,7 @@ func NewDataManager() *DataManager {
 		rateCaptureFrequency: time.Millisecond * 50,
 		Snapshot:             &Snapshot{},
 		repeatByte:           &r,
+		uploadMaxWorkers:     8,
 	}
 	ret.download = ret.NewDataDirection(typeDownload)
 	ret.upload = ret.NewDataDirection(typeUpload)
@@ -180,6 +187,14 @@ func (td *TestDirection) AddTotalDataVolume(delta int64) int64 {
 	return atomic.AddInt64(&td.totalDataVolume, delta)
 }
 
+func (td *TestDirection) GetTotalReadVolume() int64 {
+	return atomic.LoadInt64(&td.totalReadVolume)
+}
+
+func (td *TestDirection) AddTotalReadVolume(delta int64) int64 {
+	return atomic.AddInt64(&td.totalReadVolume, delta)
+}
+
 func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerIndex int) {
 	if len(td.fns) == 0 {
 		panic("empty task stack")
@@ -188,6 +203,10 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 		mainRequestHandlerIndex = 0
 	}
 	mainLoadFactor := 0.1
+	workerLimit := td.manager.nThread
+	if td.TestType == typeUpload && td.manager.uploadMaxWorkers < workerLimit {
+		workerLimit = td.manager.uploadMaxWorkers
+	}
 	// When the number of processor cores is equivalent to the processing program,
 	// the processing efficiency reaches the highest level (VT is not considered).
 	mainN := int(mainLoadFactor * float64(len(td.fns)))
@@ -195,15 +214,29 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 		mainN = 1
 	}
 	if len(td.fns) == 1 {
-		mainN = td.manager.nThread
+		mainN = workerLimit
 	}
-	auxN := td.manager.nThread - mainN
+	auxN := workerLimit - mainN
 	dbg.Printf("Available fns: %d\n", len(td.fns))
 	dbg.Printf("mainN: %d\n", mainN)
 	dbg.Printf("auxN: %d\n", auxN)
 	wg := sync.WaitGroup{}
 	td.manager.running = true
 	stopCapture := td.rateCapture()
+	td.maxWorkers = int32(workerLimit)
+	initialWorkers := td.maxWorkers
+	if td.TestType == typeUpload {
+		if td.manager.uploadMaxWorkers <= 8 {
+			initialWorkers = int32(runtime.NumCPU())
+			if initialWorkers > td.maxWorkers {
+				initialWorkers = td.maxWorkers
+			}
+		}
+	}
+	atomic.StoreInt32(&td.activeWorkers, initialWorkers)
+	if td.TestType == typeUpload {
+		dbg.Printf("Upload workers: %d/%d\n", initialWorkers, td.maxWorkers)
+	}
 
 	// refresh once function
 	once := sync.Once{}
@@ -219,21 +252,14 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 		})
 	}
 
+	if td.TestType == typeUpload && td.maxWorkers > 1 {
+		go td.adaptUploadWorkers()
+	}
 	time.AfterFunc(td.manager.captureTime, td.closeFunc)
 	for i := 0; i < mainN; i++ {
 		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for {
-				td.manager.runningRW.RLock()
-				running := td.manager.running
-				td.manager.runningRW.RUnlock()
-				if !running {
-					return
-				}
-				td.fns[mainRequestHandlerIndex]()
-			}
-		}()
+		workerID := i
+		go td.runWorker(&wg, workerID, td.fns[mainRequestHandlerIndex])
 	}
 	for j := 0; j < auxN; {
 		for i := range td.fns {
@@ -245,22 +271,111 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 			}
 			wg.Add(1)
 			t := i
-			go func() {
-				defer wg.Done()
-				for {
-					td.manager.runningRW.RLock()
-					running := td.manager.running
-					td.manager.runningRW.RUnlock()
-					if !running {
-						return
-					}
-					td.fns[t]()
-				}
-			}()
+			workerID := mainN + j
+			go td.runWorker(&wg, workerID, td.fns[t])
 			j++
 		}
 	}
 	wg.Wait()
+}
+
+func (td *TestDirection) runWorker(wg *sync.WaitGroup, workerID int, fn func()) {
+	defer wg.Done()
+	for {
+		td.manager.runningRW.RLock()
+		running := td.manager.running
+		td.manager.runningRW.RUnlock()
+		if !running {
+			return
+		}
+		if !td.workerEnabled(workerID) {
+			time.Sleep(time.Millisecond)
+			continue
+		}
+		fn()
+	}
+}
+
+func (td *TestDirection) workerEnabled(workerID int) bool {
+	if td.TestType != typeUpload {
+		return true
+	}
+	return int32(workerID) < atomic.LoadInt32(&td.activeWorkers)
+}
+
+func (td *TestDirection) adaptUploadWorkers() {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	previousConfirmed := td.GetTotalDataVolume()
+	previousAt := time.Now()
+	bestRate := 0.0
+	for range ticker.C {
+		td.manager.runningRW.RLock()
+		running := td.manager.running
+		td.manager.runningRW.RUnlock()
+		if !running {
+			return
+		}
+
+		now := time.Now()
+		confirmed := td.GetTotalDataVolume()
+		delta := confirmed - previousConfirmed
+		elapsed := now.Sub(previousAt).Seconds()
+		previousConfirmed = confirmed
+		previousAt = now
+		if delta <= 0 || elapsed <= 0 {
+			continue
+		}
+
+		rate := float64(delta) / elapsed
+		active := atomic.LoadInt32(&td.activeWorkers)
+		read := td.GetTotalReadVolume()
+		backlog := read - confirmed
+		confirmation := td.manager.GetUploadConfirmationRatio()
+		if bestRate == 0 || rate > bestRate*1.05 {
+			bestRate = rate
+			if active < td.maxWorkers {
+				active++
+				atomic.StoreInt32(&td.activeWorkers, active)
+				dbg.Printf("Upload workers: %d/%d (confirmed: %.2f MB/s, confirmation: %.1f%%, backlog: %.2f MB)\n", active, td.maxWorkers, rate/1000/1000, confirmation*100, float64(backlog)/1000/1000)
+			}
+			continue
+		}
+
+		if active > 1 && (rate < bestRate*0.85 || backlog > int64(active)*2*1024*1024) {
+			active = reducedUploadWorkerCount(active, rate, bestRate, backlog)
+			atomic.StoreInt32(&td.activeWorkers, active)
+			dbg.Printf("Upload workers: %d/%d (confirmed: %.2f MB/s, confirmation: %.1f%%, backlog: %.2f MB)\n", active, td.maxWorkers, rate/1000/1000, confirmation*100, float64(backlog)/1000/1000)
+			bestRate = rate
+		}
+	}
+}
+
+func reducedUploadWorkerCount(active int32, rate, bestRate float64, backlog int64) int32 {
+	if active <= 1 {
+		return 1
+	}
+
+	factor := 1.0
+	if bestRate > 0 && rate < bestRate*0.85 {
+		factor = math.Min(factor, rate/bestRate)
+	}
+	backlogLimit := int64(active) * 2 * 1024 * 1024
+	if backlog > backlogLimit {
+		factor = math.Min(factor, float64(backlogLimit)/float64(backlog))
+	}
+	if factor >= 1 {
+		return active - 1
+	}
+
+	target := int32(math.Ceil(float64(active) * factor))
+	if target >= active {
+		target = active - 1
+	}
+	if target < 1 {
+		return 1
+	}
+	return target
 }
 
 func (td *TestDirection) rateCapture() chan bool {
@@ -330,6 +445,35 @@ func (dm *DataManager) GetTotalUpload() int64 {
 	return dm.upload.GetTotalDataVolume()
 }
 
+// GetUploadBacklog returns upload bytes read by the transport but not yet
+// confirmed by a successful upload response.
+func (dm *DataManager) GetUploadBacklog() int64 {
+	backlog := dm.upload.GetTotalReadVolume() - dm.GetTotalUpload()
+	if backlog < 0 {
+		return 0
+	}
+	return backlog
+}
+
+// GetUploadConfirmationRatio returns server-confirmed upload bytes divided by
+// bytes read from upload request bodies. It is an application-level estimate,
+// not a TCP ACK counter.
+func (dm *DataManager) GetUploadConfirmationRatio() float64 {
+	read := dm.upload.GetTotalReadVolume()
+	if read <= 0 {
+		return 0
+	}
+	confirmed := dm.GetTotalUpload()
+	ratio := float64(confirmed) / float64(read)
+	if ratio > 1 {
+		return 1
+	}
+	if ratio < 0 {
+		return 0
+	}
+	return ratio
+}
+
 func (dm *DataManager) SetRateCaptureFrequency(duration time.Duration) Manager {
 	dm.rateCaptureFrequency = duration
 	return dm
@@ -343,8 +487,10 @@ func (dm *DataManager) SetCaptureTime(duration time.Duration) Manager {
 func (dm *DataManager) SetNThread(n int) Manager {
 	if n < 1 {
 		dm.nThread = runtime.NumCPU()
+		dm.uploadMaxWorkers = 8
 	} else {
 		dm.nThread = n
+		dm.uploadMaxWorkers = n
 	}
 	return dm
 }
@@ -484,6 +630,9 @@ func (dc *DataChunk) Read(b []byte) (n int, err error) {
 	}
 	n64 := int64(n)
 	dc.remainOrDiscardSize -= n64
+	if dc.dateType == typeUpload {
+		dc.manager.upload.AddTotalReadVolume(n64)
+	}
 	return
 }
 
