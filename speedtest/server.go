@@ -38,23 +38,23 @@ var (
 
 // Server information
 type Server struct {
-	URL          string        `xml:"url,attr" json:"url"`
-	Lat          string        `xml:"lat,attr" json:"lat"`
-	Lon          string        `xml:"lon,attr" json:"lon"`
-	Name         string        `xml:"name,attr" json:"name"`
-	Country      string        `xml:"country,attr" json:"country"`
-	Sponsor      string        `xml:"sponsor,attr" json:"sponsor"`
-	ID           string        `xml:"id,attr" json:"id"`
-	Host         string        `xml:"host,attr" json:"host"`
-	Distance     float64       `json:"distance"`
-	Latency      time.Duration `json:"latency"`
-	MaxLatency   time.Duration `json:"max_latency"`
-	MinLatency   time.Duration `json:"min_latency"`
-	Jitter       time.Duration `json:"jitter"`
-	DLSpeed      float64       `json:"dl_speed"`
-	ULSpeed      float64       `json:"ul_speed"`
-	TestDuration TestDuration  `json:"test_duration"`
-	CC           string        `json:"cc"`
+	URL          string          `xml:"url,attr" json:"url"`
+	Lat          string          `xml:"lat,attr" json:"lat"`
+	Lon          string          `xml:"lon,attr" json:"lon"`
+	Name         string          `xml:"name,attr" json:"name"`
+	Country      string          `xml:"country,attr" json:"country"`
+	Sponsor      string          `xml:"sponsor,attr" json:"sponsor"`
+	ID           string          `xml:"id,attr" json:"id"`
+	Host         string          `xml:"host,attr" json:"host"`
+	Distance     float64         `json:"distance"`
+	Latency      time.Duration   `json:"latency"`
+	MaxLatency   time.Duration   `json:"max_latency"`
+	MinLatency   time.Duration   `json:"min_latency"`
+	Jitter       time.Duration   `json:"jitter"`
+	DLSpeed      float64         `json:"dl_speed"`
+	ULSpeed      float64         `json:"ul_speed"`
+	TestDuration TestDuration    `json:"test_duration"`
+	CC           string          `json:"cc"`
 	PacketLoss   transport.PLoss `json:"packet_loss"`
 
 	Context *Speedtest `json:"-"`
@@ -157,6 +157,8 @@ func (servers Servers) CC(cc []string) Servers {
 	return servers.Filter(func(server *Server) bool {
 		return slices.Contains(upperCC, server.CC)
 	})
+}
+
 // Hosts return hosts of servers
 func (servers Servers) Hosts() []string {
 	var retServer []string

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/showwin/speedtest-go/speedtest/transport"
 	"io"
 	"math"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/showwin/speedtest-go/speedtest/transport"
 )
 
 type (
@@ -57,7 +58,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 		return ErrorUninitializedManager
 	}
 	td.Start(cancel, mainIDIndex) // block here
-	s.DLSpeed = ByteRate(td.manager.GetEWMADownloadRate())
+	s.DLSpeed = td.manager.GetEWMADownloadRate()
 	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.DLSpeed = -1 // N/A
 	}
@@ -92,7 +93,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		return ErrorUninitializedManager
 	}
 	td.Start(cancel, mainIDIndex) // block here
-	s.ULSpeed = ByteRate(td.manager.GetEWMAUploadRate())
+	s.ULSpeed = td.manager.GetEWMAUploadRate()
 	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.ULSpeed = -1 // N/A
 	}
@@ -121,7 +122,7 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 		}
 	}).Start(cancel, 0)
 	duration := time.Since(start)
-	s.DLSpeed = ByteRate(s.Context.GetEWMADownloadRate())
+	s.DLSpeed = s.Context.GetEWMADownloadRate()
 	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.DLSpeed = -1 // N/A
 	}
@@ -152,7 +153,7 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 		}
 	}).Start(cancel, 0)
 	duration := time.Since(start)
-	s.ULSpeed = ByteRate(s.Context.GetEWMAUploadRate())
+	s.ULSpeed = s.Context.GetEWMAUploadRate()
 	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.ULSpeed = -1 // N/A
 	}
