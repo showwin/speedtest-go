@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -37,22 +38,23 @@ var (
 
 // Server information
 type Server struct {
-	URL          string          `xml:"url,attr" json:"url"`
-	Lat          string          `xml:"lat,attr" json:"lat"`
-	Lon          string          `xml:"lon,attr" json:"lon"`
-	Name         string          `xml:"name,attr" json:"name"`
-	Country      string          `xml:"country,attr" json:"country"`
-	Sponsor      string          `xml:"sponsor,attr" json:"sponsor"`
-	ID           string          `xml:"id,attr" json:"id"`
-	Host         string          `xml:"host,attr" json:"host"`
-	Distance     float64         `json:"distance"`
-	Latency      time.Duration   `json:"latency"`
-	MaxLatency   time.Duration   `json:"max_latency"`
-	MinLatency   time.Duration   `json:"min_latency"`
-	Jitter       time.Duration   `json:"jitter"`
-	DLSpeed      ByteRate        `json:"dl_speed"`
-	ULSpeed      ByteRate        `json:"ul_speed"`
-	TestDuration TestDuration    `json:"test_duration"`
+	URL          string        `xml:"url,attr" json:"url"`
+	Lat          string        `xml:"lat,attr" json:"lat"`
+	Lon          string        `xml:"lon,attr" json:"lon"`
+	Name         string        `xml:"name,attr" json:"name"`
+	Country      string        `xml:"country,attr" json:"country"`
+	Sponsor      string        `xml:"sponsor,attr" json:"sponsor"`
+	ID           string        `xml:"id,attr" json:"id"`
+	Host         string        `xml:"host,attr" json:"host"`
+	Distance     float64       `json:"distance"`
+	Latency      time.Duration `json:"latency"`
+	MaxLatency   time.Duration `json:"max_latency"`
+	MinLatency   time.Duration `json:"min_latency"`
+	Jitter       time.Duration `json:"jitter"`
+	DLSpeed      float64       `json:"dl_speed"`
+	ULSpeed      float64       `json:"ul_speed"`
+	TestDuration TestDuration  `json:"test_duration"`
+	CC           string        `json:"cc"`
 	PacketLoss   transport.PLoss `json:"packet_loss"`
 
 	Context *Speedtest `json:"-"`
@@ -135,6 +137,26 @@ func (servers Servers) Swap(i, j int) {
 	servers[i], servers[j] = servers[j], servers[i]
 }
 
+// Filter filter by filterFunc
+func (servers Servers) Filter(filterFunc func(server *Server) bool) Servers {
+	var retServers Servers
+	for i := range servers {
+		if filterFunc(servers[i]) {
+			retServers = append(retServers, servers[i])
+		}
+	}
+	return retServers
+}
+
+// CC filter by Country Code
+func (servers Servers) CC(cc []string) Servers {
+	var upperCC []string
+	for i := range cc {
+		upperCC = append(upperCC, strings.ToUpper(cc[i]))
+	}
+	return servers.Filter(func(server *Server) bool {
+		return slices.Contains(upperCC, server.CC)
+	})
 // Hosts return hosts of servers
 func (servers Servers) Hosts() []string {
 	var retServer []string
@@ -223,6 +245,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		query.Set("lat", strconv.FormatFloat(s.config.Location.Lat, 'f', -1, 64))
 		query.Set("lon", strconv.FormatFloat(s.config.Location.Lon, 'f', -1, 64))
 	}
+
 	u.RawQuery = query.Encode()
 	dbg.Printf("Retrieving servers: %s\n", u.String())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
