@@ -58,7 +58,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 		return ErrorUninitializedManager
 	}
 	td.Start(cancel, mainIDIndex) // block here
-	s.DLSpeed = td.manager.GetEWMADownloadRate()
+	s.DLSpeed = ByteRate(td.manager.GetEWMADownloadRate())
 	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.DLSpeed = -1 // N/A
 	}
@@ -93,7 +93,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		return ErrorUninitializedManager
 	}
 	td.Start(cancel, mainIDIndex) // block here
-	s.ULSpeed = td.manager.GetEWMAUploadRate()
+	s.ULSpeed = ByteRate(td.manager.GetEWMAUploadRate())
 	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.ULSpeed = -1 // N/A
 	}
@@ -122,7 +122,7 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 		}
 	}).Start(cancel, 0)
 	duration := time.Since(start)
-	s.DLSpeed = s.Context.GetEWMADownloadRate()
+	s.DLSpeed = ByteRate(s.Context.GetEWMADownloadRate())
 	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.DLSpeed = -1 // N/A
 	}
@@ -153,7 +153,7 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 		}
 	}).Start(cancel, 0)
 	duration := time.Since(start)
-	s.ULSpeed = s.Context.GetEWMAUploadRate()
+	s.ULSpeed = ByteRate(s.Context.GetEWMAUploadRate())
 	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.ULSpeed = -1 // N/A
 	}
