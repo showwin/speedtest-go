@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/showwin/speedtest-go/speedtest"
 	"log"
+
+	"github.com/showwin/speedtest-go/speedtest"
 )
 
 func main() {

@@ -142,6 +142,9 @@ Flags:
   -u  --unit                   Set human-readable and auto-scaled rate units for output 
                                (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).
   -d  --debug                  Enable debug mode.
+      --filter-cc=FILTER-CC    Filter servers by Country Code(s). (options: CC/auto) 
+                               eg: --filter-cc=JP
+                               eg: --filter-cc=auto
       --version                Show application version.
 ```
 
