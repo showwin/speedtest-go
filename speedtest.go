@@ -42,6 +42,7 @@ var (
 	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping (support icmp/tcp/http).").Default("http").String()
 	unit          = kingpin.Flag("unit", "Set human-readable and auto-scaled rate units for output (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).").Short('u').String()
 	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
+	baseURL       = kingpin.Flag("base-url", "Specify a custom speedtest base URL domain (e.g., https://custom.domain.com).").String()
 )
 
 var (
@@ -78,6 +79,7 @@ func main() {
 			CityFlag:       *city,
 			LocationFlag:   *location,
 			Keyword:        *search,
+			BaseUrl:        *baseURL,
 		}))
 
 	if *showCityList {

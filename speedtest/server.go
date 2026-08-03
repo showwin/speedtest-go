@@ -19,9 +19,11 @@ import (
 )
 
 const (
-	speedTestServersUrl            = "https://www.speedtest.net/api/js/servers"
-	speedTestServersAlternativeUrl = "https://www.speedtest.net/speedtest-servers-static.php"
-	speedTestServersAdvanced       = "https://www.speedtest.net/api/ios-config.php"
+	defaultBaseURL = "https://www.speedtest.net"
+
+	serversPath            = "/api/js/servers"
+	serversAlternativePath = "/speedtest-servers-static.php"
+	serversAdvancedPath    = "/api/ios-config.php"
 )
 
 type payloadType int
@@ -159,9 +161,22 @@ func FetchServerByID(serverID string) (*Server, error) {
 	return defaultClient.FetchServerByID(serverID)
 }
 
+func (s *Speedtest) buildURL(path string) (string, error) {
+	u, err := url.Parse(s.config.BaseUrl)
+	if err != nil {
+		return "", err
+	}
+	u.Path = path
+	return u.String(), nil
+}
+
 // FetchServerByIDContext retrieves a server by given serverID, observing the given context.
 func (s *Speedtest) FetchServerByIDContext(ctx context.Context, serverID string) (*Server, error) {
-	u, err := url.Parse(speedTestServersAdvanced)
+	apiURL, err := s.buildURL(serversAdvancedPath)
+	if err != nil {
+		return nil, err
+	}
+	u, err := url.Parse(apiURL)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +226,11 @@ func FetchServers() (Servers, error) {
 
 // FetchServerListContext retrieves a list of available servers, observing the given context.
 func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error) {
-	u, err := url.Parse(speedTestServersUrl)
+	apiURL, err := s.buildURL(serversPath)
+	if err != nil {
+		return Servers{}, err
+	}
+	u, err := url.Parse(apiURL)
 	if err != nil {
 		return Servers{}, err
 	}
@@ -240,7 +259,11 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 	if resp.ContentLength == 0 {
 		_ = resp.Body.Close()
 
-		req, err = http.NewRequestWithContext(ctx, http.MethodGet, speedTestServersAlternativeUrl, nil)
+		altURL, err := s.buildURL(serversAlternativePath)
+		if err != nil {
+			return Servers{}, err
+		}
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, altURL, nil)
 		if err != nil {
 			return Servers{}, err
 		}

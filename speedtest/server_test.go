@@ -202,3 +202,23 @@ func TestTotalDurationCount(t *testing.T) {
 		t.Error("addition in testDurationTotalCount didn't work")
 	}
 }
+
+func TestCustomBaseUrlEmpty(t *testing.T) {
+	// Test that empty custom base URL doesn't break existing functionality
+	client := New(WithUserConfig(&UserConfig{
+		BaseUrl: "",
+	}))
+
+	if client.config.BaseUrl != defaultBaseURL {
+		t.Errorf("Custom base URL should be %s. Got: %s", defaultBaseURL, client.config.BaseUrl)
+	}
+
+	// This test should still work with default URLs
+	servers, err := client.FetchServers()
+	if err != nil {
+		t.Errorf("FetchServers failed with empty custom base URL: %v", err)
+	}
+	if len(servers) == 0 {
+		t.Errorf("No servers returned with empty custom base URL")
+	}
+}

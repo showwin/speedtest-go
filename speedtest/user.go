@@ -8,7 +8,9 @@ import (
 	"net/http"
 )
 
-const speedTestConfigUrl = "https://www.speedtest.net/speedtest-config.php"
+const (
+	configPath = "/speedtest-config.php"
+)
 
 // User represents information determined about the caller by speedtest.net
 type User struct {
@@ -35,8 +37,12 @@ func FetchUserInfo() (*User, error) {
 
 // FetchUserInfoContext returns information about caller determined by speedtest.net, observing the given context.
 func (s *Speedtest) FetchUserInfoContext(ctx context.Context) (*User, error) {
-	dbg.Printf("Retrieving user info: %s\n", speedTestConfigUrl)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, speedTestConfigUrl, nil)
+	apiURL, err := s.buildURL(configPath)
+	if err != nil {
+		return nil, err
+	}
+	dbg.Printf("Retrieving user info: %s\n", apiURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
 		return nil, err
 	}
