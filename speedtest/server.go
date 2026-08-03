@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/showwin/speedtest-go/speedtest/transport"
 )
 
 const (
@@ -53,6 +55,7 @@ type Server struct {
 	ULSpeed      float64       `json:"ul_speed"`
 	TestDuration TestDuration  `json:"test_duration"`
 	CC           string        `json:"cc"`
+	PacketLoss   transport.PLoss `json:"packet_loss"`
 
 	Context *Speedtest `json:"-"`
 }
@@ -73,19 +76,18 @@ func CustomServer(host string) (*Server, error) {
 // CustomServer given a URL string, return a new Server object, with as much
 // filled in as we can
 func (s *Speedtest) CustomServer(host string) (*Server, error) {
-	if !strings.HasSuffix(host, "/upload.php") {
-		return nil, errors.New("please use the full URL of the server, ending in '/upload.php'")
-	}
 	u, err := url.Parse(host)
 	if err != nil {
 		return nil, err
 	}
+	u.Path = "/speedtest/upload.php"
+	parseHost := u.String()
 	return &Server{
 		ID:      "Custom",
 		Lat:     "?",
 		Lon:     "?",
 		Country: "?",
-		URL:     host,
+		URL:     parseHost,
 		Name:    u.Host,
 		Host:    u.Host,
 		Sponsor: "?",
@@ -155,6 +157,13 @@ func (servers Servers) CC(cc []string) Servers {
 	return servers.Filter(func(server *Server) bool {
 		return slices.Contains(upperCC, server.CC)
 	})
+// Hosts return hosts of servers
+func (servers Servers) Hosts() []string {
+	var retServer []string
+	for _, server := range servers {
+		retServer = append(retServer, server.Host)
+	}
+	return retServer
 }
 
 // Less compares the distance. For sorting servers.
@@ -189,7 +198,7 @@ func (s *Speedtest) FetchServerByIDContext(ctx context.Context, serverID string)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	var list ServerList
 	decoder := xml.NewDecoder(resp.Body)
 	if err = decoder.Decode(&list); err != nil {
@@ -249,7 +258,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		return Servers{}, err
 	}
 
-	payloadType := typeJSONPayload
+	_payloadType := typeJSONPayload
 
 	if resp.ContentLength == 0 {
 		_ = resp.Body.Close()
@@ -264,14 +273,14 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 			return Servers{}, err
 		}
 
-		payloadType = typeXMLPayload
+		_payloadType = typeXMLPayload
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var servers Servers
 
-	switch payloadType {
+	switch _payloadType {
 	case typeJSONPayload:
 		// Decode xml
 		decoder := json.NewDecoder(resp.Body)
@@ -307,14 +316,16 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		wg.Add(1)
 		go func(gs *Server) {
 			var latency []int64
-			if s.config.PingMode == TCP {
-				latency, err = gs.TCPPing(pCtx, 1, time.Millisecond, nil)
-			} else if s.config.PingMode == ICMP {
-				latency, err = gs.ICMPPing(pCtx, 4*time.Second, 1, time.Millisecond, nil)
-			} else {
-				latency, err = gs.HTTPPing(pCtx, 1, time.Millisecond, nil)
+			var errPing error
+			switch s.config.PingMode {
+			case TCP:
+				latency, errPing = gs.TCPPing(pCtx, 1, time.Millisecond, nil)
+			case ICMP:
+				latency, errPing = gs.ICMPPing(pCtx, 4*time.Second, 1, time.Millisecond, nil)
+			default:
+				latency, errPing = gs.HTTPPing(pCtx, 1, time.Millisecond, nil)
 			}
-			if err != nil || len(latency) < 1 {
+			if errPing != nil || len(latency) < 1 {
 				gs.Latency = PingTimeout
 			} else {
 				gs.Latency = time.Duration(latency[0]) * time.Nanosecond
@@ -387,14 +398,14 @@ func (servers Servers) FindServer(serverID []int) (Servers, error) {
 
 	if len(retServer) == 0 {
 		// choose the lowest latency server
-		var min int64 = math.MaxInt64
+		var minLatency int64 = math.MaxInt64
 		var minServerIndex int
 		for index, server := range servers {
 			if server.Latency <= 0 {
 				continue
 			}
-			if min > server.Latency.Milliseconds() {
-				min = server.Latency.Milliseconds()
+			if minLatency > server.Latency.Milliseconds() {
+				minLatency = server.Latency.Milliseconds()
 				minServerIndex = index
 			}
 		}

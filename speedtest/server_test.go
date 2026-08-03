@@ -18,7 +18,7 @@ func TestFetchServerList(t *testing.T) {
 	}
 	servers, err := client.FetchServers()
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 	if len(servers) == 0 {
 		t.Errorf("Failed to fetch server list.")
@@ -97,7 +97,7 @@ func TestFindServer(t *testing.T) {
 	var serverID []int
 	s, err := servers.FindServer(serverID)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 	if len(s) != 1 {
 		t.Errorf("unexpected server length. got: %v, expected: 1", len(s))
@@ -109,7 +109,7 @@ func TestFindServer(t *testing.T) {
 	serverID = []int{2}
 	s, err = servers.FindServer(serverID)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 	if len(s) != 1 {
 		t.Errorf("unexpected server length. got: %v, expected: 1", len(s))
@@ -121,7 +121,7 @@ func TestFindServer(t *testing.T) {
 	serverID = []int{3, 1}
 	s, err = servers.FindServer(serverID)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 	if len(s) != 2 {
 		t.Errorf("unexpected server length. got: %v, expected: 2", len(s))
@@ -138,16 +138,14 @@ func TestCustomServer(t *testing.T) {
 	// Good server
 	got, err := CustomServer("https://example.com/upload.php")
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
+	}
+	if got == nil {
+		t.Error("empty server")
+		return
 	}
 	if got.Host != "example.com" {
 		t.Error("did not properly set the Host field on a custom server")
-	}
-
-	// Missing upload.php
-	_, err = CustomServer("https://example.com")
-	if err == nil {
-		t.Error("did not create a custom server without upload.php")
 	}
 }
 

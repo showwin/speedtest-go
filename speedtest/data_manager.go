@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/showwin/speedtest-go/speedtest/internal"
 	"io"
 	"math"
 	"runtime"
@@ -26,11 +27,14 @@ type Manager interface {
 	GetAvgDownloadRate() float64
 	GetAvgUploadRate() float64
 
-	CallbackDownloadRate(callback func(downRate float64)) *time.Ticker
-	CallbackUploadRate(callback func(upRate float64)) *time.Ticker
+	GetEWMADownloadRate() float64
+	GetEWMAUploadRate() float64
 
-	RegisterDownloadHandler(fn func()) *funcGroup
-	RegisterUploadHandler(fn func()) *funcGroup
+	SetCallbackDownload(callback func(downRate ByteRate))
+	SetCallbackUpload(callback func(upRate ByteRate))
+
+	RegisterDownloadHandler(fn func()) *TestDirection
+	RegisterUploadHandler(fn func()) *TestDirection
 
 	// Wait for the upload or download task to end to avoid errors caused by core occupation
 	Wait()
@@ -51,17 +55,22 @@ type Chunk interface {
 	Read(b []byte) (n int, err error)
 }
 
-const readChunkSize = 1024 * 32 // 32 KBytes
+const readChunkSize = 1024 // 1 KBytes with higher frequency rate feedback
 
 type DataType int32
 
-const typeEmptyChunk = 0
-const typeDownload = 1
-const typeUpload = 2
+const (
+	typeEmptyChunk = iota
+	typeDownload
+	typeUpload
+)
+
+var (
+	ErrorUninitializedManager = errors.New("uninitialized manager")
+)
 
 type funcGroup struct {
-	fns     []func()
-	manager *DataManager
+	fns []func()
 }
 
 func (f *funcGroup) Add(fn func()) {
@@ -69,12 +78,6 @@ func (f *funcGroup) Add(fn func()) {
 }
 
 type DataManager struct {
-	totalDownload int64
-	totalUpload   int64
-
-	DownloadRateSequence []int64
-	UploadRateSequence   []int64
-
 	SnapshotStore *Snapshots
 	Snapshot      *Snapshot
 	sync.Mutex
@@ -85,45 +88,57 @@ type DataManager struct {
 	rateCaptureFrequency time.Duration
 	nThread              int
 
-	running bool
+	running   bool
+	runningRW sync.RWMutex
 
-	dFn *funcGroup
-	uFn *funcGroup
+	download *TestDirection
+	upload   *TestDirection
+}
+
+type TestDirection struct {
+	TestType        int                         // test type
+	manager         *DataManager                // manager
+	totalDataVolume int64                       // total send/receive data volume
+	RateSequence    []int64                     // rate history sequence
+	welford         *internal.Welford           // std/EWMA/mean
+	captureCallback func(realTimeRate ByteRate) // user callback
+	closeFunc       func()                      // close func
+	*funcGroup                                  // actually exec function
+}
+
+func (dm *DataManager) NewDataDirection(testType int) *TestDirection {
+	return &TestDirection{
+		TestType:  testType,
+		manager:   dm,
+		funcGroup: &funcGroup{},
+	}
 }
 
 func NewDataManager() *DataManager {
+	r := bytes.Repeat([]byte{0xAA}, readChunkSize) // uniformly distributed sequence of bits
 	ret := &DataManager{
 		nThread:              runtime.NumCPU(),
-		captureTime:          time.Second * 10,
-		rateCaptureFrequency: time.Millisecond * 100,
+		captureTime:          time.Second * 15,
+		rateCaptureFrequency: time.Millisecond * 50,
 		Snapshot:             &Snapshot{},
+		repeatByte:           &r,
 	}
-	ret.dFn = &funcGroup{manager: ret}
-	ret.uFn = &funcGroup{manager: ret}
-	ret.SnapshotStore = newRecentSnapshots(maxSnapshotSize)
+	ret.download = ret.NewDataDirection(typeDownload)
+	ret.upload = ret.NewDataDirection(typeUpload)
+	ret.SnapshotStore = newHistorySnapshots(maxSnapshotSize)
 	return ret
 }
 
-func (dm *DataManager) CallbackDownloadRate(callback func(downRate float64)) *time.Ticker {
-	ticker := time.NewTicker(dm.rateCaptureFrequency)
-	go func() {
-		sTime := time.Now()
-		for range ticker.C {
-			callback((float64(dm.GetTotalDownload()) * 8 / 1000000) / float64(time.Since(sTime).Milliseconds()) * 1000)
-		}
-	}()
-	return ticker
+func (dm *DataManager) SetCallbackDownload(callback func(downRate ByteRate)) {
+	if dm.download != nil {
+		dm.download.captureCallback = callback
+	}
 }
 
-func (dm *DataManager) CallbackUploadRate(callback func(upRate float64)) *time.Ticker {
-	ticker := time.NewTicker(dm.rateCaptureFrequency)
-	go func() {
-		sTime := time.Now()
-		for range ticker.C {
-			callback((float64(dm.GetTotalUpload()) * 8 / 1000000) / float64(time.Since(sTime).Milliseconds()) * 1000)
-		}
-	}()
-	return ticker
+func (dm *DataManager) SetCallbackUpload(callback func(upRate ByteRate)) {
+	if dm.upload != nil {
+		dm.upload.captureCallback = callback
+	}
 }
 
 func (dm *DataManager) Wait() {
@@ -143,65 +158,85 @@ func (dm *DataManager) Wait() {
 	}
 }
 
-func (dm *DataManager) RegisterUploadHandler(fn func()) *funcGroup {
-	if len(dm.uFn.fns) < dm.nThread {
-		dm.uFn.Add(fn)
+func (dm *DataManager) RegisterUploadHandler(fn func()) *TestDirection {
+	if len(dm.upload.fns) < dm.nThread {
+		dm.upload.Add(fn)
 	}
-	return dm.uFn
+	return dm.upload
 }
 
-func (dm *DataManager) RegisterDownloadHandler(fn func()) *funcGroup {
-	if len(dm.dFn.fns) < dm.nThread {
-		dm.dFn.Add(fn)
+func (dm *DataManager) RegisterDownloadHandler(fn func()) *TestDirection {
+	if len(dm.download.fns) < dm.nThread {
+		dm.download.Add(fn)
 	}
-	return dm.dFn
+	return dm.download
 }
 
-func (f *funcGroup) Start(cancel context.CancelFunc, mainRequestHandlerIndex int) {
-	if len(f.fns) == 0 {
+func (td *TestDirection) GetTotalDataVolume() int64 {
+	return atomic.LoadInt64(&td.totalDataVolume)
+}
+
+func (td *TestDirection) AddTotalDataVolume(delta int64) int64 {
+	return atomic.AddInt64(&td.totalDataVolume, delta)
+}
+
+func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerIndex int) {
+	if len(td.fns) == 0 {
 		panic("empty task stack")
 	}
-	if mainRequestHandlerIndex > len(f.fns)-1 {
+	if mainRequestHandlerIndex > len(td.fns)-1 {
 		mainRequestHandlerIndex = 0
 	}
 	mainLoadFactor := 0.1
 	// When the number of processor cores is equivalent to the processing program,
 	// the processing efficiency reaches the highest level (VT is not considered).
-	mainN := int(mainLoadFactor * float64(len(f.fns)))
+	mainN := int(mainLoadFactor * float64(len(td.fns)))
 	if mainN == 0 {
 		mainN = 1
 	}
-	if len(f.fns) == 1 {
-		mainN = f.manager.nThread
+	if len(td.fns) == 1 {
+		mainN = td.manager.nThread
 	}
-	auxN := f.manager.nThread - mainN
-	dbg.Printf("Available fns: %d\n", len(f.fns))
+	auxN := td.manager.nThread - mainN
+	dbg.Printf("Available fns: %d\n", len(td.fns))
 	dbg.Printf("mainN: %d\n", mainN)
 	dbg.Printf("auxN: %d\n", auxN)
 	wg := sync.WaitGroup{}
-	f.manager.running = true
-	stopCapture := f.manager.rateCapture()
-	time.AfterFunc(f.manager.captureTime, func() {
-		stopCapture <- true
-		close(stopCapture)
-		f.manager.running = false
-		cancel()
-		dbg.Println("FuncGroup: Stop")
-	})
+	td.manager.running = true
+	stopCapture := td.rateCapture()
+
+	// refresh once function
+	once := sync.Once{}
+	td.closeFunc = func() {
+		once.Do(func() {
+			stopCapture <- true
+			close(stopCapture)
+			td.manager.runningRW.Lock()
+			td.manager.running = false
+			td.manager.runningRW.Unlock()
+			cancel()
+			dbg.Println("FuncGroup: Stop")
+		})
+	}
+
+	time.AfterFunc(td.manager.captureTime, td.closeFunc)
 	for i := 0; i < mainN; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for {
-				if !f.manager.running {
+				td.manager.runningRW.RLock()
+				running := td.manager.running
+				td.manager.runningRW.RUnlock()
+				if !running {
 					return
 				}
-				f.fns[mainRequestHandlerIndex]()
+				td.fns[mainRequestHandlerIndex]()
 			}
 		}()
 	}
 	for j := 0; j < auxN; {
-		for i := range f.fns {
+		for i := range td.fns {
 			if j == auxN {
 				break
 			}
@@ -213,10 +248,13 @@ func (f *funcGroup) Start(cancel context.CancelFunc, mainRequestHandlerIndex int
 			go func() {
 				defer wg.Done()
 				for {
-					if !f.manager.running {
+					td.manager.runningRW.RLock()
+					running := td.manager.running
+					td.manager.runningRW.RUnlock()
+					if !running {
 						return
 					}
-					f.fns[t]()
+					td.fns[t]()
 				}
 			}()
 			j++
@@ -225,27 +263,31 @@ func (f *funcGroup) Start(cancel context.CancelFunc, mainRequestHandlerIndex int
 	wg.Wait()
 }
 
-func (dm *DataManager) rateCapture() chan bool {
-	ticker := time.NewTicker(dm.rateCaptureFrequency)
-	oldTotalDownload := dm.totalDownload
-	oldTotalUpload := dm.totalUpload
+func (td *TestDirection) rateCapture() chan bool {
+	ticker := time.NewTicker(td.manager.rateCaptureFrequency)
+	var prevTotalDataVolume int64 = 0
 	stopCapture := make(chan bool)
+	td.welford = internal.NewWelford(5*time.Second, td.manager.rateCaptureFrequency)
+	sTime := time.Now()
 	go func(t *time.Ticker) {
 		defer t.Stop()
 		for {
 			select {
 			case <-t.C:
-				newTotalDownload := dm.totalDownload
-				newTotalUpload := dm.totalUpload
-				deltaDownload := newTotalDownload - oldTotalDownload
-				deltaUpload := newTotalUpload - oldTotalUpload
-				oldTotalDownload = newTotalDownload
-				oldTotalUpload = newTotalUpload
-				if deltaDownload != 0 {
-					dm.DownloadRateSequence = append(dm.DownloadRateSequence, deltaDownload)
+				newTotalDataVolume := td.GetTotalDataVolume()
+				deltaDataVolume := newTotalDataVolume - prevTotalDataVolume
+				prevTotalDataVolume = newTotalDataVolume
+				if deltaDataVolume != 0 {
+					td.RateSequence = append(td.RateSequence, deltaDataVolume)
 				}
-				if deltaUpload != 0 {
-					dm.UploadRateSequence = append(dm.UploadRateSequence, deltaUpload)
+				// anyway we update the measuring instrument
+				globalAvg := (float64(td.GetTotalDataVolume())) / float64(time.Since(sTime).Milliseconds()) * 1000
+				if td.welford.Update(globalAvg, float64(deltaDataVolume)) {
+					go td.closeFunc()
+				}
+				// reports the current rate at the given rate
+				if td.captureCallback != nil {
+					td.captureCallback(ByteRate(td.welford.EWMA()))
 				}
 			case stop := <-stopCapture:
 				if stop {
@@ -267,19 +309,19 @@ func (dm *DataManager) NewChunk() Chunk {
 }
 
 func (dm *DataManager) AddTotalDownload(value int64) {
-	atomic.AddInt64(&dm.totalDownload, value)
+	dm.download.AddTotalDataVolume(value)
 }
 
 func (dm *DataManager) AddTotalUpload(value int64) {
-	atomic.AddInt64(&dm.totalUpload, value)
+	dm.upload.AddTotalDataVolume(value)
 }
 
 func (dm *DataManager) GetTotalDownload() int64 {
-	return dm.totalDownload
+	return dm.download.GetTotalDataVolume()
 }
 
 func (dm *DataManager) GetTotalUpload() int64 {
-	return dm.totalUpload
+	return dm.upload.GetTotalDataVolume()
 }
 
 func (dm *DataManager) SetRateCaptureFrequency(duration time.Duration) Manager {
@@ -306,24 +348,34 @@ func (dm *DataManager) Snapshots() *Snapshots {
 }
 
 func (dm *DataManager) Reset() {
-	dm.totalDownload = 0
-	dm.totalUpload = 0
 	dm.SnapshotStore.push(dm.Snapshot)
 	dm.Snapshot = &Snapshot{}
-	dm.DownloadRateSequence = []int64{}
-	dm.UploadRateSequence = []int64{}
-	dm.dFn.fns = []func(){}
-	dm.uFn.fns = []func(){}
+	dm.download = dm.NewDataDirection(typeDownload)
+	dm.upload = dm.NewDataDirection(typeUpload)
 }
 
 func (dm *DataManager) GetAvgDownloadRate() float64 {
 	unit := float64(dm.captureTime / time.Millisecond)
-	return float64(dm.totalDownload*8/1000) / unit
+	return float64(dm.download.GetTotalDataVolume()*8/1000) / unit
+}
+
+func (dm *DataManager) GetEWMADownloadRate() float64 {
+	if dm.download.welford != nil {
+		return dm.download.welford.EWMA()
+	}
+	return 0
 }
 
 func (dm *DataManager) GetAvgUploadRate() float64 {
 	unit := float64(dm.captureTime / time.Millisecond)
-	return float64(dm.totalUpload*8/1000) / unit
+	return float64(dm.upload.GetTotalDataVolume()*8/1000) / unit
+}
+
+func (dm *DataManager) GetEWMAUploadRate() float64 {
+	if dm.upload.welford != nil {
+		return dm.upload.welford.EWMA()
+	}
+	return 0
 }
 
 type DataChunk struct {
@@ -348,12 +400,14 @@ func (dc *DataChunk) GetDuration() time.Duration {
 }
 
 func (dc *DataChunk) GetRate() float64 {
-	if dc.dateType == typeDownload {
+	switch dc.dateType {
+	case typeDownload:
 		return float64(dc.remainOrDiscardSize) / dc.GetDuration().Seconds()
-	} else if dc.dateType == typeUpload {
+	case typeUpload:
 		return float64(dc.ContentLength-dc.remainOrDiscardSize) * 8 / 1000 / 1000 / dc.GetDuration().Seconds()
+	default:
+		return 0
 	}
-	return 0
 }
 
 // DownloadHandler No value will be returned here, because the error will interrupt the test.
@@ -372,14 +426,17 @@ func (dc *DataChunk) DownloadHandler(r io.Reader) error {
 	defer blackHolePool.Put(bufP)
 	readSize := 0
 	for {
-		if !dc.manager.running {
+		dc.manager.runningRW.RLock()
+		running := dc.manager.running
+		dc.manager.runningRW.RUnlock()
+		if !running {
 			return nil
 		}
 		readSize, dc.err = r.Read(*bufP)
 		rs := int64(readSize)
 
 		dc.remainOrDiscardSize += rs
-		atomic.AddInt64(&dc.manager.totalDownload, rs)
+		dc.manager.download.AddTotalDataVolume(rs)
 		if dc.err != nil {
 			if dc.err == io.EOF {
 				return nil
@@ -401,12 +458,6 @@ func (dc *DataChunk) UploadHandler(size int64) Chunk {
 	dc.ContentLength = size
 	dc.remainOrDiscardSize = size
 	dc.dateType = typeUpload
-
-	if dc.manager.repeatByte == nil {
-		r := bytes.Repeat([]byte{0xAA}, readChunkSize) // uniformly distributed sequence of bits
-		dc.manager.repeatByte = &r
-	}
-
 	dc.startTime = time.Now()
 	return dc
 }
@@ -416,9 +467,6 @@ func (dc *DataChunk) GetParent() Manager {
 }
 
 func (dc *DataChunk) Read(b []byte) (n int, err error) {
-	if !dc.manager.running {
-		return n, io.EOF
-	}
 	if dc.remainOrDiscardSize < readChunkSize {
 		if dc.remainOrDiscardSize <= 0 {
 			dc.endTime = time.Now()
@@ -430,7 +478,7 @@ func (dc *DataChunk) Read(b []byte) (n int, err error) {
 	}
 	n64 := int64(n)
 	dc.remainOrDiscardSize -= n64
-	atomic.AddInt64(&dc.manager.totalUpload, n64)
+	dc.manager.AddTotalUpload(n64)
 	return
 }
 
@@ -513,7 +561,7 @@ type Snapshots struct {
 	maxSize int
 }
 
-func newRecentSnapshots(size int) *Snapshots {
+func newHistorySnapshots(size int) *Snapshots {
 	return &Snapshots{
 		sp:      make([]*Snapshot, 0, size),
 		maxSize: size,

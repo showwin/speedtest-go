@@ -2,7 +2,6 @@ package speedtest
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"testing"
 	"time"
@@ -18,7 +17,7 @@ func TestDownloadTestContext(t *testing.T) {
 		Context: defaultClient,
 	}
 
-	server.Context.Manager.Reset()
+	server.Context.Reset()
 	server.Context.SetRateCaptureFrequency(time.Millisecond)
 	server.Context.SetCaptureTime(time.Second)
 
@@ -27,10 +26,11 @@ func TestDownloadTestContext(t *testing.T) {
 		mockRequest,
 	)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
-	if server.DLSpeed < idealSpeed*(1-delta) || idealSpeed*(1+delta) < server.DLSpeed {
-		t.Errorf("got unexpected server.DLSpeed '%v', expected between %v and %v", server.DLSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
+	value := server.Context.GetAvgDownloadRate()
+	if value < idealSpeed*(1-delta) || idealSpeed*(1+delta) < value {
+		t.Errorf("got unexpected server.DLSpeed '%v', expected between %v and %v", value, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
 	if server.TestDuration.Download == nil || *server.TestDuration.Download != *server.TestDuration.Total {
 		t.Errorf("can't count test duration, server.TestDuration.Download=%v, server.TestDuration.Total=%v", server.TestDuration.Download, server.TestDuration.Total)
@@ -48,7 +48,7 @@ func TestUploadTestContext(t *testing.T) {
 		Context: defaultClient,
 	}
 
-	server.Context.Manager.Reset()
+	server.Context.Reset()
 	server.Context.SetRateCaptureFrequency(time.Millisecond)
 	server.Context.SetCaptureTime(time.Second)
 
@@ -57,10 +57,11 @@ func TestUploadTestContext(t *testing.T) {
 		mockRequest,
 	)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
-	if server.ULSpeed < idealSpeed*(1-delta) || idealSpeed*(1+delta) < server.ULSpeed {
-		t.Errorf("got unexpected server.ULSpeed '%v', expected between %v and %v", server.ULSpeed, idealSpeed*(1-delta), idealSpeed*(1+delta))
+	value := server.Context.GetAvgUploadRate()
+	if value < idealSpeed*(1-delta) || idealSpeed*(1+delta) < value {
+		t.Errorf("got unexpected server.ULSpeed '%v', expected between %v and %v", value, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
 	if server.TestDuration.Upload == nil || *server.TestDuration.Upload != *server.TestDuration.Total {
 		t.Errorf("can't count test duration, server.TestDuration.Upload=%v, server.TestDuration.Total=%v", server.TestDuration.Upload, server.TestDuration.Total)
@@ -68,8 +69,7 @@ func TestUploadTestContext(t *testing.T) {
 }
 
 func mockRequest(ctx context.Context, s *Server, w int) error {
-	fmt.Sprintln(w)
-	dc := s.Context.Manager.NewChunk()
+	dc := s.Context.NewChunk()
 	// (0.1MegaByte * 8bit * nConn * 10loop) / 0.1s = n*80Megabit
 	// sleep has bad deviation on windows
 	// ref https://github.com/golang/go/issues/44343

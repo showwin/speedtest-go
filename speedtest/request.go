@@ -4,15 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/showwin/speedtest-go/speedtest/transport"
 	"io"
 	"math"
 	"net/http"
 	"net/url"
-	"strconv"
+	"path"
 	"strings"
+	"sync/atomic"
 	"time"
-
-	"github.com/showwin/speedtest-go/speedtest/tcp"
 )
 
 type (
@@ -30,56 +30,72 @@ var (
 )
 
 func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) error {
-	if s.Context.config.NoDownload {
-		dbg.Println("Download test disabled")
-		return nil
-	}
 	ss := servers.Available()
 	if ss.Len() == 0 {
 		return errors.New("not found available servers")
 	}
 	mainIDIndex := 0
-	var fp *funcGroup
+	var td *TestDirection
 	_context, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var errorTimes int64 = 0
+	var requestTimes int64 = 0
 	for i, server := range *ss {
 		if server.ID == s.ID {
 			mainIDIndex = i
 		}
 		sp := server
 		dbg.Printf("Register Download Handler: %s\n", sp.URL)
-		fp = server.Context.RegisterDownloadHandler(func() {
-			_ = downloadRequest(_context, sp, 3)
+		td = server.Context.RegisterDownloadHandler(func() {
+			atomic.AddInt64(&requestTimes, 1)
+			if err := downloadRequest(_context, sp, 3); err != nil {
+				atomic.AddInt64(&errorTimes, 1)
+			}
 		})
 	}
-	fp.Start(cancel, mainIDIndex) // block here
-	s.DLSpeed = fp.manager.GetAvgDownloadRate()
+	if td == nil {
+		return ErrorUninitializedManager
+	}
+	td.Start(cancel, mainIDIndex) // block here
+	s.DLSpeed = ByteRate(td.manager.GetEWMADownloadRate())
+	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
+		s.DLSpeed = -1 // N/A
+	}
 	return nil
 }
 
 func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) error {
-	if s.Context.config.NoUpload {
-		dbg.Println("Upload test disabled")
-		return nil
-	}
 	ss := servers.Available()
 	if ss.Len() == 0 {
 		return errors.New("not found available servers")
 	}
 	mainIDIndex := 0
-	var fp *funcGroup
+	var td *TestDirection
 	_context, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var errorTimes int64 = 0
+	var requestTimes int64 = 0
 	for i, server := range *ss {
 		if server.ID == s.ID {
 			mainIDIndex = i
 		}
 		sp := server
 		dbg.Printf("Register Upload Handler: %s\n", sp.URL)
-		fp = server.Context.RegisterUploadHandler(func() {
-			_ = uploadRequest(_context, sp, 3)
+		td = server.Context.RegisterUploadHandler(func() {
+			atomic.AddInt64(&requestTimes, 1)
+			if err := uploadRequest(_context, sp, 3); err != nil {
+				atomic.AddInt64(&errorTimes, 1)
+			}
 		})
 	}
-	fp.Start(cancel, mainIDIndex) // block here
-	s.ULSpeed = fp.manager.GetAvgUploadRate()
+	if td == nil {
+		return ErrorUninitializedManager
+	}
+	td.Start(cancel, mainIDIndex) // block here
+	s.ULSpeed = ByteRate(td.manager.GetEWMAUploadRate())
+	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
+		s.ULSpeed = -1 // N/A
+	}
 	return nil
 }
 
@@ -94,17 +110,21 @@ func (s *Server) DownloadTestContext(ctx context.Context) error {
 }
 
 func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downloadFunc) error {
-	if s.Context.config.NoDownload {
-		dbg.Println("Download test disabled")
-		return nil
-	}
+	var errorTimes int64 = 0
+	var requestTimes int64 = 0
 	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterDownloadHandler(func() {
-		_ = downloadRequest(_context, s, 3)
+		atomic.AddInt64(&requestTimes, 1)
+		if err := downloadRequest(_context, s, 3); err != nil {
+			atomic.AddInt64(&errorTimes, 1)
+		}
 	}).Start(cancel, 0)
 	duration := time.Since(start)
-	s.DLSpeed = s.Context.GetAvgDownloadRate()
+	s.DLSpeed = ByteRate(s.Context.GetEWMADownloadRate())
+	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
+		s.DLSpeed = -1 // N/A
+	}
 	s.TestDuration.Download = &duration
 	s.testDurationTotalCount()
 	return nil
@@ -121,17 +141,21 @@ func (s *Server) UploadTestContext(ctx context.Context) error {
 }
 
 func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc) error {
-	if s.Context.config.NoUpload {
-		dbg.Println("Upload test disabled")
-		return nil
-	}
+	var errorTimes int64 = 0
+	var requestTimes int64 = 0
 	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
 	s.Context.RegisterUploadHandler(func() {
-		_ = uploadRequest(_context, s, 4)
+		atomic.AddInt64(&requestTimes, 1)
+		if err := uploadRequest(_context, s, 4); err != nil {
+			atomic.AddInt64(&errorTimes, 1)
+		}
 	}).Start(cancel, 0)
 	duration := time.Since(start)
-	s.ULSpeed = s.Context.GetAvgUploadRate()
+	s.ULSpeed = ByteRate(s.Context.GetEWMAUploadRate())
+	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
+		s.ULSpeed = -1 // N/A
+	}
 	s.TestDuration.Upload = &duration
 	s.testDurationTotalCount()
 	return nil
@@ -139,7 +163,12 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 
 func downloadRequest(ctx context.Context, s *Server, w int) error {
 	size := dlSizes[w]
-	xdlURL := strings.Split(s.URL, "/upload.php")[0] + "/random" + strconv.Itoa(size) + "x" + strconv.Itoa(size) + ".jpg"
+	u, err := url.Parse(s.URL)
+	if err != nil {
+		return err
+	}
+	u.Path = path.Dir(u.Path)
+	xdlURL := u.JoinPath(fmt.Sprintf("random%dx%d.jpg", size, size)).String()
 	dbg.Printf("XdlURL: %s\n", xdlURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, xdlURL, nil)
 	if err != nil {
@@ -150,26 +179,27 @@ func downloadRequest(ctx context.Context, s *Server, w int) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return s.Context.NewChunk().DownloadHandler(resp.Body)
 }
 
 func uploadRequest(ctx context.Context, s *Server, w int) error {
 	size := ulSizes[w]
-	dc := s.Context.NewChunk().UploadHandler(int64(size*100-51) * 10)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.URL, dc)
-	req.ContentLength = dc.(*DataChunk).ContentLength
-	dbg.Printf("Len=%d, XulURL: %s\n", req.ContentLength, s.URL)
+	chunkSize := int64(size*100-51) * 10
+	dc := s.Context.NewChunk().UploadHandler(chunkSize)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.URL, io.NopCloser(dc))
 	if err != nil {
 		return err
 	}
-
+	req.ContentLength = chunkSize
+	dbg.Printf("Len=%d, XulURL: %s\n", req.ContentLength, s.URL)
 	req.Header.Set("Content-Type", "application/octet-stream")
 	resp, err := s.Context.doer.Do(req)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, resp.Body)
+	defer func() { _ = resp.Body.Close() }()
 	return err
 }
 
@@ -182,23 +212,24 @@ func (s *Server) PingTest(callback func(latency time.Duration)) error {
 func (s *Server) PingTestContext(ctx context.Context, callback func(latency time.Duration)) (err error) {
 	start := time.Now()
 	var vectorPingResult []int64
-	if s.Context.config.PingMode == TCP {
+	switch s.Context.config.PingMode {
+	case TCP:
 		vectorPingResult, err = s.TCPPing(ctx, 10, time.Millisecond*200, callback)
-	} else if s.Context.config.PingMode == ICMP {
+	case ICMP:
 		vectorPingResult, err = s.ICMPPing(ctx, time.Second*4, 10, time.Millisecond*200, callback)
-	} else {
+	default:
 		vectorPingResult, err = s.HTTPPing(ctx, 10, time.Millisecond*200, callback)
 	}
 	if err != nil || len(vectorPingResult) == 0 {
 		return err
 	}
 	dbg.Printf("Before StandardDeviation: %v\n", vectorPingResult)
-	mean, _, std, min, max := StandardDeviation(vectorPingResult)
+	mean, _, std, minLatency, maxLatency := StandardDeviation(vectorPingResult)
 	duration := time.Since(start)
 	s.Latency = time.Duration(mean) * time.Nanosecond
 	s.Jitter = time.Duration(std) * time.Nanosecond
-	s.MinLatency = time.Duration(min) * time.Nanosecond
-	s.MaxLatency = time.Duration(max) * time.Nanosecond
+	s.MinLatency = time.Duration(minLatency) * time.Nanosecond
+	s.MaxLatency = time.Duration(maxLatency) * time.Nanosecond
 	s.TestDuration.Ping = &duration
 	s.testDurationTotalCount()
 	return nil
@@ -234,8 +265,11 @@ func (s *Server) TCPPing(
 		pingDst = s.Host
 	}
 	failTimes := 0
-	client := tcp.NewClient(s.Context.tcpDialer, pingDst)
-	err = client.Connect()
+	client, err := transport.NewClient(s.Context.tcpDialer)
+	if err != nil {
+		return nil, err
+	}
+	err = client.Connect(ctx, pingDst)
 	if err != nil {
 		return nil, err
 	}
@@ -263,37 +297,56 @@ func (s *Server) HTTPPing(
 	echoFreq time.Duration,
 	callback func(latency time.Duration),
 ) (latencies []int64, err error) {
+	var contextErr error
 	u, err := url.Parse(s.URL)
 	if err != nil || len(u.Host) == 0 {
 		return nil, err
 	}
-	pingDst := fmt.Sprintf("%s/latency.txt", s.URL)
+	u.Path = path.Dir(u.Path)
+	pingDst := u.JoinPath("latency.txt").String()
 	dbg.Printf("Echo: %s\n", pingDst)
 	failTimes := 0
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pingDst, nil)
 	if err != nil {
 		return nil, err
 	}
+	// carry out an extra request to warm up the connection and ensure the first request is not going to affect the
+	// overall estimation
+	echoTimes++
 	for i := 0; i < echoTimes; i++ {
 		sTime := time.Now()
 		resp, err := s.Context.doer.Do(req)
 		endTime := time.Since(sTime)
 		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				contextErr = err
+				break
+			}
+
 			failTimes++
 			continue
 		}
 		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
-		latencies = append(latencies, endTime.Nanoseconds()/2)
-		dbg.Printf("2RTT: %s\n", endTime)
-		if callback != nil {
-			callback(endTime / 2)
+		if i > 0 {
+			latency := endTime.Nanoseconds()
+			latencies = append(latencies, latency)
+			dbg.Printf("RTT: %d\n", latency)
+			if callback != nil {
+				callback(endTime)
+			}
 		}
 		time.Sleep(echoFreq)
 	}
+
+	if contextErr != nil {
+		return latencies, contextErr
+	}
+
 	if failTimes == echoTimes {
 		return nil, ErrConnectTimeout
 	}
+
 	return
 }
 
@@ -317,7 +370,7 @@ func (s *Server) ICMPPing(
 	if err != nil {
 		return nil, err
 	}
-	defer dialContext.Close()
+	defer func() { _ = dialContext.Close() }()
 
 	ICMPData := make([]byte, 8+echoOptionDataSize) // header + data
 	ICMPData[0] = 8                                // echo

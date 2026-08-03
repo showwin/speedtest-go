@@ -53,7 +53,7 @@ func TestUserAgent(t *testing.T) {
 		s := testServer(DefaultUserAgent)
 		_, err := c.doer.Get(s.URL)
 		if err != nil {
-			t.Errorf(err.Error())
+			t.Error(err)
 		}
 	})
 
@@ -63,7 +63,7 @@ func TestUserAgent(t *testing.T) {
 		c := New(WithUserConfig(&UserConfig{UserAgent: testAgent}))
 		_, err := c.doer.Get(s.URL)
 		if err != nil {
-			t.Errorf(err.Error())
+			t.Error(err)
 		}
 	})
 
@@ -78,7 +78,7 @@ func TestUserAgent(t *testing.T) {
 		}
 		_, err := c.doer.Get(s.URL)
 		if err != nil {
-			t.Errorf(err.Error())
+			t.Error(err)
 		}
 	})
 }

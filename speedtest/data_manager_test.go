@@ -35,14 +35,14 @@ func TestDataManager_AddTotalDownload(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	if dmp.totalDownload != 43521000000 {
+	if dmp.download.GetTotalDataVolume() != 43521000000 {
 		t.Fatal()
 	}
 }
 
 func TestDataManager_GetAvgDownloadRate(t *testing.T) {
 	dm := NewDataManager()
-	dm.totalDownload = 3000000
+	dm.download.totalDataVolume = 3000000
 	dm.captureTime = time.Second * 10
 
 	result := dm.GetAvgDownloadRate()
@@ -56,16 +56,16 @@ func TestDynamicRate(t *testing.T) {
 	server, _ := CustomServer("http://shenzhen.cmcc.speedtest.shunshiidc.com:8080/speedtest/upload.php")
 	//server, _ := CustomServer("http://192.168.5.237:8080/speedtest/upload.php")
 
-	oldDownTotal := server.Context.Manager.GetTotalDownload()
-	oldUpTotal := server.Context.Manager.GetTotalUpload()
+	oldDownTotal := server.Context.GetTotalDownload()
+	oldUpTotal := server.Context.GetTotalUpload()
 
-	server.Context.Manager.SetRateCaptureFrequency(time.Millisecond * 100)
-	server.Context.Manager.SetCaptureTime(time.Second)
+	server.Context.SetRateCaptureFrequency(time.Millisecond * 100)
+	server.Context.SetCaptureTime(time.Second)
 	go func() {
 		for i := 0; i < 2; i++ {
 			time.Sleep(time.Second)
-			newDownTotal := server.Context.Manager.GetTotalDownload()
-			newUpTotal := server.Context.Manager.GetTotalUpload()
+			newDownTotal := server.Context.GetTotalDownload()
+			newUpTotal := server.Context.GetTotalUpload()
 
 			downRate := float64(newDownTotal-oldDownTotal) * 8 / 1000 / 1000
 			upRate := float64(newUpTotal-oldUpTotal) * 8 / 1000 / 1000
@@ -81,7 +81,7 @@ func TestDynamicRate(t *testing.T) {
 		//t.Error(err)
 	}
 
-	server.Context.Manager.Wait()
+	server.Context.Wait()
 
 	err = server.UploadTest()
 	if err != nil {

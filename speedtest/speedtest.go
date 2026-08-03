@@ -8,11 +8,12 @@ import (
 	"net/url"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
 
 var (
-	version          = "1.6.10"
+	version          = "1.7.11"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
 )
 
@@ -41,19 +42,18 @@ type UserConfig struct {
 	Proxy         string
 	Source        string
 	DnsBindSource bool
+	DialerControl func(network, address string, c syscall.RawConn) error
 	Debug         bool
 	PingMode      Proto
 
-	SavingMode bool
+	SavingMode     bool
+	MaxConnections int
 
 	CityFlag     string
 	LocationFlag string
 	Location     *Location
 
 	Keyword string // Fuzzy search
-
-	NoDownload bool
-	NoUpload   bool
 }
 
 func parseAddr(addr string) (string, string) {
@@ -70,8 +70,9 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 	}
 
 	if uc.SavingMode {
-		s.SetNThread(1) // Set the number of concurrent connections to 1
+		uc.MaxConnections = 1 // Set the number of concurrent connections to 1
 	}
+	s.SetNThread(uc.MaxConnections)
 
 	if len(uc.CityFlag) > 0 {
 		var err error
@@ -97,6 +98,15 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 	}
 	if len(uc.Source) > 0 {
 		_, address := parseAddr(uc.Source)
+
+		// Try as interface name first (Linux: SO_BINDTODEVICE)
+		if ifIP, ctrl, ok := resolveInterface(address); ok {
+			address = ifIP.String()
+			if uc.DialerControl == nil {
+				uc.DialerControl = ctrl
+			}
+		}
+
 		addr0, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("[%s]:0", address)) // dynamic tcp port
 		if err == nil {
 			tcpSource = addr0
@@ -143,12 +153,14 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 		LocalAddr: tcpSource,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
+		Control:   uc.DialerControl,
 	}
 
 	s.ipDialer = &net.Dialer{
 		LocalAddr: icmpSource,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
+		Control:   uc.DialerControl,
 	}
 
 	s.config.T = &http.Transport{
