@@ -400,12 +400,14 @@ func (dc *DataChunk) GetDuration() time.Duration {
 }
 
 func (dc *DataChunk) GetRate() float64 {
-	if dc.dateType == typeDownload {
+	switch dc.dateType {
+	case typeDownload:
 		return float64(dc.remainOrDiscardSize) / dc.GetDuration().Seconds()
-	} else if dc.dateType == typeUpload {
+	case typeUpload:
 		return float64(dc.ContentLength-dc.remainOrDiscardSize) * 8 / 1000 / 1000 / dc.GetDuration().Seconds()
+	default:
+		return 0
 	}
-	return 0
 }
 
 // DownloadHandler No value will be returned here, because the error will interrupt the test.

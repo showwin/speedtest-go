@@ -46,7 +46,7 @@ func (s *Speedtest) FetchUserInfoContext(ctx context.Context) (*User, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Decode xml
 	decoder := xml.NewDecoder(resp.Body)

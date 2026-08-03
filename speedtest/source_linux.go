@@ -26,9 +26,11 @@ func resolveInterface(source string) (ip net.IP, control func(string, string, sy
 			devName := iface.Name
 			ctrl := func(_, _ string, c syscall.RawConn) error {
 				var serr error
-				c.Control(func(fd uintptr) {
+				if err := c.Control(func(fd uintptr) {
 					serr = syscall.SetsockoptString(int(fd), syscall.SOL_SOCKET, syscall.SO_BINDTODEVICE, devName)
-				})
+				}); err != nil {
+					return err
+				}
 				return serr
 			}
 			return ipnet.IP, ctrl, true
