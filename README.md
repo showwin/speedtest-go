@@ -141,10 +141,11 @@ Flags:
       --ping-mode              Select a method for Ping (support icmp/tcp/http).
   -u  --unit                   Set human-readable and auto-scaled rate units for output 
                                (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).
-  -d  --debug                  Enable debug mode.
-      --filter-cc=FILTER-CC    Filter servers by Country Code(s). (options: CC/auto) 
+      --filter-cc=FILTER-CC    Filter servers by Country Code(s). (options: CC/auto).
                                eg: --filter-cc=JP
                                eg: --filter-cc=auto
+      --mask-isp               Mask sensitive info (IP address and coordinates) in ISP output.
+  -d  --debug                  Enable debug mode.
       --version                Show application version.
 ```
 
