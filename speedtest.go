@@ -41,8 +41,9 @@ var (
 	noUpload      = kingpin.Flag("no-upload", "Disable upload test.").Bool()
 	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping (support icmp/tcp/http).").Default("http").String()
 	unit          = kingpin.Flag("unit", "Set human-readable and auto-scaled rate units for output (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).").Short('u').String()
-	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 	countryCode   = kingpin.Flag("filter-cc", "Filter servers by Country Code(s).").Strings()
+	maskISP       = kingpin.Flag("mask-isp", "Mask sensitive info (IP address and coordinates) in ISP output.").Bool()
+	debug         = kingpin.Flag("debug", "Enable debug mode.").Short('d').Bool()
 )
 
 var (
@@ -91,7 +92,7 @@ func main() {
 	taskManager.AsyncRun("Retrieving User Information", func(task *Task) {
 		u, err := speedtestClient.FetchUserInfo()
 		task.CheckError(err)
-		task.Printf("ISP: %s", u.String())
+		task.Printf("ISP: %s", formatUserInfo(u, *maskISP))
 		task.Complete()
 	})
 
@@ -249,6 +250,22 @@ func main() {
 			fmt.Println(string(json))
 		}
 	}
+}
+
+func formatUserInfo(user *speedtest.User, maskSensitiveInfo bool) string {
+	if !maskSensitiveInfo {
+		return user.String()
+	}
+	return fmt.Sprintf("%s (%s) [%s, %s]", maskSensitiveValue(user.IP), user.Isp, maskSensitiveValue(user.Lat), maskSensitiveValue(user.Lon))
+}
+
+func maskSensitiveValue(value string) string {
+	return strings.Map(func(r rune) rune {
+		if (r >= '0' && r <= '9') || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+			return '*'
+		}
+		return r
+	}, value)
 }
 
 type AccompanyEcho struct {
