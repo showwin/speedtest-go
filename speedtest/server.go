@@ -9,7 +9,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -155,7 +154,12 @@ func (servers Servers) CC(cc []string) Servers {
 		upperCC = append(upperCC, strings.ToUpper(cc[i]))
 	}
 	return servers.Filter(func(server *Server) bool {
-		return slices.Contains(upperCC, server.CC)
+		for _, code := range upperCC {
+			if code == server.CC {
+				return true
+			}
+		}
+		return false
 	})
 }
 
