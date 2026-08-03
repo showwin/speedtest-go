@@ -1,7 +1,11 @@
 package speedtest
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
@@ -48,6 +52,45 @@ func TestDataManager_GetAvgDownloadRate(t *testing.T) {
 	result := dm.GetAvgDownloadRate()
 	if result != 2.4 {
 		t.Fatal()
+	}
+}
+
+func TestUploadRequestCountsOnlyConfirmedUploads(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := io.Copy(io.Discard, r.Body); err != nil {
+			t.Errorf("failed to read upload: %v", err)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := New()
+	target := &Server{URL: server.URL, Context: client}
+	if err := uploadRequest(context.Background(), target, 0); err != nil {
+		t.Fatalf("upload request failed: %v", err)
+	}
+
+	want := int64(ulSizes[0]*100-51) * 10
+	if got := client.GetTotalUpload(); got != want {
+		t.Fatalf("counted %d bytes, want %d", got, want)
+	}
+}
+
+func TestUploadRequestDoesNotCountRejectedUploads(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.Copy(io.Discard, r.Body)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	client := New()
+	target := &Server{URL: server.URL, Context: client}
+	if err := uploadRequest(context.Background(), target, 0); err == nil {
+		t.Fatal("expected upload request to fail")
+	}
+	if got := client.GetTotalUpload(); got != 0 {
+		t.Fatalf("counted %d bytes for a rejected upload", got)
 	}
 }
 
