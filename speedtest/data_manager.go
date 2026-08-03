@@ -282,7 +282,13 @@ func (td *TestDirection) rateCapture() chan bool {
 				}
 				// anyway we update the measuring instrument
 				globalAvg := (float64(td.GetTotalDataVolume())) / float64(time.Since(sTime).Milliseconds()) * 1000
-				if td.welford.Update(globalAvg, float64(deltaDataVolume)) {
+				rateSample := float64(deltaDataVolume)
+				if td.TestType == typeUpload {
+					// Upload bytes are confirmed per completed request, so use the
+					// cumulative rate to avoid reporting a zero/spike sawtooth.
+					rateSample = globalAvg * td.manager.rateCaptureFrequency.Seconds()
+				}
+				if td.welford.Update(globalAvg, rateSample) {
 					go td.closeFunc()
 				}
 				// reports the current rate at the given rate
@@ -478,7 +484,6 @@ func (dc *DataChunk) Read(b []byte) (n int, err error) {
 	}
 	n64 := int64(n)
 	dc.remainOrDiscardSize -= n64
-	dc.manager.AddTotalUpload(n64)
 	return
 }
 

@@ -199,9 +199,16 @@ func uploadRequest(ctx context.Context, s *Server, w int) error {
 	if err != nil {
 		return err
 	}
-	_, _ = io.Copy(io.Discard, resp.Body)
 	defer func() { _ = resp.Body.Close() }()
-	return err
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+		return err
+	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("upload request failed: %s", resp.Status)
+	}
+	// Treat a successful upload.php response as application-level upload confirmation.
+	s.Context.AddTotalUpload(chunkSize)
+	return nil
 }
 
 // PingTest executes test to measure latency
