@@ -122,7 +122,7 @@ func main() {
 			task.Printf("Found %d Public Servers", len(servers))
 			if *showList {
 				task.Complete()
-				task.manager.Reset()
+				task.manager.Stop()
 				showServerList(servers)
 				os.Exit(0)
 			}
@@ -131,12 +131,10 @@ func main() {
 		}
 		task.Complete()
 	})
-	taskManager.Reset()
-
 	// 3. test each selected server with ping, download and upload.
 	for _, server := range targets {
 		if !*jsonOutput && !*jsonlOutput {
-			fmt.Println()
+			taskManager.BlankLine()
 		}
 		taskManager.Println("Test Server: " + server.String())
 		taskManager.Run("Latency: --", func(task *Task) {
@@ -221,7 +219,6 @@ func main() {
 		if !*jsonOutput && !*jsonlOutput {
 			taskManager.Println(server.PacketLoss.String())
 		}
-		taskManager.Reset()
 		speedtestClient.Manager.Reset()
 	}
 	taskManager.Stop()
