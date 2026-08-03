@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/alecthomas/kingpin/v2"
 	"github.com/showwin/speedtest-go/speedtest/transport"
-	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/showwin/speedtest-go/speedtest"
 )
