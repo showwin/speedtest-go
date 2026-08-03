@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/showwin/speedtest-go/speedtest"
-	"github.com/showwin/speedtest-go/speedtest/transport"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/showwin/speedtest-go/speedtest"
+	"github.com/showwin/speedtest-go/speedtest/transport"
 )
 
 // Note: The current packet loss analyzer does not support udp over http.

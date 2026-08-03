@@ -34,6 +34,13 @@ func (tm *TaskManager) Stop() {
 	tm.stopRenderer()
 }
 
+func (tm *TaskManager) Wait() {
+	if tm == nil {
+		return
+	}
+	tm.async.Wait()
+}
+
 func (tm *TaskManager) stopRenderer() {
 	if tm.renderer == nil {
 		return

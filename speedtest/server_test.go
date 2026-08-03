@@ -213,7 +213,12 @@ func TestCityFlag(t *testing.T) {
 	}
 
 	tmpServers := testData.CC([]string{testCC})
-	if tmpServers.Len() != 2 && tmpServers[0].CC != testCC {
-		t.Fatalf("not match: %s", testCC)
+	if tmpServers.Len() != 2 {
+		t.Fatalf("got %d servers, want 2", tmpServers.Len())
+	}
+	for _, server := range tmpServers {
+		if server.CC != testCC {
+			t.Fatalf("got country code %q, want %q", server.CC, testCC)
+		}
 	}
 }

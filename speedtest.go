@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -122,7 +121,8 @@ func main() {
 			servers, err = speedtestClient.FetchServers()
 			task.CheckError(err)
 			// cc filter auto attach
-			if slices.Contains(*countryCode, "auto") {
+			if containsString(*countryCode, "auto") {
+				taskManager.Wait()
 				*countryCode = append(*countryCode, speedtestClient.User.Country)
 			}
 			if len(*countryCode) > 0 {
@@ -338,6 +338,15 @@ func parseProto(str string) speedtest.Proto {
 	default:
 		return speedtest.HTTP
 	}
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }
 
 func AppInfo() {
