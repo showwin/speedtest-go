@@ -176,7 +176,7 @@ func (s *Speedtest) FetchServerByIDContext(ctx context.Context, serverID string)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	var list ServerList
 	decoder := xml.NewDecoder(resp.Body)
 	if err = decoder.Decode(&list); err != nil {
@@ -253,7 +253,7 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		_payloadType = typeXMLPayload
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var servers Servers
 
@@ -294,11 +294,12 @@ func (s *Speedtest) FetchServerListContext(ctx context.Context) (Servers, error)
 		go func(gs *Server) {
 			var latency []int64
 			var errPing error
-			if s.config.PingMode == TCP {
+			switch s.config.PingMode {
+			case TCP:
 				latency, errPing = gs.TCPPing(pCtx, 1, time.Millisecond, nil)
-			} else if s.config.PingMode == ICMP {
+			case ICMP:
 				latency, errPing = gs.ICMPPing(pCtx, 4*time.Second, 1, time.Millisecond, nil)
-			} else {
+			default:
 				latency, errPing = gs.HTTPPing(pCtx, 1, time.Millisecond, nil)
 			}
 			if errPing != nil || len(latency) < 1 {

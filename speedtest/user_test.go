@@ -11,7 +11,7 @@ func TestFetchUserInfo(t *testing.T) {
 
 	user, err := client.FetchUserInfo()
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 	if user == nil {
 		t.Error("empty user info")
@@ -28,7 +28,7 @@ func TestFetchUserInfo(t *testing.T) {
 	// Lat
 	lat, err := strconv.ParseFloat(user.Lat, 64)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 	if lat < -90 || 90 < lat {
 		t.Errorf("invalid Latitude. got: %v, expected between -90 and 90", user.Lat)
@@ -37,7 +37,7 @@ func TestFetchUserInfo(t *testing.T) {
 	// Lon
 	lon, err := strconv.ParseFloat(user.Lon, 64)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 	if lon < -180 || 180 < lon {
 		t.Errorf("invalid Longitude. got: %v, expected between -180 and 180", user.Lon)

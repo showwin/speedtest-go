@@ -282,9 +282,10 @@ func (t *interactiveTask) Error() {
 
 func formatTaskLine(message string, status taskStatus, frame string, width int) string {
 	prefix := frame + " "
-	if status == taskComplete {
+	switch status {
+	case taskComplete:
 		prefix = "\u2713 "
-	} else if status == taskError {
+	case taskError:
 		prefix = "\u2717 "
 	}
 
