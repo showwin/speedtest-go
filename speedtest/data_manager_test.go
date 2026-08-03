@@ -55,6 +55,47 @@ func TestDataManager_GetAvgDownloadRate(t *testing.T) {
 	}
 }
 
+func TestDataManager_GetUploadConfirmationRatio(t *testing.T) {
+	dm := NewDataManager()
+	dm.upload.AddTotalReadVolume(2 * 1000 * 1000)
+	dm.AddTotalUpload(500 * 1000)
+	if got := dm.GetUploadBacklog(); got != 1500*1000 {
+		t.Fatalf("got upload backlog %d, want %d", got, 1500*1000)
+	}
+	if got := dm.GetUploadConfirmationRatio(); got != 0.25 {
+		t.Fatalf("got confirmation ratio %v, want 0.25", got)
+	}
+
+	dm.AddTotalUpload(3 * 1000 * 1000)
+	if got := dm.GetUploadConfirmationRatio(); got != 1 {
+		t.Fatalf("got confirmation ratio %v, want 1 after clamping", got)
+	}
+}
+
+func TestDataManager_UploadWorkerLimit(t *testing.T) {
+	dm := NewDataManager()
+	dm.SetNThread(12)
+	if dm.uploadMaxWorkers != 12 {
+		t.Fatalf("explicit worker limit was capped at %d", dm.uploadMaxWorkers)
+	}
+	dm.SetNThread(0)
+	if dm.uploadMaxWorkers != 8 {
+		t.Fatalf("default worker limit is %d, want 8", dm.uploadMaxWorkers)
+	}
+}
+
+func TestReducedUploadWorkerCount(t *testing.T) {
+	if got := reducedUploadWorkerCount(10, 0.5, 1, 0); got != 5 {
+		t.Fatalf("got %d workers after a 50%% rate drop, want 5", got)
+	}
+	if got := reducedUploadWorkerCount(10, 0.9, 1, 0); got != 9 {
+		t.Fatalf("got %d workers after a mild rate drop, want 9", got)
+	}
+	if got := reducedUploadWorkerCount(2, 0.5, 1, 0); got != 1 {
+		t.Fatalf("got %d workers at the minimum, want 1", got)
+	}
+}
+
 func TestUploadRequestCountsOnlyConfirmedUploads(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, err := io.Copy(io.Discard, r.Body); err != nil {

@@ -133,7 +133,7 @@ Flags:
                                eg: --source=10.20.0.101
                                eg: --source=eth0  (Linux only)
   -m  --multi                  Enable multi-server mode.
-  -t  --thread=THREAD          Set the number of concurrent connections.
+  -t  --thread=THREAD          Set the maximum concurrent connections (upload adapts automatically; default cap 8).
       --search=SEARCH          Fuzzy search servers by a keyword.
       --ua                     Set the user-agent header for the speedtest.
       --no-download            Disable download test.
@@ -166,9 +166,11 @@ $ speedtest
 ✓ Latency: 4.452963ms Jitter: 41.271µs Min: 4.395179ms Max: 4.517576ms
 ✓ Packet Loss Analyzer: Running in background (<= 30 Secs)
 ✓ Download: 115.52 Mbps (Used: 135.75MB) (Latency: 4ms Jitter: 0ms Min: 4ms Max: 4ms)
-✓ Upload: 4.02 Mbps (Used: 6.85MB) (Latency: 4ms Jitter: 1ms Min: 3ms Max: 8ms)
+✓ Upload: 4.02 Mbps (Used: 6.85MB Confirmed: 96.0%) (Latency: 4ms Jitter: 1ms Min: 3ms Max: 8ms)
 ✓ Packet Loss: 8.82% (Sent: 217/Dup: 0/Max: 237)
 ```
+
+For upload results, `Confirmed` indicates the proportion of uploaded bytes confirmed by a successful upload response.
 
 #### Test with Other Servers
 

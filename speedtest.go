@@ -34,7 +34,7 @@ var (
 	source        = kingpin.Flag("source", "Bind a source interface for the speedtest.").String()
 	dnsBindSource = kingpin.Flag("dns-bind-source", "DNS request binding source (experimental).").Bool()
 	multi         = kingpin.Flag("multi", "Enable multi-server mode.").Short('m').Bool()
-	thread        = kingpin.Flag("thread", "Set the number of concurrent connections.").Short('t').Int()
+	thread        = kingpin.Flag("thread", "Set the maximum number of concurrent connections (upload adapts automatically; default cap 8).").Short('t').Int()
 	search        = kingpin.Flag("search", "Fuzzy search servers by a keyword.").String()
 	userAgent     = kingpin.Flag("ua", "Set the user-agent header for the speedtest.").String()
 	noDownload    = kingpin.Flag("no-download", "Disable download test.").Bool()
@@ -218,7 +218,7 @@ func main() {
 			}
 			accEcho.Stop()
 			mean, _, std, minL, maxL := speedtest.StandardDeviation(accEcho.Latencies())
-			task.Printf("Upload: %s (Used: %.2fMB) (Latency: %dms Jitter: %dms Min: %dms Max: %dms)", server.ULSpeed, float64(server.Context.GetTotalUpload())/1000/1000, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
+			task.Printf("Upload: %s (Used: %.2fMB Confirmed: %.1f%%) (Latency: %dms Jitter: %dms Min: %dms Max: %dms)", server.ULSpeed, float64(server.Context.GetTotalUpload())/1000/1000, server.Context.GetUploadConfirmationRatio()*100, mean/1000000, std/1000000, minL/1000000, maxL/1000000)
 			task.Complete()
 		})
 
