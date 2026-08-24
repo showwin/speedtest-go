@@ -1,6 +1,6 @@
 module github.com/showwin/speedtest-go
 
-go 1.19
+go 1.26
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
