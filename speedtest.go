@@ -160,9 +160,7 @@ func main() {
 		})
 
 		blocker := sync.WaitGroup{}
-		analyzer := speedtest.NewPacketLossAnalyzer(&speedtest.PacketLossAnalyzerOptions{
-			SourceInterface: *source,
-		})
+		analyzer := speedtestClient.NewPacketLossAnalyzer()
 		packetLossAnalyzerCtx, packetLossAnalyzerCancel := context.WithTimeout(context.Background(), time.Second*40)
 		taskManager.Run("Packet Loss Analyzer", func(task *Task) {
 			blocker.Add(1)
