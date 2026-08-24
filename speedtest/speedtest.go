@@ -40,6 +40,7 @@ type Speedtest struct {
 	doer      *http.Client
 	config    *UserConfig
 	tcpDialer *net.Dialer
+	udpDialer *net.Dialer
 	ipDialer  *net.Dialer
 }
 
@@ -98,6 +99,7 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 	}
 
 	var tcpSource net.Addr // If nil, a local address is automatically chosen.
+	var udpSource net.Addr
 	var icmpSource net.Addr
 	var proxy = http.ProxyFromEnvironment
 	s.config = uc
@@ -120,6 +122,9 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 			tcpSource = addr0
 		} else {
 			dbg.Printf("Warning: skipping parse the source address. err: %s\n", err.Error())
+		}
+		if sourceIP := net.ParseIP(address); sourceIP != nil {
+			udpSource = &net.UDPAddr{IP: sourceIP}
 		}
 		addr1, err := net.ResolveIPAddr("ip", address) // dynamic tcp port
 		if err == nil {
@@ -159,6 +164,13 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 
 	s.tcpDialer = &net.Dialer{
 		LocalAddr: tcpSource,
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+		Control:   uc.DialerControl,
+	}
+
+	s.udpDialer = &net.Dialer{
+		LocalAddr: udpSource,
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 		Control:   uc.DialerControl,

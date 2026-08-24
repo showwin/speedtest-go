@@ -5,6 +5,7 @@ import (
 	"github.com/showwin/speedtest-go/speedtest/transport"
 	"net"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -40,24 +41,53 @@ func NewPacketLossAnalyzer(options *PacketLossAnalyzerOptions) *PacketLossAnalyz
 		options.PacketSendingTimeout = 5 * time.Second
 	}
 	if options.TCPDialer == nil {
+		var addr net.Addr
+		var control func(string, string, syscall.RawConn) error
+		if len(options.SourceInterface) > 0 {
+			address := options.SourceInterface
+			if ip, ctrl, ok := resolveInterface(address); ok {
+				addr = &net.TCPAddr{IP: ip}
+				control = ctrl
+			} else if ip := net.ParseIP(address); ip != nil {
+				addr = &net.TCPAddr{IP: ip}
+			}
+		}
 		options.TCPDialer = &net.Dialer{
-			Timeout: options.PacketSendingTimeout,
+			LocalAddr: addr,
+			Timeout:   options.PacketSendingTimeout,
+			Control:   control,
 		}
 	}
 	if options.UDPDialer == nil {
 		var addr net.Addr
+		var control func(string, string, syscall.RawConn) error
 		if len(options.SourceInterface) > 0 {
-			// skip error and using auto-select
-			addr, _ = net.ResolveUDPAddr("udp", options.SourceInterface)
+			address := options.SourceInterface
+			if ip, ctrl, ok := resolveInterface(address); ok {
+				addr = &net.UDPAddr{IP: ip}
+				control = ctrl
+			} else if ip := net.ParseIP(address); ip != nil {
+				addr = &net.UDPAddr{IP: ip}
+			}
 		}
 		options.UDPDialer = &net.Dialer{
 			Timeout:   options.PacketSendingTimeout,
 			LocalAddr: addr,
+			Control:   control,
 		}
 	}
 	return &PacketLossAnalyzer{
 		options: options,
 	}
+}
+
+// NewPacketLossAnalyzer creates an analyzer using the same network source as
+// the speedtest client, including interface binding and source addresses.
+func (s *Speedtest) NewPacketLossAnalyzer() *PacketLossAnalyzer {
+	return NewPacketLossAnalyzer(&PacketLossAnalyzerOptions{
+		TCPDialer: s.tcpDialer,
+		UDPDialer: s.udpDialer,
+	})
 }
 
 // RunMulti Mix all servers to get the average packet loss.
