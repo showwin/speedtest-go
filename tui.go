@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -17,11 +18,13 @@ import (
 )
 
 const (
-	defaultTerminalWidth = 80
-	minFrameDuration     = 120 * time.Millisecond
-	ansiBrightGreen      = "\x1b[92m"
-	ansiBrightRed        = "\x1b[91m"
-	ansiReset            = "\x1b[0m"
+	defaultTerminalWidth  = 80
+	minFrameDuration      = 120 * time.Millisecond
+	ansiBrightGreen       = "\x1b[92m"
+	ansiBrightRed         = "\x1b[91m"
+	ansiReset             = "\x1b[0m"
+	ansiSynchronizedOpen  = "\x1b[?2026h"
+	ansiSynchronizedClose = "\x1b[?2026l"
 )
 
 type taskRenderer interface {
@@ -193,14 +196,21 @@ func (r *interactiveRenderer) run() {
 
 func (r *interactiveRenderer) render(final bool) {
 	finalLines, activeLines := r.collectLines(final)
-	r.clearRenderedLines()
+
+	// Build the complete frame before writing it. This avoids exposing the
+	// intermediate cleared state while the terminal redraws the task region.
+	var frame bytes.Buffer
+	frame.WriteString(ansiSynchronizedOpen)
+	r.appendClearRenderedLines(&frame)
 
 	for _, line := range finalLines {
-		_, _ = fmt.Fprintln(r.writer, line)
+		_, _ = fmt.Fprintln(&frame, line)
 	}
 	for _, line := range activeLines {
-		_, _ = fmt.Fprintln(r.writer, line)
+		_, _ = fmt.Fprintln(&frame, line)
 	}
+	frame.WriteString(ansiSynchronizedClose)
+	_, _ = r.writer.Write(frame.Bytes())
 	r.renderedLines = len(activeLines)
 }
 
@@ -243,17 +253,27 @@ func (r *interactiveRenderer) clearRenderedLines() {
 		return
 	}
 
-	_, _ = fmt.Fprintf(r.writer, "\x1b[%dA", r.renderedLines)
+	var frame bytes.Buffer
+	r.appendClearRenderedLines(&frame)
+	_, _ = r.writer.Write(frame.Bytes())
+	r.renderedLines = 0
+}
+
+func (r *interactiveRenderer) appendClearRenderedLines(frame *bytes.Buffer) {
+	if r.renderedLines == 0 {
+		return
+	}
+
+	fmt.Fprintf(frame, "\x1b[%dA", r.renderedLines)
 	for i := 0; i < r.renderedLines; i++ {
-		_, _ = fmt.Fprint(r.writer, "\r\x1b[2K")
+		frame.WriteString("\r\x1b[2K")
 		if i < r.renderedLines-1 {
-			_, _ = fmt.Fprint(r.writer, "\n")
+			frame.WriteString("\n")
 		}
 	}
 	if r.renderedLines > 1 {
-		_, _ = fmt.Fprintf(r.writer, "\x1b[%dA", r.renderedLines-1)
+		fmt.Fprintf(frame, "\x1b[%dA", r.renderedLines-1)
 	}
-	r.renderedLines = 0
 }
 
 func (t *interactiveTask) Update(message string) {
