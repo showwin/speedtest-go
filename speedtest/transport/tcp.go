@@ -266,7 +266,7 @@ func (client *Client) PacketLoss() (*PLoss, error) {
 		return nil, err
 	}
 	splitResult := bytes.Split(result, []byte{0x20})
-	if len(splitResult) < 3 || !bytes.Equal(splitResult[0], packetLoss) {
+	if len(splitResult) < 4 || !bytes.Equal(splitResult[0], packetLoss) {
 		return nil, nil
 	}
 	x0, err := strconv.Atoi(string(splitResult[1]))
