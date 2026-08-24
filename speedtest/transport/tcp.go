@@ -32,7 +32,8 @@ var (
 )
 
 func pingFormat(locTime int64) []byte {
-	return strconv.AppendInt(pingPrefix, locTime, 10)
+	command := append([]byte{}, pingPrefix...)
+	return strconv.AppendInt(command, locTime, 10)
 }
 
 func downloadFormat(size int64) []byte {
@@ -43,7 +44,7 @@ func downloadFormat(size int64) []byte {
 func uploadFormat(size int64) []byte {
 	command := append([]byte{}, uploadPrefix...)
 	command = strconv.AppendInt(command, size, 10)
-	return append(command, []byte(" 0")...)
+	return append(command, ' ', '0')
 }
 
 type Client struct {
@@ -126,30 +127,38 @@ func (client *Client) Read() ([]byte, error) {
 }
 
 func (client *Client) Version() string {
-	if len(client.version) == 0 {
-		err := client.Write(hiFormat)
-		if err == nil {
-			message, err := client.Read()
-			if err != nil || len(message) < 8 {
-				return "unknown"
-			}
-			client.version = string(message[6 : len(message)-1])
-		}
+	version, err := client.VersionContext(context.Background())
+	if err != nil {
+		return "unknown"
 	}
-	return client.version
+	return version
 }
 
 // VersionContext performs the HI handshake while observing ctx.
-func (client *Client) VersionContext(ctx context.Context) string {
+func (client *Client) VersionContext(ctx context.Context) (string, error) {
 	if client.conn == nil {
-		return "unknown"
+		return "", ErrEmptyConn
+	}
+	if client.version != "" {
+		return client.version, nil
 	}
 	stop := client.watchContext(ctx)
 	defer stop()
 	if err := client.setDeadline(ctx); err != nil {
-		return "unknown"
+		return "", err
 	}
-	return client.Version()
+	if err := client.Write(hiFormat); err != nil {
+		return "", err
+	}
+	message, err := client.Read()
+	if err != nil {
+		return "", err
+	}
+	if len(message) < 8 || !bytes.HasPrefix(message, []byte("HELLO ")) {
+		return "", ErrInvalidResponse
+	}
+	client.version = string(message[6 : len(message)-1])
+	return client.version, nil
 }
 
 // PingContext Measure latency(RTT) between client and server.
@@ -328,11 +337,11 @@ func (client *Client) Upload(ctx context.Context, size int64, src io.Reader) (in
 	if err := client.setDeadline(ctx); err != nil {
 		return 0, err
 	}
-	command := append(uploadFormat(size), '\n')
-	payloadSize := size - int64(len(command)) - 1
-	if payloadSize < 0 {
-		return 0, ErrInvalidResponse
+	payloadSize, err := UploadPayloadSize(size)
+	if err != nil {
+		return 0, err
 	}
+	command := append(uploadFormat(size), '\n')
 	if err := client.writeAll(command); err != nil {
 		return 0, err
 	}
@@ -351,10 +360,23 @@ func (client *Client) Upload(ctx context.Context, size int64, src io.Reader) (in
 		return 0, ErrInvalidResponse
 	}
 	acknowledged, err := strconv.ParseInt(fields[1], 10, 64)
-	if err != nil || acknowledged < 0 {
+	if err != nil || acknowledged < 0 || acknowledged > size {
 		return 0, ErrInvalidResponse
 	}
 	return acknowledged, nil
+}
+
+// UploadPayloadSize returns the number of data bytes sent after the upload command.
+func UploadPayloadSize(size int64) (int64, error) {
+	if size <= 0 {
+		return 0, ErrInvalidResponse
+	}
+	commandSize := int64(len(uploadFormat(size)) + 1)
+	payloadSize := size - commandSize - 1
+	if payloadSize < 0 {
+		return 0, ErrInvalidResponse
+	}
+	return payloadSize, nil
 }
 
 type countingReader struct {

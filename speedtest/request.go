@@ -230,8 +230,11 @@ func tcpHost(s *Server) (string, error) {
 	host := s.Host
 	if host == "" {
 		u, err := url.Parse(s.URL)
-		if err != nil || u.Hostname() == "" {
+		if err != nil {
 			return "", err
+		}
+		if u.Hostname() == "" {
+			return "", errors.New("tcp server host is empty")
 		}
 		host = u.Host
 	}
@@ -257,8 +260,8 @@ func tcpDownloadRequest(ctx context.Context, s *Server, w int) error {
 		return err
 	}
 	defer client.Disconnect()
-	if client.VersionContext(ctx) == "unknown" {
-		return transport.ErrInvalidResponse
+	if _, err = client.VersionContext(ctx); err != nil {
+		return err
 	}
 	size := int64(dlSizes[w]) * 1000
 	return client.Download(ctx, size, s.Context.NewChunk().DownloadHandler)
@@ -278,12 +281,20 @@ func tcpUploadRequest(ctx context.Context, s *Server, w int) error {
 	}
 	defer client.Disconnect()
 	size := int64(ulSizes[w]) * 1000
-	dc := s.Context.NewChunk().UploadHandler(size)
+	payloadSize, err := transport.UploadPayloadSize(size)
+	if err != nil {
+		return err
+	}
+	dc := s.Context.NewChunk().UploadHandler(payloadSize)
 	acknowledged, err := client.Upload(ctx, size, dc)
 	if err != nil {
 		return err
 	}
-	s.Context.AddTotalUpload(acknowledged)
+	overhead := size - payloadSize
+	if acknowledged < overhead {
+		return transport.ErrInvalidResponse
+	}
+	s.Context.AddTotalUpload(acknowledged - overhead)
 	return nil
 }
 
@@ -353,6 +364,7 @@ func (s *Server) TCPPing(
 	if err != nil {
 		return nil, err
 	}
+	defer client.Disconnect()
 	err = client.Connect(ctx, pingDst)
 	if err != nil {
 		return nil, err
