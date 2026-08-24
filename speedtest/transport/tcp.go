@@ -14,13 +14,13 @@ import (
 )
 
 var (
-	pingPrefix = []byte{0x50, 0x49, 0x4e, 0x47, 0x20}
-	// downloadPrefix = []byte{0x44, 0x4F, 0x57, 0x4E, 0x4C, 0x4F, 0x41, 0x44, 0x20}
-	// uploadPrefix   = []byte{0x55, 0x50, 0x4C, 0x4F, 0x41, 0x44, 0x20}
-	initPacket = []byte{0x49, 0x4e, 0x49, 0x54, 0x50, 0x4c, 0x4f, 0x53, 0x53}
-	packetLoss = []byte{0x50, 0x4c, 0x4f, 0x53, 0x53}
-	hiFormat   = []byte{0x48, 0x49}
-	quitFormat = []byte{0x51, 0x55, 0x49, 0x54}
+	pingPrefix     = []byte{0x50, 0x49, 0x4e, 0x47, 0x20}
+	downloadPrefix = []byte{0x44, 0x4F, 0x57, 0x4E, 0x4C, 0x4F, 0x41, 0x44, 0x20}
+	uploadPrefix   = []byte{0x55, 0x50, 0x4C, 0x4F, 0x41, 0x44, 0x20}
+	initPacket     = []byte{0x49, 0x4e, 0x49, 0x54, 0x50, 0x4c, 0x4f, 0x53, 0x53}
+	packetLoss     = []byte{0x50, 0x4c, 0x4f, 0x53, 0x53}
+	hiFormat       = []byte{0x48, 0x49}
+	quitFormat     = []byte{0x51, 0x55, 0x49, 0x54}
 )
 
 var (
@@ -33,6 +33,17 @@ var (
 
 func pingFormat(locTime int64) []byte {
 	return strconv.AppendInt(pingPrefix, locTime, 10)
+}
+
+func downloadFormat(size int64) []byte {
+	command := append([]byte{}, downloadPrefix...)
+	return strconv.AppendInt(command, size, 10)
+}
+
+func uploadFormat(size int64) []byte {
+	command := append([]byte{}, uploadPrefix...)
+	command = strconv.AppendInt(command, size, 10)
+	return append(command, []byte(" 0")...)
 }
 
 type Client struct {
@@ -290,7 +301,7 @@ func (client *Client) Download(ctx context.Context, size int64, handler func(io.
 	if err := client.setDeadline(ctx); err != nil {
 		return err
 	}
-	if err := client.Write([]byte(fmt.Sprintf("DOWNLOAD %d", size))); err != nil {
+	if err := client.Write(downloadFormat(size)); err != nil {
 		return err
 	}
 	reader := &countingReader{Reader: io.LimitReader(client.reader, size)}
@@ -317,12 +328,12 @@ func (client *Client) Upload(ctx context.Context, size int64, src io.Reader) (in
 	if err := client.setDeadline(ctx); err != nil {
 		return 0, err
 	}
-	command := fmt.Sprintf("UPLOAD %d 0\n", size)
+	command := append(uploadFormat(size), '\n')
 	payloadSize := size - int64(len(command)) - 1
 	if payloadSize < 0 {
 		return 0, ErrInvalidResponse
 	}
-	if err := client.writeAll([]byte(command)); err != nil {
+	if err := client.writeAll(command); err != nil {
 		return 0, err
 	}
 	if _, err := io.CopyN(client.conn, src, payloadSize); err != nil {
