@@ -36,7 +36,7 @@ func TestClientDownload(t *testing.T) {
 	if err = client.Connect(context.Background(), addr); err != nil {
 		t.Fatal(err)
 	}
-	defer client.Disconnect()
+	defer func() { _ = client.Disconnect() }()
 	if _, err := client.VersionContext(context.Background()); err != nil {
 		t.Fatal("handshake failed")
 	}
@@ -82,7 +82,7 @@ func TestClientUploadUsesDeclaredTotal(t *testing.T) {
 	if err = client.Connect(context.Background(), addr); err != nil {
 		t.Fatal(err)
 	}
-	defer client.Disconnect()
+	defer func() { _ = client.Disconnect() }()
 	if _, err := client.VersionContext(context.Background()); err != nil {
 		t.Fatal("handshake failed")
 	}
@@ -119,7 +119,7 @@ func startTestTCPServer(t *testing.T, handler func(net.Conn)) (string, func()) {
 				}
 			}
 			go func() {
-				defer conn.Close()
+				defer func() { _ = conn.Close() }()
 				handler(conn)
 			}()
 		}
