@@ -40,6 +40,7 @@ var (
 	noDownload    = kingpin.Flag("no-download", "Disable download test.").Bool()
 	noUpload      = kingpin.Flag("no-upload", "Disable upload test.").Bool()
 	pingMode      = kingpin.Flag("ping-mode", "Select a method for Ping (support icmp/tcp/http).").Default("http").String()
+	protocol      = kingpin.Flag("protocol", "Select the download/upload protocol [http (default) or tcp].").Short('p').Default("http").String()
 	unit          = kingpin.Flag("unit", "Set human-readable and auto-scaled rate units for output (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).").Short('u').String()
 	countryCode   = kingpin.Flag("filter-cc", "Filter servers by Country Code(s).").Strings()
 	maskISP       = kingpin.Flag("mask-isp", "Mask sensitive info (IP address and coordinates) in ISP output.").Bool()
@@ -75,6 +76,7 @@ func main() {
 			DnsBindSource:  *dnsBindSource,
 			Debug:          *debug,
 			PingMode:       parseProto(*pingMode), // TCP as default
+			TestMode:       parseTestMode(*protocol),
 			SavingMode:     *savingMode,
 			MaxConnections: *thread,
 			CityFlag:       *city,
@@ -157,12 +159,10 @@ func main() {
 			task.Complete()
 		})
 
-		// 3.0 create a packet loss analyzer, use default options
+		blocker := sync.WaitGroup{}
 		analyzer := speedtest.NewPacketLossAnalyzer(&speedtest.PacketLossAnalyzerOptions{
 			SourceInterface: *source,
 		})
-
-		blocker := sync.WaitGroup{}
 		packetLossAnalyzerCtx, packetLossAnalyzerCancel := context.WithTimeout(context.Background(), time.Second*40)
 		taskManager.Run("Packet Loss Analyzer", func(task *Task) {
 			blocker.Add(1)
@@ -172,7 +172,7 @@ func main() {
 					server.PacketLoss = *packetLoss
 				})
 				if errors.Is(err, transport.ErrUnsupported) {
-					packetLossAnalyzerCancel() // cancel early
+					packetLossAnalyzerCancel()
 				}
 			}()
 			task.Println("Packet Loss Analyzer: Running in background (<= 30 Secs)")
@@ -226,7 +226,9 @@ func main() {
 		if *noUpload && *noDownload {
 			time.Sleep(time.Second * 30)
 		}
-		packetLossAnalyzerCancel()
+		if packetLossAnalyzerCancel != nil {
+			packetLossAnalyzerCancel()
+		}
 		blocker.Wait()
 		if !*jsonOutput && !*jsonlOutput {
 			taskManager.Println(server.PacketLoss.String())
@@ -355,6 +357,13 @@ func parseProto(str string) speedtest.Proto {
 	default:
 		return speedtest.HTTP
 	}
+}
+
+func parseTestMode(str string) speedtest.TestMode {
+	if strings.EqualFold(str, "tcp") {
+		return speedtest.TCPTest
+	}
+	return speedtest.HTTPTest
 }
 
 func containsString(values []string, target string) bool {
