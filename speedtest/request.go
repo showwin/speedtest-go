@@ -259,7 +259,7 @@ func tcpDownloadRequest(ctx context.Context, s *Server, w int) error {
 	if err = client.Connect(ctx, host); err != nil {
 		return err
 	}
-	defer client.Disconnect()
+	defer func() { _ = client.Disconnect() }()
 	if _, err = client.VersionContext(ctx); err != nil {
 		return err
 	}
@@ -279,7 +279,7 @@ func tcpUploadRequest(ctx context.Context, s *Server, w int) error {
 	if err = client.Connect(ctx, host); err != nil {
 		return err
 	}
-	defer client.Disconnect()
+	defer func() { _ = client.Disconnect() }()
 	size := int64(ulSizes[w]) * 1000
 	payloadSize, err := transport.UploadPayloadSize(size)
 	if err != nil {
@@ -364,7 +364,7 @@ func (s *Server) TCPPing(
 	if err != nil {
 		return nil, err
 	}
-	defer client.Disconnect()
+	defer func() { _ = client.Disconnect() }()
 	err = client.Connect(ctx, pingDst)
 	if err != nil {
 		return nil, err
