@@ -28,3 +28,5 @@ speedtest-go
 
 .idea/
 .run/
+
+.gocache
