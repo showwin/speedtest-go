@@ -6,8 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -26,6 +28,7 @@ var (
 	ErrEmptyConn                   = errors.New("empty conn")
 	ErrUnsupported                 = errors.New("unsupported protocol") // Some servers have disabled ip:8080, we return this error.
 	ErrUninitializedPacketLossInst = errors.New("uninitialized packet loss inst")
+	ErrInvalidResponse             = errors.New("invalid tcp speedtest response")
 )
 
 func pingFormat(locTime int64) []byte {
@@ -59,6 +62,9 @@ func (client *Client) ID() string {
 }
 
 func (client *Client) Connect(ctx context.Context, host string) (err error) {
+	if client.dialer == nil {
+		return ErrEmptyConn
+	}
 	client.host = host
 	client.conn, err = client.dialer.DialContext(ctx, "tcp", client.host)
 	if err != nil {
@@ -69,7 +75,11 @@ func (client *Client) Connect(ctx context.Context, host string) (err error) {
 }
 
 func (client *Client) Disconnect() (err error) {
-	_, _ = client.conn.Write(quitFormat)
+	if client.conn == nil {
+		return nil
+	}
+	_ = client.writeAll(append(append([]byte{}, quitFormat...), '\n'))
+	_ = client.conn.Close()
 	client.conn = nil
 	client.reader = nil
 	client.version = ""
@@ -80,8 +90,21 @@ func (client *Client) Write(data []byte) (err error) {
 	if client.conn == nil {
 		return ErrEmptyConn
 	}
-	_, err = fmt.Fprintf(client.conn, "%s\n", data)
-	return
+	return client.writeAll(append(append([]byte{}, data...), '\n'))
+}
+
+func (client *Client) writeAll(data []byte) error {
+	for len(data) > 0 {
+		n, err := client.conn.Write(data)
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return io.ErrShortWrite
+		}
+		data = data[n:]
+	}
+	return nil
 }
 
 func (client *Client) Read() ([]byte, error) {
@@ -105,6 +128,19 @@ func (client *Client) Version() string {
 	return client.version
 }
 
+// VersionContext performs the HI handshake while observing ctx.
+func (client *Client) VersionContext(ctx context.Context) string {
+	if client.conn == nil {
+		return "unknown"
+	}
+	stop := client.watchContext(ctx)
+	defer stop()
+	if err := client.setDeadline(ctx); err != nil {
+		return "unknown"
+	}
+	return client.Version()
+}
+
 // PingContext Measure latency(RTT) between client and server.
 // We use the 2RTT method to obtain three RTT result in
 // order to get more data in less time (t2-t0, t4-t2, t3-t1).
@@ -113,6 +149,11 @@ func (client *Client) Version() string {
 // latency = 0.4 * (t2 - t0) + 0.4 * (t4 - t2) + 0.2 * (t3 - t1)
 // @return cumulative delay in nanoseconds
 func (client *Client) PingContext(ctx context.Context) (int64, error) {
+	if err := client.setDeadline(ctx); err != nil {
+		return 0, err
+	}
+	stop := client.watchContext(ctx)
+	defer stop()
 	resultChan := make(chan error, 1)
 
 	var accumulatedLatency int64 = 0
@@ -236,10 +277,104 @@ func (client *Client) PacketLoss() (*PLoss, error) {
 	}, nil
 }
 
-func (client *Client) Download() {
-	panic("Unimplemented method: Client.Download()")
+// Download requests exactly size bytes and passes the response stream to handler.
+func (client *Client) Download(ctx context.Context, size int64, handler func(io.Reader) error) error {
+	if client.conn == nil {
+		return ErrEmptyConn
+	}
+	if size <= 0 || handler == nil {
+		return ErrInvalidResponse
+	}
+	stop := client.watchContext(ctx)
+	defer stop()
+	if err := client.setDeadline(ctx); err != nil {
+		return err
+	}
+	if err := client.Write([]byte(fmt.Sprintf("DOWNLOAD %d", size))); err != nil {
+		return err
+	}
+	reader := &countingReader{Reader: io.LimitReader(client.reader, size)}
+	if err := handler(reader); err != nil {
+		return err
+	}
+	if reader.n != size {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
-func (client *Client) Upload() {
-	panic("Unimplemented method: Client.Upload()")
+// Upload sends exactly size bytes including the protocol command and final newline.
+// The returned value is the byte count acknowledged by the server.
+func (client *Client) Upload(ctx context.Context, size int64, src io.Reader) (int64, error) {
+	if client.conn == nil {
+		return 0, ErrEmptyConn
+	}
+	if size <= 0 || src == nil {
+		return 0, ErrInvalidResponse
+	}
+	stop := client.watchContext(ctx)
+	defer stop()
+	if err := client.setDeadline(ctx); err != nil {
+		return 0, err
+	}
+	command := fmt.Sprintf("UPLOAD %d 0\n", size)
+	payloadSize := size - int64(len(command)) - 1
+	if payloadSize < 0 {
+		return 0, ErrInvalidResponse
+	}
+	if err := client.writeAll([]byte(command)); err != nil {
+		return 0, err
+	}
+	if _, err := io.CopyN(client.conn, src, payloadSize); err != nil {
+		return 0, err
+	}
+	if err := client.writeAll([]byte{'\n'}); err != nil {
+		return 0, err
+	}
+	response, err := client.Read()
+	if err != nil {
+		return 0, err
+	}
+	fields := strings.Fields(string(response))
+	if len(fields) < 2 || fields[0] != "OK" {
+		return 0, ErrInvalidResponse
+	}
+	acknowledged, err := strconv.ParseInt(fields[1], 10, 64)
+	if err != nil || acknowledged < 0 {
+		return 0, ErrInvalidResponse
+	}
+	return acknowledged, nil
+}
+
+type countingReader struct {
+	io.Reader
+	n int64
+}
+
+func (r *countingReader) Read(p []byte) (int, error) {
+	n, err := r.Reader.Read(p)
+	r.n += int64(n)
+	return n, err
+}
+
+func (client *Client) setDeadline(ctx context.Context) error {
+	if client.conn == nil {
+		return ErrEmptyConn
+	}
+	if deadline, ok := ctx.Deadline(); ok {
+		return client.conn.SetDeadline(deadline)
+	}
+	return client.conn.SetDeadline(time.Time{})
+}
+
+func (client *Client) watchContext(ctx context.Context) func() {
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = client.conn.Close()
+		case <-done:
+		}
+	}()
+	return func() { close(done) }
 }

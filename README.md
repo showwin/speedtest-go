@@ -139,6 +139,7 @@ Flags:
       --no-download            Disable download test.
       --no-upload              Disable upload test.
       --ping-mode              Select a method for Ping (support icmp/tcp/http).
+  -p, --protocol               Select the download/upload protocol [http (default) or tcp (experimental)].
   -u  --unit                   Set human-readable and auto-scaled rate units for output 
                                (options: decimal-bits/decimal-bytes/binary-bits/binary-bytes).
       --filter-cc=FILTER-CC    Filter servers by Country Code(s). (options: CC/auto).
@@ -158,7 +159,7 @@ Simply use `speedtest` command. The closest server is selected by default. Use t
 # speedtest --unix
 $ speedtest
 
-    speedtest-go v1.7.11 @showwin
+    speedtest-go v1.8.0 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 20 Public Servers
@@ -192,7 +193,7 @@ and select them by id.
 ```bash
 $ speedtest --server 6691 --server 6087
 
-    speedtest-go v1.7.11 @showwin
+    speedtest-go v1.8.0 @showwin
 
 ✓ ISP: 124.27.199.165 (Fujitsu) [34.9769, 138.3831]
 ✓ Found 2 Specified Public Server(s)

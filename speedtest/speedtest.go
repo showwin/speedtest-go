@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	version          = "1.7.11"
+	version          = "1.8.0"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
 )
 
@@ -23,6 +23,13 @@ const (
 	HTTP Proto = iota
 	TCP
 	ICMP
+)
+
+type TestMode int
+
+const (
+	HTTPTest TestMode = iota
+	TCPTest
 )
 
 // Speedtest is a speedtest client.
@@ -45,6 +52,7 @@ type UserConfig struct {
 	DialerControl func(network, address string, c syscall.RawConn) error
 	Debug         bool
 	PingMode      Proto
+	TestMode      TestMode
 
 	SavingMode     bool
 	MaxConnections int
