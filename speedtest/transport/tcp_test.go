@@ -37,7 +37,7 @@ func TestClientDownload(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer client.Disconnect()
-	if got := client.VersionContext(context.Background()); got == "unknown" {
+	if _, err := client.VersionContext(context.Background()); err != nil {
 		t.Fatal("handshake failed")
 	}
 	var got bytes.Buffer
@@ -83,8 +83,12 @@ func TestClientUploadUsesDeclaredTotal(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer client.Disconnect()
-	if got := client.VersionContext(context.Background()); got == "unknown" {
+	if _, err := client.VersionContext(context.Background()); err != nil {
 		t.Fatal("handshake failed")
+	}
+	payloadSize, err := UploadPayloadSize(size)
+	if err != nil || payloadSize != 7 {
+		t.Fatalf("payload size = %d, want 7 (err=%v)", payloadSize, err)
 	}
 	acknowledged, err := client.Upload(context.Background(), size, bytes.NewReader(bytes.Repeat([]byte("x"), int(size))))
 	if err != nil {
