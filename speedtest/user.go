@@ -5,7 +5,10 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
+	"net/url"
+	"strconv"
 )
 
 const speedTestConfigUrl = "https://www.speedtest.net/speedtest-config.php"
@@ -36,8 +39,18 @@ func FetchUserInfo() (*User, error) {
 
 // FetchUserInfoContext returns information about caller determined by speedtest.net, observing the given context.
 func (s *Speedtest) FetchUserInfoContext(ctx context.Context) (*User, error) {
-	dbg.Printf("Retrieving user info: %s\n", speedTestConfigUrl)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, speedTestConfigUrl, nil)
+	// speedtest-config.php contains request-specific client data. Add a unique
+	// query parameter so a shared CDN cannot serve another user's response.
+	configURL, err := url.Parse(speedTestConfigUrl)
+	if err != nil {
+		return nil, err
+	}
+	query := configURL.Query()
+	query.Set("r", strconv.FormatUint(rand.Uint64(), 16))
+	configURL.RawQuery = query.Encode()
+
+	dbg.Printf("Retrieving user info: %s\n", configURL.String())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, configURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
