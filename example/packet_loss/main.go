@@ -35,7 +35,7 @@ func main() {
 			//defer cancel()
 			defer wg.Done()
 			// Note: Please call ctx.cancel at the appropriate time to release resources if you use analyzer.RunWithContext
-			// we using analyzer.Run() here.
+			// we use analyzer.Run() here.
 			err = analyzer.Run(server.Host, func(packetLoss *transport.PLoss) {
 				fmt.Println(packetLoss, server.Host, server.Name)
 			})
