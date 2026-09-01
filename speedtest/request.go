@@ -81,6 +81,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		if server.ID == s.ID {
 			mainIDIndex = i
 		}
+		server.resolveUploadURL(ctx)
 		sp := server
 		dbg.Printf("Register Upload Handler: %s\n", sp.URL)
 		td = server.Context.RegisterUploadHandler(func() {
@@ -134,12 +135,36 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 
 // UploadTest executes the test to measure upload speed
 func (s *Server) UploadTest() error {
-	return s.uploadTestContext(context.Background(), s.uploadRequest())
+	return s.UploadTestContext(context.Background())
 }
 
 // UploadTestContext executes the test to measure upload speed, observing the given context.
 func (s *Server) UploadTestContext(ctx context.Context) error {
+	s.resolveUploadURL(ctx)
 	return s.uploadTestContext(ctx, s.uploadRequest())
+}
+
+func (s *Server) resolveUploadURL(ctx context.Context) {
+	if s.Context.config.TestMode == TCPTest {
+		return
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, s.URL, nil)
+	if err != nil {
+		return
+	}
+	resp, err := s.Context.doer.Do(req)
+	if err != nil {
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.Request == nil || resp.Request.URL == nil {
+		return
+	}
+	resolvedURL := resp.Request.URL.String()
+	if resolvedURL != s.URL {
+		dbg.Printf("Resolved upload URL: %s -> %s\n", s.URL, resolvedURL)
+		s.URL = resolvedURL
+	}
 }
 
 func (s *Server) downloadRequest() downloadFunc {
