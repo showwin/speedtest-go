@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	version          = "1.8.2"
+	version          = "1.8.3"
 	DefaultUserAgent = fmt.Sprintf("showwin/speedtest-go %s", version)
 )
 
