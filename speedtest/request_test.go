@@ -49,6 +49,29 @@ func TestHTTPPingAcceptsSuccessfulResponse(t *testing.T) {
 	}
 }
 
+func TestDownloadRejectsHTTPErrorWithoutCountingBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("error response body"))
+	}))
+	defer server.Close()
+
+	client := New()
+	client.SetNThread(1)
+	client.SetRateCaptureFrequency(time.Millisecond)
+	client.SetCaptureTime(10 * time.Millisecond)
+	target := &Server{URL: server.URL + "/speedtest/upload.php", Context: client}
+	if err := target.DownloadTestContext(context.Background()); err != nil {
+		t.Fatalf("DownloadTestContext failed: %v", err)
+	}
+	if target.DLSpeed != -1 {
+		t.Fatalf("download speed is %v for HTTP 500, want -1", target.DLSpeed)
+	}
+	if downloaded := client.GetTotalDownload(); downloaded != 0 {
+		t.Fatalf("counted %d bytes from HTTP 500 response, want 0", downloaded)
+	}
+}
+
 func TestDownloadTestContext(t *testing.T) {
 	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
 	delta := 0.15
