@@ -118,6 +118,50 @@ func TestUploadRequestCountsOnlyConfirmedUploads(t *testing.T) {
 	}
 }
 
+func TestResolveUploadURLFollowsTemporaryRedirect(t *testing.T) {
+	var received int64
+	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if r.Method != http.MethodPost {
+			t.Errorf("request method is %s, want POST", r.Method)
+		}
+		var err error
+		received, err = io.Copy(io.Discard, r.Body)
+		if err != nil {
+			t.Errorf("failed to read redirected upload: %v", err)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer targetServer.Close()
+
+	redirectServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, targetServer.URL, http.StatusTemporaryRedirect)
+	}))
+	defer redirectServer.Close()
+
+	client := New()
+	target := &Server{URL: redirectServer.URL, Context: client}
+	target.resolveUploadURL(context.Background())
+	if target.URL != targetServer.URL {
+		t.Fatalf("resolved upload URL is %q, want %q", target.URL, targetServer.URL)
+	}
+	if err := uploadRequest(context.Background(), target, 0); err != nil {
+		t.Fatalf("upload request failed: %v", err)
+	}
+
+	want := int64(ulSizes[0]*100-51) * 10
+	if received != want {
+		t.Fatalf("resolved endpoint received %d bytes, want %d", received, want)
+	}
+	if got := client.GetTotalUpload(); got != want {
+		t.Fatalf("counted %d upload bytes, want %d", got, want)
+	}
+}
+
 func TestUploadRequestDoesNotCountRejectedUploads(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.Copy(io.Discard, r.Body)
