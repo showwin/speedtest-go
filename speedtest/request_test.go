@@ -2,10 +2,52 @@ package speedtest
 
 import (
 	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"runtime"
 	"testing"
 	"time"
 )
+
+func TestHTTPPingRejectsHTTPErrorAfterRedirect(t *testing.T) {
+	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer targetServer.Close()
+
+	redirectServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, targetServer.URL, http.StatusTemporaryRedirect)
+	}))
+	defer redirectServer.Close()
+
+	client := New()
+	target := &Server{URL: redirectServer.URL + "/speedtest/upload.php", Context: client}
+	latencies, err := target.HTTPPing(context.Background(), 1, 0, nil)
+	if !errors.Is(err, ErrConnectTimeout) {
+		t.Fatalf("HTTPPing error is %v, want %v", err, ErrConnectTimeout)
+	}
+	if len(latencies) != 0 {
+		t.Fatalf("HTTPPing returned %d latencies for HTTP 500, want 0", len(latencies))
+	}
+}
+
+func TestHTTPPingAcceptsSuccessfulResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := New()
+	target := &Server{URL: server.URL + "/speedtest/upload.php", Context: client}
+	latencies, err := target.HTTPPing(context.Background(), 1, 0, nil)
+	if err != nil {
+		t.Fatalf("HTTPPing failed: %v", err)
+	}
+	if len(latencies) != 1 {
+		t.Fatalf("HTTPPing returned %d latencies, want 1", len(latencies))
+	}
+}
 
 func TestDownloadTestContext(t *testing.T) {
 	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores

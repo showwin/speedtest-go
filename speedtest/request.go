@@ -447,6 +447,11 @@ func (s *Server) HTTPPing(
 			failTimes++
 			continue
 		}
+		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+			_ = resp.Body.Close()
+			failTimes++
+			continue
+		}
 		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 		if i > 0 {
