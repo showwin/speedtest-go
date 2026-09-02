@@ -76,14 +76,14 @@ func TestDownloadTestContext(t *testing.T) {
 	idealSpeed := 0.1 * 8 * float64(runtime.NumCPU()) * 10 / 0.1 // one mockRequest per second with all CPU cores
 	delta := 0.15
 	latency, _ := time.ParseDuration("5ms")
+	client := New()
 	server := Server{
 		URL:     "https://dummy.com/upload.php",
 		Latency: latency,
-		Context: defaultClient,
+		Context: client,
 	}
 
-	server.Context.Reset()
-	server.Context.SetRateCaptureFrequency(time.Millisecond)
+	server.Context.SetRateCaptureFrequency(50 * time.Millisecond)
 	server.Context.SetCaptureTime(time.Second)
 
 	err := server.downloadTestContext(
@@ -92,6 +92,9 @@ func TestDownloadTestContext(t *testing.T) {
 	)
 	if err != nil {
 		t.Error(err)
+	}
+	if value := float64(server.DLSpeed) * 8 / 1000 / 1000; value < idealSpeed*(1-delta) || idealSpeed*(1+delta) < value {
+		t.Errorf("got unexpected final download rate '%v', expected between %v and %v", value, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
 	value := server.Context.GetAvgDownloadRate()
 	if value < idealSpeed*(1-delta) || idealSpeed*(1+delta) < value {
@@ -107,14 +110,14 @@ func TestUploadTestContext(t *testing.T) {
 	delta := 0.15                        // tolerance scope (-0.05, +0.05)
 
 	latency, _ := time.ParseDuration("5ms")
+	client := New()
 	server := Server{
 		URL:     "https://dummy.com/upload.php",
 		Latency: latency,
-		Context: defaultClient,
+		Context: client,
 	}
 
-	server.Context.Reset()
-	server.Context.SetRateCaptureFrequency(time.Millisecond)
+	server.Context.SetRateCaptureFrequency(50 * time.Millisecond)
 	server.Context.SetCaptureTime(time.Second)
 	server.Context.SetNThread(1)
 
@@ -124,6 +127,9 @@ func TestUploadTestContext(t *testing.T) {
 	)
 	if err != nil {
 		t.Error(err)
+	}
+	if value := float64(server.ULSpeed) * 8 / 1000 / 1000; value < idealSpeed*(1-delta) || idealSpeed*(1+delta) < value {
+		t.Errorf("got unexpected final upload rate '%v', expected between %v and %v", value, idealSpeed*(1-delta), idealSpeed*(1+delta))
 	}
 	value := server.Context.GetAvgUploadRate()
 	if value < idealSpeed*(1-delta) || idealSpeed*(1+delta) < value {
