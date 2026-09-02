@@ -59,7 +59,7 @@ func (s *Server) MultiDownloadTestContext(ctx context.Context, servers Servers) 
 		return ErrorUninitializedManager
 	}
 	td.Start(cancel, mainIDIndex) // block here
-	s.DLSpeed = ByteRate(td.manager.GetEWMADownloadRate())
+	s.DLSpeed = ByteRate(td.finalRate())
 	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.DLSpeed = -1 // N/A
 	}
@@ -95,7 +95,7 @@ func (s *Server) MultiUploadTestContext(ctx context.Context, servers Servers) er
 		return ErrorUninitializedManager
 	}
 	td.Start(cancel, mainIDIndex) // block here
-	s.ULSpeed = ByteRate(td.manager.GetEWMAUploadRate())
+	s.ULSpeed = ByteRate(td.finalRate())
 	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.ULSpeed = -1 // N/A
 	}
@@ -117,14 +117,15 @@ func (s *Server) downloadTestContext(ctx context.Context, downloadRequest downlo
 	var requestTimes int64 = 0
 	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
-	s.Context.RegisterDownloadHandler(func() {
+	td := s.Context.RegisterDownloadHandler(func() {
 		atomic.AddInt64(&requestTimes, 1)
 		if err := downloadRequest(_context, s, 3); err != nil {
 			atomic.AddInt64(&errorTimes, 1)
 		}
-	}).Start(cancel, 0)
+	})
+	td.Start(cancel, 0)
 	duration := time.Since(start)
-	s.DLSpeed = ByteRate(s.Context.GetEWMADownloadRate())
+	s.DLSpeed = ByteRate(td.finalRate())
 	if s.DLSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.DLSpeed = -1 // N/A
 	}
@@ -186,14 +187,15 @@ func (s *Server) uploadTestContext(ctx context.Context, uploadRequest uploadFunc
 	var requestTimes int64 = 0
 	start := time.Now()
 	_context, cancel := context.WithCancel(ctx)
-	s.Context.RegisterUploadHandler(func() {
+	td := s.Context.RegisterUploadHandler(func() {
 		atomic.AddInt64(&requestTimes, 1)
 		if err := uploadRequest(_context, s, 4); err != nil {
 			atomic.AddInt64(&errorTimes, 1)
 		}
-	}).Start(cancel, 0)
+	})
+	td.Start(cancel, 0)
 	duration := time.Since(start)
-	s.ULSpeed = ByteRate(s.Context.GetEWMAUploadRate())
+	s.ULSpeed = ByteRate(td.finalRate())
 	if s.ULSpeed == 0 && float64(errorTimes)/float64(requestTimes) > 0.1 {
 		s.ULSpeed = -1 // N/A
 	}

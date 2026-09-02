@@ -107,6 +107,7 @@ type TestDirection struct {
 	maxWorkers      int32                       // configured upload worker limit
 	RateSequence    []int64                     // rate history sequence
 	welford         *internal.Welford           // std/EWMA/mean
+	finalRateValue  float64                     // measured bytes per second at test termination
 	captureCallback func(realTimeRate ByteRate) // user callback
 	closeFunc       func()                      // close func
 	*funcGroup                                  // actually exec function
@@ -242,8 +243,7 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 	once := sync.Once{}
 	td.closeFunc = func() {
 		once.Do(func() {
-			stopCapture <- true
-			close(stopCapture)
+			stopCapture()
 			td.manager.runningRW.Lock()
 			td.manager.running = false
 			td.manager.runningRW.Unlock()
@@ -378,14 +378,16 @@ func reducedUploadWorkerCount(active int32, rate, bestRate float64, backlog int6
 	return target
 }
 
-func (td *TestDirection) rateCapture() chan bool {
+func (td *TestDirection) rateCapture() func() {
 	ticker := time.NewTicker(td.manager.rateCaptureFrequency)
 	var prevTotalDataVolume int64 = 0
-	stopCapture := make(chan bool)
+	stopCapture := make(chan struct{})
+	captureStopped := make(chan struct{})
 	td.welford = internal.NewWelford(5*time.Second, td.manager.rateCaptureFrequency)
 	sTime := time.Now()
 	go func(t *time.Ticker) {
 		defer t.Stop()
+		defer close(captureStopped)
 		for {
 			select {
 			case <-t.C:
@@ -410,14 +412,29 @@ func (td *TestDirection) rateCapture() chan bool {
 				if td.captureCallback != nil {
 					td.captureCallback(ByteRate(td.welford.EWMA()))
 				}
-			case stop := <-stopCapture:
-				if stop {
-					return
-				}
+			case <-stopCapture:
+				td.captureFinalRate(sTime, time.Now())
+				return
 			}
 		}
 	}(ticker)
-	return stopCapture
+	return func() {
+		close(stopCapture)
+		<-captureStopped
+	}
+}
+
+func (td *TestDirection) captureFinalRate(start, end time.Time) {
+	elapsed := end.Sub(start)
+	if elapsed <= 0 {
+		td.finalRateValue = 0
+		return
+	}
+	td.finalRateValue = float64(td.GetTotalDataVolume()) / elapsed.Seconds()
+}
+
+func (td *TestDirection) finalRate() float64 {
+	return td.finalRateValue
 }
 
 func (dm *DataManager) NewChunk() Chunk {
