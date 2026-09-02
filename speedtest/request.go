@@ -221,6 +221,9 @@ func downloadRequest(ctx context.Context, s *Server, w int) error {
 		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("download request failed: %s", resp.Status)
+	}
 	return s.Context.NewChunk().DownloadHandler(resp.Body)
 }
 
