@@ -10,6 +10,7 @@ Inspired by [sivel/speedtest-cli](https://github.com/sivel/speedtest-cli)
 
 ```bash
 $ brew tap showwin/speedtest
+$ brew trust --formula showwin/speedtest/speedtest
 $ brew install speedtest
 
 ### How to Update ###
