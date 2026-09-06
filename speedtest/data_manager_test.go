@@ -55,6 +55,55 @@ func TestDataManager_GetAvgDownloadRate(t *testing.T) {
 	}
 }
 
+func TestDataManager_FinalRateUsesCapturedBytesAndDuration(t *testing.T) {
+	dm := NewDataManager()
+	dm.download.AddTotalDataVolume(3_000_000)
+	start := time.Unix(0, 0)
+	dm.download.captureFinalRate(start, start.Add(2*time.Second))
+
+	const want = 1_500_000.0
+	got := dm.download.finalRate()
+	if got != want {
+		t.Fatalf("final download rate is %v bytes/s, want %v", got, want)
+	}
+}
+
+func TestDataManager_FinalRateStopsBeforeCancellation(t *testing.T) {
+	const (
+		captureTime = 20 * time.Millisecond
+		beforeStop  = int64(1_000)
+		afterStop   = int64(1_000_000)
+	)
+	dm := NewDataManager()
+	dm.SetNThread(1)
+	dm.SetCaptureTime(captureTime)
+	dm.SetRateCaptureFrequency(time.Millisecond)
+
+	var once sync.Once
+	var direction *TestDirection
+	direction = dm.RegisterDownloadHandler(func() {
+		once.Do(func() {
+			direction.AddTotalDataVolume(beforeStop)
+		})
+		time.Sleep(time.Millisecond)
+	})
+	direction.Start(func() {
+		direction.AddTotalDataVolume(afterStop)
+	}, 0)
+
+	if got := direction.GetTotalDataVolume(); got != beforeStop+afterStop {
+		t.Fatalf("total bytes are %d, want %d", got, beforeStop+afterStop)
+	}
+	got := direction.finalRate()
+	if got <= 0 {
+		t.Fatalf("final rate is %v, want a positive value", got)
+	}
+	maxBeforeStopRate := float64(beforeStop) / captureTime.Seconds()
+	if got > maxBeforeStopRate*1.1 {
+		t.Fatalf("final rate is %v bytes/s, which includes bytes added after the stop boundary", got)
+	}
+}
+
 func TestDataManager_GetUploadConfirmationRatio(t *testing.T) {
 	dm := NewDataManager()
 	dm.upload.AddTotalReadVolume(2 * 1000 * 1000)
