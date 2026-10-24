@@ -69,6 +69,11 @@ func NewClient(dialer *net.Dialer) (*Client, error) {
 	}, nil
 }
 
+// NetConn returns the connection to the server, or nil before Connect.
+func (client *Client) NetConn() net.Conn {
+	return client.conn
+}
+
 func (client *Client) ID() string {
 	return client.id
 }

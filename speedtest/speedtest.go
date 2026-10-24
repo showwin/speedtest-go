@@ -185,7 +185,7 @@ func (s *Speedtest) NewUserConfig(uc *UserConfig) {
 
 	s.config.T = &http.Transport{
 		Proxy:                 proxy,
-		DialContext:           s.tcpDialer.DialContext,
+		DialContext:           countingDialer(s.tcpDialer.DialContext),
 		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,

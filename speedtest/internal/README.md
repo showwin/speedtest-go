@@ -1,11 +1,9 @@
-# Issue #192
+# Rate meter
 
-<img width="1172" alt="SpeedTest-Go (1)" src="https://github.com/showwin/speedtest-go/assets/30739857/ecced0e9-830c-42d6-aa8b-e3dcf8d124d6">
+`Meter` turns cumulative byte counts, sampled every 50 ms, into the rate a test reports and decides when the test may stop.
 
-1. Use welford alg to quickly calculate standard deviation and mean.
-2. The welford alg integrated moving window feature, This allows us to ignore early data with excessive volatility.
-3. Use the coefficient of variation(c.v) to reflect the confidence of the test result datasets.
-4. When the data becomes stable(converge), the c.v value will become smaller. When the c.v < 0.05, we terminate this test. We set the tolerance condition as the window buffer being more than half filled and triggering more than five times with c.v < 0.05.
-5. Perform EWMA operation on real-time global average, and use c.v as part of the EWMA feedback parameter.
-6. The ewma value calculated is the result value of our test.
-7. When the test data converge quickly, we can stop early and speed up the testing process. Of course this depends on network/device conditions.
+1. The rate is bytes over time across the last two thirds of the elapsed time. TCP ramp-up falls out of the window as the test runs, so the result converges on the link's steady rate without a ramp-up detector.
+2. The rate has settled when two standard errors and the difference between the window's two halves are both within 1% of it. The standard error is the Newey-West estimate over the 50 ms byte increments (Bartlett weights, square root of n lags), which accounts for successive throughput samples being correlated.
+3. A test stops once the rate has settled, no earlier than 4 seconds, and otherwise at its capture time (15 seconds by default). A zero rate never settles.
+
+The live callbacks, the final result and the stopping decision all read the same meter. Upload feeds it the bytes the server's TCP stack has acknowledged where the platform reports them (Linux, macOS and Windows), and confirmed request bytes elsewhere.

@@ -88,8 +88,8 @@ type DataManager struct {
 
 	captureTime          time.Duration
 	rateCaptureFrequency time.Duration
-	nThread              int
-	uploadMaxWorkers     int
+	nThread              int // download connections
+	nUploadThread        int // upload connections
 
 	running   bool
 	runningRW sync.RWMutex
@@ -103,10 +103,10 @@ type TestDirection struct {
 	manager         *DataManager                // manager
 	totalDataVolume int64                       // total send/receive data volume
 	totalReadVolume int64                       // upload bytes read into the transport
-	activeWorkers   int32                       // current upload worker limit
-	maxWorkers      int32                       // configured upload worker limit
+	acked           ackedBytes                  // upload bytes acknowledged by the server's TCP stack
 	RateSequence    []int64                     // rate history sequence
-	welford         *internal.Welford           // std/EWMA/mean
+	currentRate     atomic.Uint64               // float64 bits of the latest rate estimate, bytes per second
+	finalRateValue  float64                     // measured bytes per second at test termination
 	captureCallback func(realTimeRate ByteRate) // user callback
 	closeFunc       func()                      // close func
 	*funcGroup                                  // actually exec function
@@ -123,12 +123,12 @@ func (dm *DataManager) NewDataDirection(testType int) *TestDirection {
 func NewDataManager() *DataManager {
 	r := bytes.Repeat([]byte{0xAA}, readChunkSize) // uniformly distributed sequence of bits
 	ret := &DataManager{
-		nThread:              runtime.NumCPU(),
+		nThread:              defaultDownloadConnections(),
+		nUploadThread:        defaultUploadConnections,
 		captureTime:          time.Second * 15,
 		rateCaptureFrequency: time.Millisecond * 50,
 		Snapshot:             &Snapshot{},
 		repeatByte:           &r,
-		uploadMaxWorkers:     8,
 	}
 	ret.download = ret.NewDataDirection(typeDownload)
 	ret.upload = ret.NewDataDirection(typeUpload)
@@ -166,7 +166,7 @@ func (dm *DataManager) Wait() {
 }
 
 func (dm *DataManager) RegisterUploadHandler(fn func()) *TestDirection {
-	if len(dm.upload.fns) < dm.nThread {
+	if len(dm.upload.fns) < dm.nUploadThread {
 		dm.upload.Add(fn)
 	}
 	return dm.upload
@@ -204,8 +204,8 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 	}
 	mainLoadFactor := 0.1
 	workerLimit := td.manager.nThread
-	if td.TestType == typeUpload && td.manager.uploadMaxWorkers < workerLimit {
-		workerLimit = td.manager.uploadMaxWorkers
+	if td.TestType == typeUpload {
+		workerLimit = td.manager.nUploadThread
 	}
 	// When the number of processor cores is equivalent to the processing program,
 	// the processing efficiency reaches the highest level (VT is not considered).
@@ -223,27 +223,11 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 	wg := sync.WaitGroup{}
 	td.manager.running = true
 	stopCapture := td.rateCapture()
-	td.maxWorkers = int32(workerLimit)
-	initialWorkers := td.maxWorkers
-	if td.TestType == typeUpload {
-		if td.manager.uploadMaxWorkers <= 8 {
-			initialWorkers = int32(runtime.NumCPU())
-			if initialWorkers > td.maxWorkers {
-				initialWorkers = td.maxWorkers
-			}
-		}
-	}
-	atomic.StoreInt32(&td.activeWorkers, initialWorkers)
-	if td.TestType == typeUpload {
-		dbg.Printf("Upload workers: %d/%d\n", initialWorkers, td.maxWorkers)
-	}
-
 	// refresh once function
 	once := sync.Once{}
 	td.closeFunc = func() {
 		once.Do(func() {
-			stopCapture <- true
-			close(stopCapture)
+			stopCapture()
 			td.manager.runningRW.Lock()
 			td.manager.running = false
 			td.manager.runningRW.Unlock()
@@ -252,14 +236,10 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 		})
 	}
 
-	if td.TestType == typeUpload && td.maxWorkers > 1 {
-		go td.adaptUploadWorkers()
-	}
 	time.AfterFunc(td.manager.captureTime, td.closeFunc)
 	for i := 0; i < mainN; i++ {
 		wg.Add(1)
-		workerID := i
-		go td.runWorker(&wg, workerID, td.fns[mainRequestHandlerIndex])
+		go td.runWorker(&wg, td.fns[mainRequestHandlerIndex])
 	}
 	for j := 0; j < auxN; {
 		for i := range td.fns {
@@ -271,15 +251,14 @@ func (td *TestDirection) Start(cancel context.CancelFunc, mainRequestHandlerInde
 			}
 			wg.Add(1)
 			t := i
-			workerID := mainN + j
-			go td.runWorker(&wg, workerID, td.fns[t])
+			go td.runWorker(&wg, td.fns[t])
 			j++
 		}
 	}
 	wg.Wait()
 }
 
-func (td *TestDirection) runWorker(wg *sync.WaitGroup, workerID int, fn func()) {
+func (td *TestDirection) runWorker(wg *sync.WaitGroup, fn func()) {
 	defer wg.Done()
 	for {
 		td.manager.runningRW.RLock()
@@ -288,104 +267,37 @@ func (td *TestDirection) runWorker(wg *sync.WaitGroup, workerID int, fn func()) 
 		if !running {
 			return
 		}
-		if !td.workerEnabled(workerID) {
-			time.Sleep(time.Millisecond)
-			continue
-		}
 		fn()
 	}
 }
 
-func (td *TestDirection) workerEnabled(workerID int) bool {
-	if td.TestType != typeUpload {
-		return true
+const (
+	minCaptureTime = 4 * time.Second // the earliest a settled rate may end the test
+	settledWithin  = 0.01            // relative tolerance of a settled rate
+)
+
+// measuredBytes is the meter's input: bytes received for download, and for upload the bytes
+// the server's TCP stack has acknowledged, or confirmed request bytes where the platform does
+// not report acknowledgements.
+func (td *TestDirection) measuredBytes() int64 {
+	if td.TestType == typeUpload {
+		if acked, ok := td.acked.total(); ok {
+			return acked
+		}
 	}
-	return int32(workerID) < atomic.LoadInt32(&td.activeWorkers)
+	return td.GetTotalDataVolume()
 }
 
-func (td *TestDirection) adaptUploadWorkers() {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	previousConfirmed := td.GetTotalDataVolume()
-	previousAt := time.Now()
-	bestRate := 0.0
-	for range ticker.C {
-		td.manager.runningRW.RLock()
-		running := td.manager.running
-		td.manager.runningRW.RUnlock()
-		if !running {
-			return
-		}
-
-		now := time.Now()
-		confirmed := td.GetTotalDataVolume()
-		delta := confirmed - previousConfirmed
-		elapsed := now.Sub(previousAt).Seconds()
-		previousConfirmed = confirmed
-		previousAt = now
-		if delta <= 0 || elapsed <= 0 {
-			continue
-		}
-
-		rate := float64(delta) / elapsed
-		active := atomic.LoadInt32(&td.activeWorkers)
-		read := td.GetTotalReadVolume()
-		backlog := read - confirmed
-		confirmation := td.manager.GetUploadConfirmationRatio()
-		if bestRate == 0 || rate > bestRate*1.05 {
-			bestRate = rate
-			if active < td.maxWorkers {
-				active++
-				atomic.StoreInt32(&td.activeWorkers, active)
-				dbg.Printf("Upload workers: %d/%d (confirmed: %.2f MB/s, confirmation: %.1f%%, backlog: %.2f MB)\n", active, td.maxWorkers, rate/1000/1000, confirmation*100, float64(backlog)/1000/1000)
-			}
-			continue
-		}
-
-		if active > 1 && (rate < bestRate*0.85 || backlog > int64(active)*2*1024*1024) {
-			active = reducedUploadWorkerCount(active, rate, bestRate, backlog)
-			atomic.StoreInt32(&td.activeWorkers, active)
-			dbg.Printf("Upload workers: %d/%d (confirmed: %.2f MB/s, confirmation: %.1f%%, backlog: %.2f MB)\n", active, td.maxWorkers, rate/1000/1000, confirmation*100, float64(backlog)/1000/1000)
-			bestRate = rate
-		}
-	}
-}
-
-func reducedUploadWorkerCount(active int32, rate, bestRate float64, backlog int64) int32 {
-	if active <= 1 {
-		return 1
-	}
-
-	factor := 1.0
-	if bestRate > 0 && rate < bestRate*0.85 {
-		factor = math.Min(factor, rate/bestRate)
-	}
-	backlogLimit := int64(active) * 2 * 1024 * 1024
-	if backlog > backlogLimit {
-		factor = math.Min(factor, float64(backlogLimit)/float64(backlog))
-	}
-	if factor >= 1 {
-		return active - 1
-	}
-
-	target := int32(math.Ceil(float64(active) * factor))
-	if target >= active {
-		target = active - 1
-	}
-	if target < 1 {
-		return 1
-	}
-	return target
-}
-
-func (td *TestDirection) rateCapture() chan bool {
+func (td *TestDirection) rateCapture() func() {
 	ticker := time.NewTicker(td.manager.rateCaptureFrequency)
 	var prevTotalDataVolume int64 = 0
-	stopCapture := make(chan bool)
-	td.welford = internal.NewWelford(5*time.Second, td.manager.rateCaptureFrequency)
+	stopCapture := make(chan struct{})
+	captureStopped := make(chan struct{})
+	meter := &internal.Meter{}
 	sTime := time.Now()
 	go func(t *time.Ticker) {
 		defer t.Stop()
+		defer close(captureStopped)
 		for {
 			select {
 			case <-t.C:
@@ -395,29 +307,35 @@ func (td *TestDirection) rateCapture() chan bool {
 				if deltaDataVolume != 0 {
 					td.RateSequence = append(td.RateSequence, deltaDataVolume)
 				}
-				// anyway we update the measuring instrument
-				globalAvg := (float64(td.GetTotalDataVolume())) / float64(time.Since(sTime).Milliseconds()) * 1000
-				rateSample := float64(deltaDataVolume)
-				if td.TestType == typeUpload {
-					// Upload bytes are confirmed per completed request, so use the
-					// cumulative rate to avoid reporting a zero/spike sawtooth.
-					rateSample = globalAvg * td.manager.rateCaptureFrequency.Seconds()
-				}
-				if td.welford.Update(globalAvg, rateSample) {
+				elapsed := time.Since(sTime)
+				meter.Add(elapsed.Seconds(), td.measuredBytes())
+				rate := meter.Rate()
+				td.currentRate.Store(math.Float64bits(rate))
+				if elapsed >= minCaptureTime && meter.Settled(settledWithin) {
 					go td.closeFunc()
 				}
-				// reports the current rate at the given rate
 				if td.captureCallback != nil {
-					td.captureCallback(ByteRate(td.welford.EWMA()))
+					td.captureCallback(ByteRate(rate))
 				}
-			case stop := <-stopCapture:
-				if stop {
-					return
-				}
+			case <-stopCapture:
+				meter.Add(time.Since(sTime).Seconds(), td.measuredBytes())
+				td.finalRateValue = meter.Rate()
+				return
 			}
 		}
 	}(ticker)
-	return stopCapture
+	return func() {
+		close(stopCapture)
+		<-captureStopped
+	}
+}
+
+func (td *TestDirection) finalRate() float64 {
+	return td.finalRateValue
+}
+
+func (td *TestDirection) rate() float64 {
+	return math.Float64frombits(td.currentRate.Load())
 }
 
 func (dm *DataManager) NewChunk() Chunk {
@@ -441,12 +359,15 @@ func (dm *DataManager) GetTotalDownload() int64 {
 	return dm.download.GetTotalDataVolume()
 }
 
+// GetTotalUpload returns the upload bytes the server has received: the bytes its TCP stack
+// has acknowledged where the platform reports them, and otherwise the bytes confirmed by
+// successful upload responses.
 func (dm *DataManager) GetTotalUpload() int64 {
-	return dm.upload.GetTotalDataVolume()
+	return dm.upload.measuredBytes()
 }
 
-// GetUploadBacklog returns upload bytes read by the transport but not yet
-// confirmed by a successful upload response.
+// GetUploadBacklog returns upload bytes read by the transport that the server has not yet
+// received.
 func (dm *DataManager) GetUploadBacklog() int64 {
 	backlog := dm.upload.GetTotalReadVolume() - dm.GetTotalUpload()
 	if backlog < 0 {
@@ -455,9 +376,8 @@ func (dm *DataManager) GetUploadBacklog() int64 {
 	return backlog
 }
 
-// GetUploadConfirmationRatio returns server-confirmed upload bytes divided by
-// bytes read from upload request bodies. It is an application-level estimate,
-// not a TCP ACK counter.
+// GetUploadConfirmationRatio returns the upload bytes the server has received divided by
+// the bytes read from upload request bodies.
 func (dm *DataManager) GetUploadConfirmationRatio() float64 {
 	read := dm.upload.GetTotalReadVolume()
 	if read <= 0 {
@@ -486,13 +406,20 @@ func (dm *DataManager) SetCaptureTime(duration time.Duration) Manager {
 
 func (dm *DataManager) SetNThread(n int) Manager {
 	if n < 1 {
-		dm.nThread = runtime.NumCPU()
-		dm.uploadMaxWorkers = 8
+		dm.nThread, dm.nUploadThread = defaultDownloadConnections(), defaultUploadConnections
 	} else {
-		dm.nThread = n
-		dm.uploadMaxWorkers = n
+		dm.nThread, dm.nUploadThread = n, n
 	}
 	return dm
+}
+
+// The default connection counts keep the load public servers already see: download uses one
+// connection per CPU and upload uses 8. Far servers cap each connection's rate, so long links
+// fill only with more connections, which SetNThread allows.
+const defaultUploadConnections = 8
+
+func defaultDownloadConnections() int {
+	return runtime.NumCPU()
 }
 
 func (dm *DataManager) Snapshots() *Snapshots {
@@ -511,11 +438,10 @@ func (dm *DataManager) GetAvgDownloadRate() float64 {
 	return float64(dm.download.GetTotalDataVolume()*8/1000) / unit
 }
 
+// GetEWMADownloadRate returns the current download rate in bytes per second, measured over the last
+// two thirds of the test so far. The name predates the measurement, which is no longer an EWMA.
 func (dm *DataManager) GetEWMADownloadRate() float64 {
-	if dm.download.welford != nil {
-		return dm.download.welford.EWMA()
-	}
-	return 0
+	return dm.download.rate()
 }
 
 func (dm *DataManager) GetAvgUploadRate() float64 {
@@ -523,11 +449,10 @@ func (dm *DataManager) GetAvgUploadRate() float64 {
 	return float64(dm.upload.GetTotalDataVolume()*8/1000) / unit
 }
 
+// GetEWMAUploadRate returns the current upload rate in bytes per second, measured over the last
+// two thirds of the test so far. The name predates the measurement, which is no longer an EWMA.
 func (dm *DataManager) GetEWMAUploadRate() float64 {
-	if dm.upload.welford != nil {
-		return dm.upload.welford.EWMA()
-	}
-	return 0
+	return dm.upload.rate()
 }
 
 type DataChunk struct {

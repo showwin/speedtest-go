@@ -6,10 +6,17 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
 )
+
+// confirmedUpload returns the upload bytes confirmed by successful upload responses, which
+// GetTotalUpload reports only where the platform does not report acknowledged bytes.
+func confirmedUpload(s *Speedtest) int64 {
+	return s.Manager.(*DataManager).upload.GetTotalDataVolume()
+}
 
 func BenchmarkDataManager_NewDataChunk(b *testing.B) {
 	dmp := NewDataManager()
@@ -55,6 +62,36 @@ func TestDataManager_GetAvgDownloadRate(t *testing.T) {
 	}
 }
 
+func TestDataManager_FinalRateStopsBeforeCancellation(t *testing.T) {
+	const (
+		captureTime = 200 * time.Millisecond
+		perRequest  = int64(1_000) // one request a millisecond: about 1 MB/s
+		afterStop   = int64(1_000_000)
+	)
+	dm := NewDataManager()
+	dm.SetNThread(1)
+	dm.SetCaptureTime(captureTime)
+	dm.SetRateCaptureFrequency(5 * time.Millisecond)
+
+	var direction *TestDirection
+	direction = dm.RegisterDownloadHandler(func() {
+		direction.AddTotalDataVolume(perRequest)
+		time.Sleep(time.Millisecond)
+	})
+	direction.Start(func() {
+		direction.AddTotalDataVolume(afterStop)
+	}, 0)
+
+	got := direction.finalRate()
+	if got <= 0 {
+		t.Fatalf("final rate is %v, want a positive value", got)
+	}
+	// The cancellation bytes alone would add more than 7 MB/s to the last two thirds of the test.
+	if limit := 2 * float64(perRequest) / time.Millisecond.Seconds(); got > limit {
+		t.Fatalf("final rate is %v bytes/s, which includes bytes added after the stop boundary", got)
+	}
+}
+
 func TestDataManager_GetUploadConfirmationRatio(t *testing.T) {
 	dm := NewDataManager()
 	dm.upload.AddTotalReadVolume(2 * 1000 * 1000)
@@ -72,27 +109,18 @@ func TestDataManager_GetUploadConfirmationRatio(t *testing.T) {
 	}
 }
 
-func TestDataManager_UploadWorkerLimit(t *testing.T) {
+func TestDataManager_ConnectionLimit(t *testing.T) {
 	dm := NewDataManager()
 	dm.SetNThread(12)
-	if dm.uploadMaxWorkers != 12 {
-		t.Fatalf("explicit worker limit was capped at %d", dm.uploadMaxWorkers)
+	if dm.nThread != 12 || dm.nUploadThread != 12 {
+		t.Fatalf("explicit connection limits are %d and %d, want 12", dm.nThread, dm.nUploadThread)
 	}
 	dm.SetNThread(0)
-	if dm.uploadMaxWorkers != 8 {
-		t.Fatalf("default worker limit is %d, want 8", dm.uploadMaxWorkers)
+	if want := runtime.NumCPU(); dm.nThread != want {
+		t.Fatalf("default download connections are %d, want %d", dm.nThread, want)
 	}
-}
-
-func TestReducedUploadWorkerCount(t *testing.T) {
-	if got := reducedUploadWorkerCount(10, 0.5, 1, 0); got != 5 {
-		t.Fatalf("got %d workers after a 50%% rate drop, want 5", got)
-	}
-	if got := reducedUploadWorkerCount(10, 0.9, 1, 0); got != 9 {
-		t.Fatalf("got %d workers after a mild rate drop, want 9", got)
-	}
-	if got := reducedUploadWorkerCount(2, 0.5, 1, 0); got != 1 {
-		t.Fatalf("got %d workers at the minimum, want 1", got)
+	if dm.nUploadThread != 8 {
+		t.Fatalf("default upload connections are %d, want 8", dm.nUploadThread)
 	}
 }
 
@@ -113,7 +141,7 @@ func TestUploadRequestCountsOnlyConfirmedUploads(t *testing.T) {
 	}
 
 	want := int64(ulSizes[0]*100-51) * 10
-	if got := client.GetTotalUpload(); got != want {
+	if got := confirmedUpload(client); got != want {
 		t.Fatalf("counted %d bytes, want %d", got, want)
 	}
 }
@@ -157,7 +185,7 @@ func TestResolveUploadURLFollowsTemporaryRedirect(t *testing.T) {
 	if received != want {
 		t.Fatalf("resolved endpoint received %d bytes, want %d", received, want)
 	}
-	if got := client.GetTotalUpload(); got != want {
+	if got := confirmedUpload(client); got != want {
 		t.Fatalf("counted %d upload bytes, want %d", got, want)
 	}
 }
@@ -174,7 +202,7 @@ func TestUploadRequestDoesNotCountRejectedUploads(t *testing.T) {
 	if err := uploadRequest(context.Background(), target, 0); err == nil {
 		t.Fatal("expected upload request to fail")
 	}
-	if got := client.GetTotalUpload(); got != 0 {
+	if got := confirmedUpload(client); got != 0 {
 		t.Fatalf("counted %d bytes for a rejected upload", got)
 	}
 }
